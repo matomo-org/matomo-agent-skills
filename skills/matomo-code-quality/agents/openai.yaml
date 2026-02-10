@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Code Quality"
+  short_description: "Run PHPStan/PHPCS/PHPCBF with Matomo ddev rules"
+  default_prompt: "Use $matomo-code-quality to run Matomo PHP static analysis and style checks/fixes with the correct ddev command forms."
