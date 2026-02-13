@@ -5,6 +5,7 @@
 1. `matomo-code-quality`
 - Runs Matomo PHP static analysis and style checks/fixes using `ddev`.
 - PHPStan policy: required default pass plus advisory level-9 pass filtered to changed lines.
+- Advisory level-9 pass is skipped when the selected default PHPStan config level is already 9.
 - Level-9 results are reported per file with each violation listed (not summary-only).
 - Level-9 workflow uses per-run temporary files to avoid collisions across parallel agents.
 - Optional PHPStan level-9 fixes are BC-safe suggestions only and require explicit confirmation before apply.

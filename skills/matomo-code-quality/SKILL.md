@@ -19,6 +19,7 @@ PHPStan uses a two-pass policy:
 
 1. Default PHPStan pass is required and blocking.
 2. PHPStan level 9 pass is non-blocking and advisory, filtered to changed lines only.
+3. If effective default PHPStan level is already 9, skip pass 2.
 
 ## Rules
 
@@ -30,6 +31,7 @@ PHPStan uses a two-pass policy:
 6. Never auto-apply PHPStan level 9 suggestions; ask for explicit confirmation first.
 7. Never suggest or apply a change that touches files outside the already changed file set.
 8. Default PHPStan must pass before the task is considered complete.
+9. Skip advisory pass 2 when the selected default config level is already 9.
 
 ## Changed File Scope
 
@@ -64,9 +66,17 @@ Behavior:
 - Plugin-specific config, when target is under `plugins/<Plugin>/` and `plugins/<Plugin>/phpstan.neon` exists:
   - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon <path>`
 - If this pass fails, stop and report required fixes.
+- Detect whether pass 2 should be skipped:
+  - Plugin config run:
+    - `PHPSTAN_DEFAULT_LEVEL="$(rg -o --replace '$1' '^[[:space:]]*level:[[:space:]]*([0-9]+)[[:space:]]*$' plugins/<Plugin>/phpstan.neon | tail -n1)"`
+  - Root/default config run:
+    - `PHPSTAN_DEFAULT_CONFIG="$( [ -f phpstan.neon ] && echo phpstan.neon || { [ -f phpstan.neon.dist ] && echo phpstan.neon.dist; } )"`
+    - `PHPSTAN_DEFAULT_LEVEL="$( [ -n "$PHPSTAN_DEFAULT_CONFIG" ] && rg -o --replace '$1' '^[[:space:]]*level:[[:space:]]*([0-9]+)[[:space:]]*$' "$PHPSTAN_DEFAULT_CONFIG" | tail -n1 )"`
+  - Skip pass 2 when `PHPSTAN_DEFAULT_LEVEL=9`.
 
 #### Pass 2 (Advisory): Level 9 on Relevant Changed PHP Files
 
+- Run this pass only when default level is not already 9.
 - Build the changed PHP file list from `$CHANGED_PHP_JSON`:
   - `python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))"`
 - Reuse the same config selection from pass 1 and add `--level=9` to override configured default level:
@@ -98,6 +108,7 @@ When a requested file/path is under `plugins/<Plugin>/`:
 2. If `plugins/<Plugin>/phpcs.xml` exists, use plugin PHPCS/PHPCBF `--standard` form.
 3. If config file is missing, fall back to root/default commands.
 4. Pass 2 must reuse the same PHPStan configuration chosen in pass 1 and only add `--level=9`.
+5. If selected default config level is 9, skip pass 2 because it cannot add findings beyond pass 1.
 
 ## Suggestion Policy for Level 9 Findings
 
@@ -125,6 +136,7 @@ If scripts cannot be used, fallback to command-only collection and manual change
   - If merge base exists: `git diff --name-only <merge_base>..HEAD -- '*.php'`
 2. Run level 9 JSON output for the union file list.
   - Reuse pass 1 config selection and only add `--level=9`.
+  - Skip this step when selected default config level is 9.
 3. Compare finding lines against hunk additions from `git diff -U0` for the same scopes.
 4. Only keep changed-line findings for advisory suggestions.
 5. When reporting findings, always group by file and list each violation under that file.
