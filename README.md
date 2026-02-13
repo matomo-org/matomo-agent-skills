@@ -4,6 +4,10 @@
 
 1. `matomo-code-quality`
 - Runs Matomo PHP static analysis and style checks/fixes using `ddev`.
+- PHPStan policy: required default pass plus advisory level-9 pass filtered to changed lines.
+- Level-9 results are reported per file with each violation listed (not summary-only).
+- Level-9 workflow uses per-run temporary files to avoid collisions across parallel agents.
+- Optional PHPStan level-9 fixes are BC-safe suggestions only and require explicit confirmation before apply.
 - Primary tools: `phpstan`, `phpcbf`, `phpcs`.
 - Also covers PHPStan baseline-noise handling and targeted PHPCS suppression guidance.
 - Use when analyzing PHP issues or fixing coding style violations in Matomo core/plugins.
