@@ -10,6 +10,10 @@
 - Runs Matomo PHP and UI tests via `ddev matomo:console`.
 - Primary tools: `tests:run`, `tests:run-ui`.
 - Use when running plugin tests, suite/file-scoped tests, or UI specs.
+3. `matomo-vue-development-rules`
+- Applies Matomo Vue development guardrails for plugin Vue source changes.
+- Primary tools: `vue:build`, `vue:build-polyfill`.
+- Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
 
 ## Install Skills with Codex CLI
 
