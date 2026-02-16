@@ -10,6 +10,10 @@
 - Runs Matomo PHP and UI tests via `ddev matomo:console`.
 - Primary tools: `tests:run`, `tests:run-ui`.
 - Use when running plugin tests, suite/file-scoped tests, or UI specs.
+3. `matomo-i18n-development-rules`
+- Applies Matomo i18n development rules for translation key placement, reuse, and safe key lifecycle changes.
+- Enforces placeholder, naming, ordering, and translation-text HTML constraints.
+- Covers non-English translation file editing policy, including Weblate-managed and Intl exceptions.
 
 ## Install Skills with Codex CLI
 
