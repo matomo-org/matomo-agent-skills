@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo i18n Development Rules"
+  short_description: "Apply Matomo translation key and translation-file change rules"
+  default_prompt: "Use $matomo-i18n-development-rules to validate or propose Matomo i18n key placement, key reuse, placeholder safety, and non-English translation file policy decisions."
