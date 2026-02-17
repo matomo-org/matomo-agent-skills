@@ -8,6 +8,7 @@
 - Advisory level-9 pass is skipped when the selected default PHPStan config level is already 9.
 - Level-9 results are reported per file with each violation listed (not summary-only).
 - Level-9 workflow uses per-run temporary files to avoid collisions across parallel agents.
+- `ddev` commands are executed as standalone command segments to align with approval-prefix matching.
 - Optional PHPStan level-9 fixes are BC-safe suggestions only and require explicit confirmation before apply.
 - Primary tools: `phpstan`, `phpcbf`, `phpcs`.
 - Also covers PHPStan baseline-noise handling and targeted PHPCS suppression guidance.

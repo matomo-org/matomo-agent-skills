@@ -32,6 +32,15 @@ PHPStan uses a two-pass policy:
 7. Never suggest or apply a change that touches files outside the already changed file set.
 8. Default PHPStan must pass before the task is considered complete.
 9. Skip advisory pass 2 when the selected default config level is already 9.
+10. Run every `ddev` invocation as its own standalone command segment.
+11. Do not chain `ddev` with `&&`, `||`, pipes, or semicolon-separated command chains.
+12. Do not wrap `ddev` inside shell wrappers like `/bin/bash -lc "<chain>"`.
+13. Do not inline env assignments in front of `ddev`; set variables first, then run a `ddev ...` command that starts with `ddev`.
+
+## Approval Compatibility
+
+Approval prefix matching can fail when `ddev` appears later in a chained command segment.
+To avoid unnecessary escalation prompts, keep setup/post-processing commands separate and run each `ddev` command on its own line.
 
 ## Changed File Scope
 
@@ -78,12 +87,12 @@ Behavior:
 
 - Run this pass only when default level is not already 9.
 - Build the changed PHP file list from `$CHANGED_PHP_JSON`:
-  - `python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))"`
+  - `PHPSTAN_L9_TARGETS="$(python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))")"`
 - Reuse the same config selection from pass 1 and add `--level=9` to override configured default level:
   - Root/default config:
-    - `ddev composer phpstan -- --level=9 --error-format=json $(python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))") > "$PHPSTAN_L9_JSON"`
+    - `ddev composer phpstan -- --level=9 --error-format=json $PHPSTAN_L9_TARGETS > "$PHPSTAN_L9_JSON"`
   - Plugin config (`plugins/<Plugin>/phpstan.neon`):
-    - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon --level=9 --error-format=json $(python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))") > "$PHPSTAN_L9_JSON"`
+    - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon --level=9 --error-format=json $PHPSTAN_L9_TARGETS > "$PHPSTAN_L9_JSON"`
 - Filter to changed lines only:
   - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" > "$PHPSTAN_L9_FILTERED_JSON"`
 - Generate per-file violation report (required for user-facing output):
