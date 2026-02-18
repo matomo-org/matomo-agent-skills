@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Vue Development Rules"
+  short_description: "Run plugin-scoped Matomo Vue builds, handle lint-first rebuilds, and rebuild CoreVue polyfills when needed"
+  default_prompt: "Use $matomo-vue-development-rules when working on Matomo Vue source changes: keep Vue code under plugins/<Plugin>/vue/src with index.ts exports, avoid cross-plugin ../vue/src imports, run ddev matomo:console vue:build with explicit plugin names only (never all plugins), fix lint issues before rebuild retries, and run ddev matomo:console vue:build-polyfill when CoreVue polyfills change."

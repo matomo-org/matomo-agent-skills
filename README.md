@@ -14,6 +14,11 @@
 - Applies Matomo i18n development rules for translation key placement, reuse, and safe key lifecycle changes.
 - Enforces placeholder, naming, ordering, and translation-text HTML constraints.
 - Covers non-English translation file editing policy, including Weblate-managed and Intl exceptions.
+4. `matomo-vue-development-rules`
+- Applies Matomo Vue development guardrails for plugin Vue source changes.
+- Primary tools: `vue:build`, `vue:build-polyfill`.
+- Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
+
 
 ## Install Skills with Codex CLI
 
