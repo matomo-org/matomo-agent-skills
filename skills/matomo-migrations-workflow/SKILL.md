@@ -27,6 +27,30 @@ Prefer deterministic routing and idempotent migrations.
 - Legacy fallback: plugin class `getInformation()['version']`.
 3. If marker and update-file versions differ, updater can skip the file.
 
+## Core Install Schema Synchronization Rules
+
+1. When a migration changes a core table definition (columns, indexes, types, collation), update install schema definitions in the same PR.
+2. The current install SQL source of truth is `Mysql::getTablesCreateSql()` in `core/Db/Schema/Mysql.php`.
+3. Do not rely on migrations alone for these changes, since fresh installs need the correct schema directly.
+4. Ensure upgrade path and fresh install path converge to the same final schema.
+
+## Update File Immutability Rules
+
+1. Treat update files as append-only history.
+2. Do not edit an update file that already exists on latest `5.x-dev`.
+3. If logic must change, create a new update file with a new version.
+4. Exception: editing is allowed if the update file was recently added on the current feature branch and is not present on `5.x-dev`.
+5. Exception: editing is allowed with explicit maintainer instruction.
+6. When using an exception, include a short PR note explaining why editing the existing file is intended and safe.
+
+### Check Whether File Exists On `5.x-dev`
+
+- Check file on `5.x-dev` directly:
+  - `git show origin/5.x-dev:<path-to-update-file>`
+- Check branch-only history for a file:
+  - `git log --oneline --decorate -- <path-to-update-file>`
+- If file exists on `origin/5.x-dev`, do not edit it by default.
+
 ## Command Selection
 
 ### Create Update File
@@ -37,6 +61,7 @@ Prefer deterministic routing and idempotent migrations.
 - Plugin:
   - Bump plugin version metadata first.
   - Run: `ddev matomo:console generate:update --component=<Plugin>`
+- If an older update file seems wrong, do not patch it directly; generate a new update file unless an immutability exception applies.
 
 ### Preview / Execute Updates
 
@@ -58,6 +83,7 @@ Prefer deterministic routing and idempotent migrations.
 8. For large data rewrites, process in chunks.
 9. Use narrowly scoped ignored DB error codes only for known benign states.
 10. Idempotent SQL no-ops are acceptable; prioritize guarding non-idempotent or high-impact operations.
+11. For core table definition changes, keep `core/Updates/*.php` and `core/Db/Schema/Mysql.php` synchronized.
 
 ## Avoid Unneeded Migrations
 
@@ -89,6 +115,7 @@ Prefer deterministic routing and idempotent migrations.
 ## Special Cases
 
 1. If an update appears skipped after branch/version moves, verify component version markers first, then rerun `core:update`.
+2. Before merge, verify migration target state matches `Mysql::getTablesCreateSql()` definitions.
 
 ## Examples
 
