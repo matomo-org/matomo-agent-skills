@@ -18,6 +18,10 @@
 - Applies Matomo Vue development guardrails for plugin Vue source changes.
 - Primary tools: `vue:build`, `vue:build-polyfill`.
 - Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
+5. `matomo-archiving-knowledge`
+- Builds and maintains source-cited knowledge of Matomo archiving internals.
+- Covers entrypoints (including default browser-triggered archiving), record builders, invalidation/freshness, segments, locking/concurrency, archive data model, DataTable/blob internals, and performance hotspots (including costly segment-shape examples).
+- Includes reusable investigator workflow and prompts for archiving deep-dives.
 
 
 ## Install Skills with Codex CLI
