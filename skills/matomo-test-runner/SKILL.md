@@ -13,7 +13,7 @@ Use this skill for Matomo automated test execution.
 
 1. Use `ddev matomo:console tests:run` for PHP tests.
 2. Use `ddev matomo:console tests:run-ui` for UI tests.
-3. Use `ddev matomo:console tests:run-vue` for Vue Component tests. 
+3. Use `ddev matomo:console tests:run-vue` for Vue Component tests.
 4. If request is vague like "run tests for <Plugin>", default to full plugin tests.
 
 ## Command Selection
@@ -40,8 +40,8 @@ Use this skill for Matomo automated test execution.
 
 ## Routing Logic
 
-With `Vue/Jest` signals = vue, jest, component
-and `UI` signals = ui, screenshot,puppeteer
+With `Vue/Jest` signals = "vue, jest, component"
+and `UI` signals = "ui, screenshot, puppeteer"
 
 1. If request mentions spec:
    - If it also mentions `Vue/Jest` signals use `tests:run-vue`
@@ -49,6 +49,7 @@ and `UI` signals = ui, screenshot,puppeteer
    - else use path hints (first match wins):
      - If path contains `plugins/<Plugin>/vue/`, `plugins/<Plugin>/vue/src/`, use `tests:run-vue`
      - If path contains `plugins/<Plugin>/tests/UI/`, use `tests:run-ui`
+   - else default spec requests to `tests:run-ui`
 2. If no mention of spec
    - `Vue/Jest` signals use `tests:run-vue`
    - `UI` signals use `tests:run-ui`
