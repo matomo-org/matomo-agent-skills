@@ -1,4 +1,4 @@
 interface:
   display_name: "Matomo Test Runner"
-  short_description: "Run Matomo PHP and UI tests via ddev console"
-  default_prompt: "Use $matomo-test-runner to run Matomo plugin tests, suite/file-scoped tests, or UI specs with the proper ddev command."
+  short_description: "Run Matomo PHP, UI and Vue tests via ddev console"
+  default_prompt: "Use $matomo-test-runner to run Matomo plugin tests, suite/file-scoped tests, UI specs, or Vue/Jest specs with the proper ddev command."

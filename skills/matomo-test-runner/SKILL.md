@@ -1,6 +1,6 @@
 ---
 name: matomo-test-runner
-description: Run Matomo PHP and UI tests using ddev matomo:console commands. Use this skill when asked to run plugin tests, specific test suites/files, or UI specs.
+description: Run Matomo PHP, UI and Vue/Jest tests using ddev matomo:console commands. Use this skill when asked to run plugin tests, specific test suites/files, UI or Vue/Jest specs.
 ---
 
 # Matomo Test Runner
@@ -13,7 +13,8 @@ Use this skill for Matomo automated test execution.
 
 1. Use `ddev matomo:console tests:run` for PHP tests.
 2. Use `ddev matomo:console tests:run-ui` for UI tests.
-3. If request is vague like "run tests for <Plugin>", default to full plugin tests.
+3. Use `ddev matomo:console tests:run-vue` for Vue Component tests.
+4. If request is vague like "run tests for <Plugin>", default to full plugin tests.
 
 ## Command Selection
 
@@ -31,11 +32,33 @@ Use this skill for Matomo automated test execution.
 - Single UI spec by filename or describe name:
   - `ddev matomo:console tests:run-ui <SpecName>`
 
+### Vue Component Tests
+- Full plugin tests
+  - `ddev matomo:console tests:run-vue --plugin=<PluginName>`
+- Single Jest or Vue Component test spec
+  - `ddev matomo:console tests:run-vue <SpecName>`
+
 ## Routing Logic
 
-1. If request mentions UI tests/spec/describe, use `tests:run-ui`.
-2. Otherwise use `tests:run`.
-3. If both testsuite and file are provided, prioritize `--file` and ignore testsuite.
+With `Vue/Jest` signals = "vue, jest, component"
+and `UI` signals = "ui, screenshot, puppeteer"
+
+1. If request mentions spec:
+   - If it also mentions `Vue/Jest` signals use `tests:run-vue`
+   - else If it also mentions `UI` signals use `tests:run-ui`
+   - else use path hints (first match wins):
+     - If path contains `plugins/<Plugin>/vue/`, `plugins/<Plugin>/vue/src/`, use `tests:run-vue`
+     - If path contains `plugins/<Plugin>/tests/UI/`, use `tests:run-ui`
+   - else default spec requests to `tests:run-ui`
+2. If no mention of spec
+   - `Vue/Jest` signals use `tests:run-vue`
+   - `UI` signals use `tests:run-ui`
+   - If both signal groups match, prefer `tests:run-vue`
+   - else use path hints (first match wins):
+     - If path contains `plugins/<Plugin>/vue/`, `plugins/<Plugin>/vue/src/`, use `tests:run-vue`
+     - If path contains `plugins/<Plugin>/tests/UI/`, use `tests:run-ui`
+3. Otherwise use `tests:run`.
+4. If both testsuite and file are provided, prioritize `--file` and ignore testsuite.
 
 ## Examples
 
@@ -47,3 +70,7 @@ Use this skill for Matomo automated test execution.
   - `ddev matomo:console tests:run --file=plugins/MyPlugin/tests/Unit/MyUnitTest.php`
 - "Run UI spec VisitsOverview"
   - `ddev matomo:console tests:run-ui VisitsOverview`
+- "Run Jest tests for plugin ScheduledReports"
+  - `ddev matomo:console tests:run-vue --plugin=ScheduledReports`
+- "Run tests for Vue component spec PeriodOptions"
+  - `ddev matomo:console tests:run-vue PeriodOptions`

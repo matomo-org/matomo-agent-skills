@@ -7,9 +7,9 @@
 - Primary tools: `phpstan`, `phpcbf`, `phpcs`.
 - Use when analyzing PHP issues or fixing coding style violations in Matomo core/plugins.
 2. `matomo-test-runner`
-- Runs Matomo PHP and UI tests via `ddev matomo:console`.
-- Primary tools: `tests:run`, `tests:run-ui`.
-- Use when running plugin tests, suite/file-scoped tests, or UI specs.
+- Runs Matomo PHP UI and Vue/Jest tests via `ddev matomo:console`.
+- Primary tools: `tests:run`, `tests:run-ui`, `tests:run-vue`.
+- Use when running plugin tests, suite/file-scoped tests, UI specs or Vue/Jest specs.
 3. `matomo-i18n-development-rules`
 - Applies Matomo i18n development rules for translation key placement, reuse, and safe key lifecycle changes.
 - Enforces placeholder, naming, ordering, and translation-text HTML constraints.
