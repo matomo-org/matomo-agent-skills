@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo PHP Documentation"
+  short_description: "Create and update Matomo PHP documentation codeblocks"
+  default_prompt: "Use $matomo-php-documentation to work on Matomo PHP documentation codeblocks."
