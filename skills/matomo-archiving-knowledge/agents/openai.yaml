@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Archiving Knowledge"
+  short_description: "Investigate and maintain source-cited Matomo archiving internals"
+  default_prompt: "Use $matomo-archiving-knowledge to trace Matomo archiving internals with an evidence-backed call chain, diagram, file references, and explicit unknowns."

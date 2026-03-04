@@ -22,6 +22,10 @@
 - Plans and validates Matomo core/plugin update migrations (`Updates/*.php`) with strict execution preconditions.
 - Primary tools: `generate:update`, `core:update`.
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps.
+6. `matomo-archiving-knowledge`
+- Builds and maintains source-cited knowledge of Matomo archiving internals.
+- Covers entrypoints (including default browser-triggered archiving), record builders, invalidation/freshness, segments, locking/concurrency, archive data model, DataTable/blob internals, and performance hotspots (including costly segment-shape examples).
+- Includes reusable investigator workflow and prompts for archiving deep-dives.
 
 
 ## Install Skills with Codex CLI
