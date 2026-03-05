@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Documentation"
+  short_description: "Create and update Matomo code documentation, including API PHPDoc"
+  default_prompt: "Use $matomo-documentation to work on Matomo code documentation; apply API-specific rules when files are API-related."
