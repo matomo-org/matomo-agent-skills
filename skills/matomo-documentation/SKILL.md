@@ -52,21 +52,21 @@ Every documented method must have PHPDoc immediately above it.
 ## API File-Specific Rules
 When working with API.php files, extra rules apply:
 1. File summary
-    - Include a summary of the class at the top of the file.
-        - First line should be API for plugin {pluginName}
-        - Then a summary that details what the methods in the API class do
-        - Include a getInstance @method tag ```@method static \Piwik\Plugins\Events\API getInstance()```
+   - Include a summary of the class at the top of the file.
+       - First line should be API for plugin {pluginName}
+       - Then a summary that details what the methods in the API class do
+       - Include a getInstance @method tag ```@method static \Piwik\Plugins\Events\API getInstance()```
 
-   Example:
-    ```/**
-     * API for plugin RollUpReporting.
-     *
-     * Exposes endpoints to create, update, and list roll-up sites, including their
-     * source site mappings, timezone, and currency.
-     *
-     * @method static \Piwik\Plugins\RollUpReporting\API getInstance()
-     */
-    ```
+      Example:
+     ```/**
+      * API for plugin RollUpReporting.
+      *
+      * Exposes endpoints to create, update, and list roll-up sites, including their
+      * source site mappings, timezone, and currency.
+      *
+      * @method static \Piwik\Plugins\RollUpReporting\API getInstance()
+      */
+     ```
 
 
 
@@ -100,10 +100,7 @@ Use these as mandatory defaults for matching parameters.
 ### \$idSite and \$idSites
 
 - ```$idSite``` and ```$idSites``` are effectively the same parameter, and should follow the same rules.
-
 - Use this when a single numeric site ID is accepted
-- Common usages (not limited to):
-  - 
 ```php
 @param int $idSite The numeric ID of the website to query.
 ```
