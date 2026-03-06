@@ -20,7 +20,7 @@ Use this skill when the task involves one or more of:
 
 ## Method Docblock Rules
 
-Every documented method must have PHPDoc immediately above it.
+Every public method must have PHPDoc immediately above it.
 
 1. Summary line (two sentences max).
    - Keep existing summary if it already exists, don't re-write summaries. 
@@ -115,7 +115,7 @@ Use these as mandatory defaults for matching parameters.
                          - Comma-separated list ("1,4,5") or "all"
 ```
 
-- Use when method uses selectors as a string
+- Use when method uses selectors as a string or an array of strings
 - Common usages (not limited to):
   - ```\Piwik\Site::getIdSitesFromIdSitesString```
 ```php
