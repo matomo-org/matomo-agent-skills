@@ -58,7 +58,8 @@ When working with API.php files, extra rules apply:
        - Include a getInstance @method tag ```@method static \Piwik\Plugins\Events\API getInstance()```
 
       Example:
-     ```/**
+     ```
+     /**
       * API for plugin RollUpReporting.
       *
       * Exposes endpoints to create, update, and list roll-up sites, including their
