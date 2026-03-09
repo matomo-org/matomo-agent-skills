@@ -60,7 +60,7 @@ When working with API.php files, extra rules apply:
       Example:
      ```
      /**
-      * API for plugin RollUpReporting.
+      * API for plugin ExamplePlugin.
       *
       * Exposes endpoints to create, update, and list roll-up sites, including their
       * source site mappings, timezone, and currency.
