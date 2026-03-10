@@ -29,10 +29,9 @@ Every public method must have PHPDoc immediately above it.
    - Keep parameter order identical to method signature.
    - Use accurate and specific types.
    - Use specific array shapes when applicable.
+     - If documenting a non-API method, add two annotations: 
+       - Basic array type with `@param` and a specific array shape with `@phpstan-param`
    - Add examples only when confidently derived from code behavior.
-   - If a parameter has a default of false, document this as null
-     - e.g. ```foo($bar = false) -> @param string|null $bar```
-     - This is a hard rule that should not be ignored based on inference. The only time it can be ignored, is if the param is a boolean (accepts true & false).
 3. `@return` tag.
     - Use specific return type.
     - Use array shapes when applicable.
@@ -62,10 +61,8 @@ When working with API.php files, extra rules apply:
      /**
       * API for plugin ExamplePlugin.
       *
-      * Exposes endpoints to create, update, and list roll-up sites, including their
-      * source site mappings, timezone, and currency.
-      *
-      * @method static \Piwik\Plugins\RollUpReporting\API getInstance()
+      * Exposes endpoints to create, read and update and delete examples 
+      * Another line of examples
       */
      ```
 
