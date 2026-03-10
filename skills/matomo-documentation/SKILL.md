@@ -54,7 +54,6 @@ When working with API.php files, extra rules apply:
    - Include a summary of the class at the top of the file.
        - First line should be API for plugin {pluginName}
        - Then a summary that details what the methods in the API class do
-       - Include a getInstance @method tag ```@method static \Piwik\Plugins\Events\API getInstance()```
 
       Example:
      ```
