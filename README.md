@@ -22,6 +22,9 @@
 - Plans and validates Matomo core/plugin update migrations (`Updates/*.php`) with strict execution preconditions.
 - Primary tools: `generate:update`, `core:update`.
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps.
+6. `matomo-documentation`
+- Creates and updates Matomo code documentation.
+- Use when working on code docblocks.
 
 
 ## Install Skills with Codex CLI
