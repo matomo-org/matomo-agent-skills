@@ -17,7 +17,7 @@
 4. `matomo-vue-development-rules`
 - Applies Matomo Vue development guardrails for plugin Vue source changes.
 - Primary tools: `vue:build`, `vue:build-polyfill`.
-- Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
+- Use when enforcing Vue component names for new/modified `.vue` files (filename-derived defaults, including minimal-churn edit exceptions), deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
 5. `matomo-migrations-workflow`
 - Plans and validates Matomo core/plugin update migrations (`Updates/*.php`) with strict execution preconditions.
 - Primary tools: `generate:update`, `core:update`.

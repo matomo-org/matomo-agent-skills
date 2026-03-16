@@ -1,4 +1,10 @@
 interface:
   display_name: "Matomo Vue Development Rules"
-  short_description: "Run plugin-scoped Matomo Vue builds, handle lint-first rebuilds, and rebuild CoreVue polyfills when needed"
-  default_prompt: "Use $matomo-vue-development-rules when working on Matomo Vue source changes: keep Vue code under plugins/<Plugin>/vue/src with index.ts exports, avoid cross-plugin ../vue/src imports, run ddev matomo:console vue:build with explicit plugin names only (never all plugins), fix lint issues before rebuild retries, and run ddev matomo:console vue:build-polyfill when CoreVue polyfills change."
+  short_description: "Run plugin-scoped Matomo Vue builds with lint-first retries, CoreVue polyfill rebuilds and enforce Vue component naming"
+  default_prompt: >-
+    Use $matomo-vue-development-rules for changes in plugins/<Plugin>/vue/src.
+    Keep Vue source in that path with exports in index.ts, and avoid cross-plugin ../vue/src imports.
+    For every created/modified .vue file, ensure a component name exists (keep existing; otherwise derive PascalCase from filename, or parent dir for index.vue).
+    Use defineOptions({ name }) in <script setup> or name in export default (Options API), without duplicates.
+    Run ddev matomo:console vue:build only for explicit plugin names only (never for all plugins); if lint fails, fix them and re-run command again.
+    If plugins/CoreVue/polyfills/** changed, run ddev matomo:console vue:build-polyfill.
