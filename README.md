@@ -23,8 +23,8 @@
 - Primary tools: `generate:update`, `core:update`.
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps.
 6. `matomo-documentation`
-- Creates and updates Matomo code documentation.
-- Use when working on code docblocks.
+- Creates and updates Matomo PHPDoc, especially for public API methods.
+- Use when working on Matomo docblocks, public API method documentation, parameter docs, or removing `@throws` tags from touched method docblocks.
 
 
 ## Install Skills with Codex CLI
