@@ -20,7 +20,7 @@ Use this skill when the task involves one or more of:
 
 ## Method Docblock Rules
 
-Public API methods must have PHPDoc immediately above them. Protected and private methods do not need PHPDoc by default.
+Public API methods must have PHPDoc immediately above them. Protected and private methods do not need descriptive docblocks by default, but minimal type-only PHPDoc should be added when native types are missing or too broad.
 
 1. Scope.
    - Apply the hard requirement only to externally callable public methods in `plugins/*/API.php`.
@@ -28,6 +28,7 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Do not add docblocks to protected or private methods unless the task explicitly asks for internal documentation.
    - Do not add docblocks to constructors or internal helpers by default.
    - Incorrect existing docblocks must always be fixed, including on internal, protected, and private methods.
+   - For internal or non-public methods, if native types fully cover the contract, prefer removing a stale or redundant docblock over rewriting it into another redundant docblock.
 2. Validate existing docblocks.
    - Treat existing docblocks as claims to verify, not as a source of truth.
    - Trust code over docblocks when they disagree.
@@ -56,9 +57,9 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Use array shapes and `@phpstan-param` only when the array structure is stable, important to callers, and can be derived confidently from code.
    - Add examples only when confidently derived from code behavior.
 6. `@return` tag.
-   - Use a specific return type when the return contract is not already obvious from the signature.
-   - Every public API method must have an `@return` tag.
-   - Every public API `@return` tag must include descriptive text.
+   - For public API methods, every method must have an `@return` tag.
+   - For public API methods, every `@return` tag must include descriptive text.
+   - For public API methods, use a specific return type that reflects the public contract.
    - For internal or non-public methods, add or fix minimal `@return` tags when native return types are missing or too broad.
    - For internal or non-public methods, do not add return descriptions just because the docblock is being updated.
    - For internal or non-public methods, simplify or remove stale or trivial return prose instead of rewriting it into fuller prose.
@@ -96,19 +97,14 @@ When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
 
 For non-plugin `API.php` files, apply only the general PHPDoc rules above.
 
+## Public API Templates
 
-
-## Common Parameter Templates
-
-Use these as common templates. The final type and description must match the actual accepted public input in the code.
+Use these descriptive templates for public API methods only. The final type and description must match the actual accepted public input in the code.
 
 - Determine the final parameter contract by inspecting the method signature and how the value is normalized or consumed.
 - Validate any existing parameter documentation against the code before reusing it.
-- Use these descriptive templates for public API methods only.
 - For public API methods, document request-facing inputs, not broader internal PHP flexibility.
 - For public API methods, always include parameter descriptions, even for straightforward parameters.
-- For non-public methods, add or fix type-only tags when native types are missing or too broad.
-- For non-public methods, add parameter descriptions only when they add useful information.
 
 ### \$date
 
@@ -118,11 +114,6 @@ Use these as common templates. The final type and description must match the act
 @param string $date The date or date range to process.
                     'YYYY-MM-DD', magic keywords (today, yesterday, lastWeek, lastMonth, lastYear),
                     or date range (ie, 'YYYY-MM-DD,YYYY-MM-DD', lastX, previousX).
-```
-
-- For internal or non-public methods that are explicitly being documented, use the real implementation type if it truly accepts both strings and `Date`.
-```php
-@param Date|string $date
 ```
 
 ### \$idSite and \$idSites
@@ -163,6 +154,23 @@ Use these as common templates. The final type and description must match the act
 @param string|null $segment Custom segment to filter the report.
                             Example: "referrerName==example.com"
                             Supports AND (;) and OR (,) operators.
+```
+
+## Internal Type-Only Guidance
+
+Use this guidance for protected, private, and other non-public methods.
+
+- Add or fix type-only `@param` tags when native parameter types are missing or too broad.
+- Add or fix type-only `@return` tags when native return types are missing or too broad.
+- If native types fully cover the contract, omit redundant PHPDoc instead of rewriting it.
+- Add descriptions only when they provide non-obvious information such as array structure, sentinel values, or special normalization behavior.
+
+### Internal Type Examples
+
+Use real implementation types for internal methods when they provide information the signature does not express.
+
+```php
+@param Date|string $date
 ```
 
 ## Internal Method Examples
@@ -259,4 +267,18 @@ Good:
 private function saveConfig(int $idSite, array $config): void
 ```
 
-Keep a non-public description only when it adds non-obvious information, for example array structure, sentinel values, or special normalization behavior.
+Bad:
+```php
+/**
+ * @return array
+ */
+private function normalizeConfig(array $config): array
+```
+
+Good:
+```php
+/**
+ * @return array{enabled: bool, threshold: int}
+ */
+private function normalizeConfig(array $config): array
+```
