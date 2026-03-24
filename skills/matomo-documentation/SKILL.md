@@ -34,14 +34,18 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Trust code over docblocks when they disagree.
    - If native types, defaults, or actual behavior conflict with existing documentation, update the documentation to match the code.
    - Check summaries, parameter types, parameter descriptions, and return docs against the actual code behavior before reusing them.
+   - Preserve metadata and visibility tags such as `@ignore`, `@internal`, `@unsanitized`, `@deprecated`, and `@hide`.
    - Update or remove outdated, incorrect, or misleading documentation instead of preserving it.
    - This validation-and-fix rule applies to all existing docblocks, not only public API methods.
 3. Scalar type aliases.
    - In updated docblocks, normalize scalar aliases to canonical PHPDoc forms: `bool`, `int`, `string`, `float`, `array`, `callable`, `mixed`, `null`.
    - Replace long-form aliases such as `boolean` and `integer` when touching a docblock.
 4. Summary line (two sentences max).
-   - Keep an existing summary unless it is missing, incorrect, or too vague to be useful.
-   - New summaries should be short and behavior-focused.
+   - For public API methods, keep an existing summary unless it is missing, incorrect, or too vague to be useful.
+   - For public API methods, new summaries should be short and behavior-focused.
+   - For internal or non-public methods, do not add or keep a summary line by default.
+   - For internal or non-public methods, remove stale, trivial, or obvious summaries.
+   - Only keep or add a non-public summary when it conveys remarkable information not already obvious from the method name, signature, or minimal tags.
 5. `@param` tags.
    - Keep parameter order identical to method signature.
    - Use types that describe the public API contract for public API methods.
@@ -58,7 +62,8 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Add examples only when confidently derived from code behavior.
 6. `@return` tag.
    - For public API methods, every method must have an `@return` tag.
-   - For public API methods, every `@return` tag must include descriptive text.
+   - For public API methods, every non-`void` `@return` tag must include descriptive text.
+   - Never add descriptive text to `@return void`.
    - For public API methods, use a specific return type that reflects the public contract.
    - For internal or non-public methods, add or fix minimal `@return` tags when native return types are missing or too broad.
    - For internal or non-public methods, do not add return descriptions just because the docblock is being updated.
@@ -90,7 +95,8 @@ When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
 2. Public methods
    - Every externally callable public API method must have a descriptive docblock.
    - Every public API parameter must have a `@param` tag with a description.
-   - Every public API method must have an `@return` tag with descriptive text.
+   - Every public API method must have an `@return` tag.
+   - Public API `@return` tags must include descriptive text unless the return type is `void`.
    - Prioritize endpoint behavior, accepted request parameters, and return semantics.
 3. Non-public methods
    - Protected and private methods do not need docblocks by default.
@@ -282,3 +288,22 @@ Good:
  */
 private function normalizeConfig(array $config): array
 ```
+
+Bad:
+```php
+/**
+ * Returns whether the feature is enabled.
+ * @return bool
+ */
+private function isEnabled()
+```
+
+Good:
+```php
+/**
+ * @return bool
+ */
+private function isEnabled()
+```
+
+Keep a non-public summary only when it adds remarkable information, for example non-obvious normalization behavior, sentinel values, or important side effects not already clear from the signature and tags.
