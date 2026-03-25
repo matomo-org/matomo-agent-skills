@@ -25,6 +25,7 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
 1. Scope.
    - Apply the hard requirement only to externally callable public methods in `plugins/*/API.php`.
    - Public methods outside plugin API classes follow the general rules below, not the stricter public API rules.
+   - If a public method in `plugins/*/API.php` has `@ignore`, treat it like a non-public/internal method for documentation purposes.
    - Do not add docblocks to protected or private methods unless the task explicitly asks for internal documentation.
    - Do not add docblocks to constructors or internal helpers by default.
    - Incorrect existing docblocks must always be fixed, including on internal, protected, and private methods.
@@ -35,6 +36,7 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - If native types, defaults, or actual behavior conflict with existing documentation, update the documentation to match the code.
    - Check summaries, parameter types, parameter descriptions, and return docs against the actual code behavior before reusing them.
    - Preserve metadata and visibility tags such as `@ignore`, `@internal`, `@unsanitized`, `@deprecated`, and `@hide`.
+   - `@ignore` is not just preserved metadata. It changes how a method should be documented: ignored public methods use the internal minimal rules instead of the public descriptive rules.
    - Update or remove outdated, incorrect, or misleading documentation instead of preserving it.
    - This validation-and-fix rule applies to all existing docblocks, not only public API methods.
 3. Scalar type aliases.
@@ -98,6 +100,7 @@ When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
    - Every public API method must have an `@return` tag.
    - Public API `@return` tags must include descriptive text unless the return type is `void`.
    - Prioritize endpoint behavior, accepted request parameters, and return semantics.
+   - If a public API method has `@ignore`, do not apply these descriptive public-method rules. Apply the internal minimal rules instead.
 3. Non-public methods
    - Protected and private methods do not need docblocks by default.
 
