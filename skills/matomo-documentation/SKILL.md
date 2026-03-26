@@ -33,7 +33,11 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
 2. Validate existing docblocks.
    - Treat existing docblocks as claims to verify, not as a source of truth.
    - Trust code over docblocks when they disagree.
+   - Native PHP parameter and return type hints are authoritative.
+   - Never reuse an existing PHPDoc type just because it is already present. Derive the documented contract from the actual code.
    - If native types, defaults, or actual behavior conflict with existing documentation, update the documentation to match the code.
+   - If no native type exists, derive the documented contract from how the value is validated, normalized, forwarded, or returned.
+   - If a method forwards a parameter unchanged to a helper or downstream API with a clear accepted contract, document the forwarded parameter to match that real contract unless the method narrows it first.
    - Check summaries, parameter types, parameter descriptions, and return docs against the actual code behavior before reusing them.
    - Preserve metadata and visibility tags such as `@ignore`, `@internal`, `@unsanitized`, `@deprecated`, and `@hide`.
    - `@ignore` is not just preserved metadata. It changes how a method should be documented: ignored public methods use the internal minimal rules instead of the public descriptive rules.
@@ -112,6 +116,7 @@ Use these descriptive templates for public API methods only. The final type and 
 
 - Determine the final parameter contract by inspecting the method signature and how the value is normalized or consumed.
 - Validate any existing parameter documentation against the code before reusing it.
+- Do not trust existing parameter docblocks for the final type. Use native types when present; otherwise derive the contract from code behavior and forwarded helper contracts.
 - For public API methods, document request-facing inputs, not broader internal PHP flexibility.
 - For public API methods, always include parameter descriptions, even for straightforward parameters.
 
@@ -145,6 +150,9 @@ Use these descriptive templates for public API methods only. The final type and 
 @param string|array $idSite Website ID(s) to query.
                             Accepts comma-separated IDs, "all", numeric IDs as strings, or ["all"].
 ```
+
+- If a public API method forwards `$idSite` unchanged to `Archive::build()`, `Archive::createDataTableFromArchive()`, or another helper that clearly accepts multi-site selectors, document `$idSite` as multi-site. Do not keep or generate `@param int $idSite` just because an older docblock used it.
+- Keep the single-site `int` form only when the code clearly narrows the contract to one site before the value is used.
 
 ### \$period
 
@@ -256,6 +264,53 @@ private function hasGoal(int $idGoal): bool
 Good:
 ```php
 private function hasGoal(int $idGoal): bool
+```
+
+Bad:
+```php
+/**
+ * @param int $idSite The numeric ID of the website to query.
+ */
+public function get($idSite, $period, $date, $segment = false)
+{
+    return Archive::createDataTableFromArchive('Example_record', $idSite, $period, $date, $segment);
+}
+```
+
+Good:
+```php
+/**
+ * @param int|string|int[] $idSite Website ID(s) to query.
+ *                                 - Single site ID (e.g. 1)
+ *                                 - Multiple site IDs (e.g. [1, 4, 5])
+ *                                 - Comma-separated list ("1,4,5") or "all"
+ */
+public function get($idSite, $period, $date, $segment = false)
+{
+    return Archive::createDataTableFromArchive('Example_record', $idSite, $period, $date, $segment);
+}
+```
+
+Bad:
+```php
+/**
+ * @param int $limit
+ */
+public function getList($limit)
+{
+    return $this->fetchList($limit);
+}
+```
+
+Good:
+```php
+/**
+ * @param int|string $limit
+ */
+public function getList($limit)
+{
+    return $this->fetchList($limit);
+}
 ```
 
 Bad:
