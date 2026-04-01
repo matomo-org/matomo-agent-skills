@@ -29,6 +29,7 @@
 - Reviews Matomo branches, PRs, or arbitrary git ranges with a structured findings-first output followed by problem addressed, overall assessment, checks, and next steps.
 - Primary tools: `git diff`, `git log`, `git merge-base`, plus targeted Matomo verification commands when relevant.
 - Uses changed-file signals to apply the relevant Matomo review rules for i18n, code quality, migrations, Vue, and test expectations.
+- Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant.
 - Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison.
 
 

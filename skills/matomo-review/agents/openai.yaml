@@ -1,4 +1,4 @@
 interface:
   display_name: "Matomo Review"
-  short_description: "Review Matomo diffs with findings first, then problem, assessment, checks, and next steps"
-  default_prompt: "Use $matomo-review to review a Matomo branch, PR, or explicit git range against the right baseline, classify the changed areas, apply the relevant Matomo review rules for i18n, code quality, migrations, Vue, and tests, and produce a review in this order: findings, problem addressed, overall assessment, Matomo-specific checks, and next steps."
+  short_description: "Review Matomo diffs with findings first, routed Matomo rule checks, and targeted correctness, security, compatibility, performance, docs, operability, maintainability, and test-quality review"
+  default_prompt: "Use $matomo-review to review a Matomo branch, PR, or explicit git range against the right baseline, run cheap repository-integrity checks, classify the changed areas, apply the relevant Matomo review rules for i18n, code quality, migrations, Vue, and tests, then add only the relevant review dimensions for intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality. Produce a review in this order: findings, problem addressed, overall assessment, Matomo-specific checks, and next steps."
