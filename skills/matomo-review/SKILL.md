@@ -35,7 +35,7 @@ Use this skill when the task is one or more of:
 8. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
 9. If it is unclear whether a routed rule applies, call out the ambiguity instead of silently downgrading the finding.
 10. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-11. Include the problem being solved, whether the change succeeds, and recommended next steps.
+11. After findings, use a narrative arc of problem addressed, overall assessment, Matomo-specific checks, and next steps.
 12. Call out ambiguity instead of guessing.
 
 ## Review Flow
@@ -45,7 +45,7 @@ Use this skill when the task is one or more of:
 3. Classify the diff by changed area.
 4. Apply the matching Matomo rule sets.
 5. Run or recommend deterministic checks for the matched areas.
-6. Produce a findings-first review with a Matomo-specific checks summary.
+6. Produce a findings-first review with the required narrative arc after the findings section.
 
 ## Diff Classification
 
@@ -237,15 +237,15 @@ Respond in this order:
    - medium-risk issues
    - low-risk or polish issues
 2. Problem the change addresses
-3. Does it solve the problem? `Yes`, `No`, or `Partially`, with evidence
-4. Quality assessment
+3. Overall assessment
+   - does it solve the problem? `Yes`, `No`, or `Partially`, with evidence
    - strengths
    - test coverage and gaps
-5. Matomo-specific checks
+4. Matomo-specific checks
    - applied rule sets
    - commands run
    - commands recommended but not run
-6. Recommended next steps
+5. Next steps
 
 Prefer specific file paths, functions, and approximate line references where possible.
 When a matched rule set produced no finding, say that explicitly in the checks summary instead of omitting it.
