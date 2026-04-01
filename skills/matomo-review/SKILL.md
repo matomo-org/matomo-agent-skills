@@ -38,8 +38,9 @@ Use this skill when the task is one or more of:
 11. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
 12. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
 13. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-14. After findings, use a narrative arc of problem addressed, overall assessment, Matomo-specific checks, and next steps.
+14. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
 15. Call out ambiguity instead of guessing.
+16. Do not rename, merge, or omit required output sections or required check-summary labels.
 
 ## Review Flow
 
@@ -50,7 +51,7 @@ Use this skill when the task is one or more of:
 5. Apply the matching Matomo rule sets first.
 6. Apply the relevant review dimensions without duplicating routed-skill findings.
 7. Run or recommend deterministic checks for the matched areas.
-8. Produce a findings-first review with the required narrative arc after the findings section.
+8. Produce a findings-first review using the required output template and exact section names.
 
 ## Review Dimensions
 
@@ -333,28 +334,109 @@ Domain-specific expectations:
 
 ## Output Format
 
-Respond in this order:
+Respond with these exact top-level sections in this exact order:
 
-1. Findings
-   - blocking issues, including confirmed routed-skill violations
-   - medium-risk issues
-   - low-risk or polish issues
-2. Problem the change addresses
-3. Overall assessment
-   - does it solve the problem? `Yes`, `No`, or `Partially`, with evidence
-   - strengths
-   - test coverage and gaps
-   - ambiguity notes when intent is unclear
-4. Matomo-specific checks
-   - applied rule sets
-   - applied review dimensions
-   - commands run
-   - commands recommended but not run
-5. Next steps
+1. `Findings`
+2. `Problem Addressed`
+3. `Overall Assessment`
+4. `Matomo-Specific Checks`
+5. `Next Steps`
+
+Do not rename, merge, or omit any required section.
+
+### Required Template
+
+Use this structure exactly:
+
+```markdown
+Findings
+
+Blocking
+1. ...
+None.
+
+Medium
+1. ...
+None.
+
+Low / Polish
+1. ...
+None.
+
+Problem Addressed
+<1 short paragraph>
+
+Overall Assessment
+Verdict: Yes | No | Partially
+Merge readiness: Ready | Not ready
+<1 short paragraph covering evidence, strengths, confidence, test coverage, and ambiguity when relevant>
+
+Matomo-Specific Checks
+Applied rule sets
+- ...
+- None.
+
+Applied review dimensions
+- ...
+- None.
+
+Structural integrity
+- Clean.
+- Findings listed above.
+- Not checked: <reason>
+
+Ran
+- ...
+- None.
+
+Not run
+- <command> — <reason confidence is limited>
+- None.
+
+Next Steps
+1. ...
+```
+
+### Findings Requirements
+
+1. Under `Findings`, always include these exact severity buckets in this order:
+- `Blocking`
+- `Medium`
+- `Low / Polish`
+2. If a severity bucket has no items, write `None.` instead of omitting the bucket.
+3. Each finding should include:
+- a concise impact statement
+- concrete evidence with file paths and approximate line references when available
+- the routed rule source when the issue is a routed-skill violation
+4. Confirmed routed-skill requirement violations belong in `Blocking` by default unless the routed skill explicitly allows a downgrade.
+5. If applicability is uncertain, call out the ambiguity and what would confirm it rather than silently downgrading or omitting it.
+
+### Assessment Requirements
+
+1. `Overall Assessment` must include:
+- `Verdict: Yes | No | Partially`
+- `Merge readiness: Ready | Not ready`
+2. The assessment paragraph must state whether the change solves the inferred problem and why.
+3. Mention test coverage and gaps in the assessment paragraph if they affect confidence.
+4. If branch intent is unclear, say so explicitly in the assessment paragraph.
+
+### Checks Requirements
+
+1. `Matomo-Specific Checks` must include these exact labels:
+- `Applied rule sets`
+- `Applied review dimensions`
+- `Structural integrity`
+- `Ran`
+- `Not run`
+2. If a matched rule set produced no findings, still list it under `Applied rule sets` and mark it clean instead of omitting it.
+3. `Ran` and `Not run` must be separate lists. Do not collapse them into one prose summary.
+4. If a relevant check was not run, list it under `Not run` with the reason and why confidence is limited.
+5. `Structural integrity` must explicitly say one of:
+- `Clean.`
+- `Findings listed above.`
+- `Not checked: <reason>`
 
 Prefer specific file paths, functions, and approximate line references where possible.
-When a matched rule set produced no finding, say that explicitly in the checks summary instead of omitting it.
-Do not place confirmed routed-skill requirement violations in the low-risk or polish bucket by default.
 
 ## Examples
 
@@ -367,3 +449,55 @@ Do not place confirmed routed-skill requirement violations in the low-risk or po
   - Review that exact range
 - "Review `abc123...def456`"
   - Review that exact comparison
+
+Example output:
+
+```markdown
+Findings
+
+Blocking
+1. Duplicate translation keys were added in `plugins/Example/lang/en.json` around line 42 and only registered in `plugins/Example/Example.php` around line 110, which violates `matomo-i18n-development-rules` and creates dead translator churn.
+
+Medium
+None.
+
+Low / Polish
+1. `plugins/Example/vue/src/View.vue` around line 88 still uses a legacy helper name that obscures intent, which raises maintainability cost but does not block the branch goal.
+
+Problem Addressed
+The branch appears intended to update the Example plugin GDPR copy and associated UI text.
+
+Overall Assessment
+Verdict: Partially
+Merge readiness: Not ready
+The UI copy update is mostly in place, but the branch is not merge-ready because the new translation-key set violates the routed i18n rules. Confidence is moderate: the diff is coherent, but build and UI-test coverage is incomplete because only targeted static inspection was performed.
+
+Matomo-Specific Checks
+Applied rule sets
+- `matomo-i18n-development-rules` — blocking findings listed above.
+- `matomo-vue-development-rules` — reviewed, no findings.
+- `matomo-test-runner` — review expectation applied; missing validation noted below.
+
+Applied review dimensions
+- `intent`
+- `structural integrity`
+- `maintainability`
+- `test quality`
+
+Structural integrity
+- Clean.
+
+Ran
+- `git diff --stat origin/5.x-dev...HEAD`
+- `git diff origin/5.x-dev...HEAD`
+- `git log --oneline origin/5.x-dev..HEAD`
+- `rg "ExampleKey|ExampleKeyNew" plugins/Example`
+
+Not run
+- `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.
+- `ddev matomo:console tests:run-ui Example` — not run in this environment, so screenshot and rendered-flow regressions remain unverified.
+
+Next Steps
+1. Remove the dead translation keys or reuse the existing keys instead of shipping parallel variants.
+2. Run the targeted Example Vue build and UI validation once the environment supports `ddev`.
+```
