@@ -26,8 +26,9 @@
 - Creates and updates Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods, and keeps internal docs minimal unless native types are missing or too broad.
 - Use when working on Matomo public API docblocks or preserving, adding, or fixing internal PHPDoc type information.
 7. `matomo-review`
-- Reviews Matomo branches, PRs, or arbitrary git ranges with a structured findings-first output.
-- Primary tools: `git diff`, `git log`, `git merge-base`.
+- Reviews Matomo branches, PRs, or arbitrary git ranges with a structured findings-first output and Matomo-specific routing.
+- Primary tools: `git diff`, `git log`, `git merge-base`, plus targeted Matomo verification commands when relevant.
+- Uses changed-file signals to apply the relevant Matomo review rules for i18n, code quality, migrations, Vue, and test expectations.
 - Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison.
 
 
