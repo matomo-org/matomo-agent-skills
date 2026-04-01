@@ -16,16 +16,18 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 3. `README.md` "Available Skills" and installation guidance reflect current repository state.
 4. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
 5. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
+6. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations or document why the skill is intentionally excluded from review routing.
 
 ## Workflow for New or Updated Skills
 
 1. Create or update the skill directory under `skills/<skill-name>/`.
 2. Create or update `skills/<skill-name>/SKILL.md`.
 3. Create or update `skills/<skill-name>/agents/openai.yaml`.
-4. Update `README.md`:
+4. If the skill affects development-time review expectations, assess whether `skills/matomo-review/` must be updated in the same change.
+5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-5. Self-review against the required validation checklist before marking done.
+6. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar
 
