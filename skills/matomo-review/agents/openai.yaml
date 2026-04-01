@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Review"
+  short_description: "Review Matomo branches, PRs, or git ranges with findings first"
+  default_prompt: "Use $matomo-review to review a Matomo branch, PR, or explicit git range against the right baseline and produce a findings-first code review."
