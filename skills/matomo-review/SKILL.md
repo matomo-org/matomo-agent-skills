@@ -31,9 +31,12 @@ Use this skill when the task is one or more of:
 - `matomo-migrations-workflow`
 - `matomo-vue-development-rules`
 - `matomo-test-runner`
-7. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-8. Include the problem being solved, whether the change succeeds, and recommended next steps.
-9. Call out ambiguity instead of guessing.
+7. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
+8. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
+9. If it is unclear whether a routed rule applies, call out the ambiguity instead of silently downgrading the finding.
+10. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
+11. Include the problem being solved, whether the change succeeds, and recommended next steps.
+12. Call out ambiguity instead of guessing.
 
 ## Review Flow
 
@@ -82,6 +85,32 @@ Apply these routing rules after inspecting changed paths and diff content:
 
 Multiple rule sets may apply to the same review.
 Prefer specific Matomo rules over generic review heuristics when they conflict.
+
+## Severity Policy For Routed Skills
+
+Use this severity policy when a routed Matomo skill applies:
+
+1. Clear violation of a routed skill requirement:
+- report as blocking by default
+- do not downgrade to low-risk or polish merely because the impact is "only" maintainability, translator churn, or process non-compliance
+
+2. Possible violation where applicability is uncertain:
+- report the ambiguity
+- explain what additional evidence would confirm or eliminate the finding
+
+3. Narrow exception:
+- downgrade only when the routed skill explicitly allows the exception or the diff clearly shows the rule is intentionally not applicable
+
+Examples that should normally be blocking when confirmed:
+
+- duplicate or unused translation keys
+- new translation keys added without checking reusable existing keys
+- non-English translation edits that violate the i18n policy
+- likely PHPStan or PHPCS violations in changed PHP code
+- migration changes missing required version-marker bumps
+- editing an update file that should be treated as immutable
+- Vue code using disallowed cross-plugin source imports
+- missing required follow-up validation implied by the routed skill when the change depends on it
 
 ## Review Target Selection
 
@@ -173,11 +202,13 @@ Domain-specific expectations:
 - placeholder safety
 - non-English translation policy
 - no translation concatenation
+- duplicate or dead translation keys are blocking by default when confirmed
 
 2. code quality:
 - likely PHPStan issues
 - PHPCS compliance
 - plugin-specific config handling when relevant
+- clear routed code-quality violations are blocking by default
 
 3. migrations:
 - correct update file location
@@ -185,11 +216,13 @@ Domain-specific expectations:
 - update immutability respected
 - install schema updated when core schema changes
 - high-impact migrations guarded appropriately
+- clear routed migration workflow violations are blocking by default
 
 4. Vue:
 - plugin-scoped build expectations
 - no cross-plugin source imports
 - polyfill rebuild requirements when applicable
+- clear routed Vue workflow violations are blocking by default
 
 5. tests:
 - appropriate Matomo test type exists for changed behavior
@@ -200,7 +233,7 @@ Domain-specific expectations:
 Respond in this order:
 
 1. Findings
-   - blocking or high-risk issues
+   - blocking issues, including confirmed routed-skill violations
    - medium-risk issues
    - low-risk or polish issues
 2. Problem the change addresses
@@ -216,6 +249,7 @@ Respond in this order:
 
 Prefer specific file paths, functions, and approximate line references where possible.
 When a matched rule set produced no finding, say that explicitly in the checks summary instead of omitting it.
+Do not place confirmed routed-skill requirement violations in the low-risk or polish bucket by default.
 
 ## Examples
 
