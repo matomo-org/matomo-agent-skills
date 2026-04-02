@@ -185,6 +185,7 @@ Examples that should normally be blocking when confirmed:
 - migration changes missing required version-marker bumps
 - editing an update file that should be treated as immutable
 - Vue code using disallowed cross-plugin source imports
+- Vue templates using `v-html` without wrapping the bound content in `$sanitize(...)`
 - missing required follow-up validation implied by the routed skill when the change depends on it
 
 ## Severity Policy For Review Dimensions
@@ -324,6 +325,7 @@ Domain-specific expectations:
 4. Vue:
 - plugin-scoped build expectations
 - no cross-plugin source imports
+- every `v-html` binding sanitizes content via `$sanitize(...)`
 - polyfill rebuild requirements when applicable
 - clear routed Vue workflow violations are blocking by default
 

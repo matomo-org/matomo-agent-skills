@@ -16,6 +16,7 @@
 - Covers non-English translation file editing policy, including Weblate-managed and Intl exceptions.
 4. `matomo-vue-development-rules`
 - Applies Matomo Vue development guardrails for plugin Vue source changes.
+- Requires `v-html` bindings to sanitize content via `$sanitize(...)`.
 - Primary tools: `vue:build`, `vue:build-polyfill`.
 - Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
 5. `matomo-migrations-workflow`
