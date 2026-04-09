@@ -1,6 +1,6 @@
 ---
 name: matomo-review
-description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, Twig, code quality, migrations, Vue, and test expectations when the diff indicates they apply.
+description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations when the diff indicates they apply.
 ---
 
 # Matomo Review
@@ -37,9 +37,11 @@ Use this skill when the task is one or more of:
 - `matomo-i18n-development-rules`
 - `matomo-security-rules`
 - `matomo-api-development-rules`
+- `matomo-plugin-architecture`
 - `matomo-twig-development-rules`
 - `matomo-code-quality`
 - `matomo-migrations-workflow`
+- `matomo-deprecation-rules`
 - `matomo-vue-development-rules`
 - `matomo-documentation`
 - `matomo-test-runner`
@@ -164,12 +166,18 @@ Apply these routing rules after inspecting changed paths and diff content:
 - request parameter normalization or public API return-shape changes
 - Apply `matomo-api-development-rules`.
 
-5. Twig / template signals:
+5. Plugin architecture signals:
+- plugin bootstrap or `registerEvents()` changes
+- new or changed `Archiver`, `Model`, `Reports/*`, `Columns/*`, or Settings classes
+- cross-plugin imports or structural refactors across plugin layers
+- Apply `matomo-plugin-architecture`.
+
+6. Twig / template signals:
 - `*.twig`
 - `|raw`, `rawSafeDecoded`, `safelink`, `externallink`, or dynamic attribute escaping changes
 - Apply `matomo-twig-development-rules`.
 
-6. Migration / update signals:
+7. Migration / update signals:
 - `core/Updates/*.php`
 - `plugins/<Plugin>/Updates/*.php`
 - `core/Version.php`
@@ -177,19 +185,25 @@ Apply these routing rules after inspecting changed paths and diff content:
 - schema changes, especially core table or `log_*` table changes
 - Apply `matomo-migrations-workflow`.
 
-7. Vue / frontend build signals:
+8. Deprecation / compatibility-transition signals:
+- `@deprecated` additions or removals
+- removed or renamed public methods, events, or config keys
+- `composer.json` dependency changes
+- Apply `matomo-deprecation-rules`.
+
+9. Vue / frontend build signals:
 - `plugins/<Plugin>/vue/src/**`
 - `plugins/CoreVue/polyfills/**`
 - Apply `matomo-vue-development-rules`.
 
-8. Documentation signals:
+10. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`
 - new or modified `@param` or `@return` tags
 - PHPDoc changes that affect public API contracts
 - new or modified `Piwik::postEvent()` calls
 - Apply `matomo-documentation`.
 
-9. Test expectation signals:
+11. Test expectation signals:
 - any change under `tests/`
 - feature or bug-fix changes without corresponding tests
 - UI, Vue, or plugin behavior changes that should have automated coverage
@@ -237,6 +251,9 @@ Examples that should normally be blocking when confirmed:
 - likely PHPStan or PHPCS violations in changed PHP code
 - migration changes missing required version-marker bumps
 - editing an update file that should be treated as immutable
+- removing or renaming public behavior without the required deprecation path
+- dependency manifest changes missing the matching `composer.lock` update when lockstep updates are expected
+- broken plugin layer separation or direct use of another plugin's internal classes instead of a supported boundary
 - Vue code using disallowed cross-plugin source imports
 - Vue templates using `v-html` without wrapping the bound content in `$sanitize(...)`
 - missing required follow-up validation implied by the routed skill when the change depends on it
@@ -341,22 +358,30 @@ Domain-specific expectations:
 - use its baseline-noise and PHPCS suppression guidance rather than restating tool policy here
 - clear routed code-quality violations are blocking by default
 
-3. documentation:
+3. plugin architecture:
+- apply `matomo-plugin-architecture`
+- broken layer separation and direct cross-plugin internal coupling are blocking by default; narrower convention drift is usually medium
+
+4. documentation:
 - apply `matomo-documentation`
 - clear routed documentation-rule violations are blocking by default
 
-4. migrations:
+5. migrations:
 - apply `matomo-migrations-workflow`
 - clear routed migration workflow violations are blocking by default
 
-5. Vue:
+6. deprecation:
+- apply `matomo-deprecation-rules`
+- removing public behavior without a valid deprecation path is blocking by default
+
+7. Vue:
 - apply `matomo-vue-development-rules`
 - clear routed Vue workflow violations are blocking by default
 
-6. tests:
+8. tests:
 - apply `matomo-test-runner`
 
-7. i18n:
+9. i18n:
 - apply `matomo-i18n-development-rules`
 
 ## Output Format

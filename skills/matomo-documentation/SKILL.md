@@ -9,6 +9,7 @@ description: Create and update Matomo PHPDoc, especially for public API methods.
 
 Use this skill for Matomo PHPDoc tasks, especially when updating public API method docblocks in Matomo PHP code.
 Use `matomo-api-development-rules` for defining the API contract itself; this skill owns how that contract is documented.
+Use `matomo-deprecation-rules` for deprecation lifecycle policy rather than treating docblocks as the source of deprecation timing rules.
 
 ## Gotchas
 
@@ -107,6 +108,7 @@ Events posted via `Piwik::postEvent()` are included in generated developer docum
 2. If an event parameter is passed by reference, document that explicitly.
 3. Events intended only for core/internal use should include `@internal`.
 4. When changing parameters or behavior of an existing posted event, update the event PHPDoc in the same change.
+5. If an event is being deprecated, use `matomo-deprecation-rules` for the lifecycle and transition policy, and use this skill only for documenting that policy correctly.
 
 ## API File-Specific Rules
 When working with plugin API classes in `plugins/*/API.php`, extra rules apply:

@@ -28,6 +28,7 @@ Use this skill for Matomo Vue development workflows and rebuild decisions.
 9. HTML `id` attributes built from numeric values should be prefixed with a string, for example `:id="'goal-' + goalId"`, instead of binding a bare number.
 10. When an existing Vue component covers the needed UI pattern, prefer it over jQuery UI widgets or direct jQuery DOM manipulation.
 11. Before creating new Vue or TS helpers, check for existing utilities in `Matomo.helper.*`, shared Core Vue sources, and nearby active helpers.
+12. Use `matomo-plugin-architecture` when the real question is broader plugin utility reuse or cross-layer structure, not a Vue-specific sink or build rule.
 
 ## Command Selection
 
