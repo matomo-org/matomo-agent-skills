@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Security Rules"
+  short_description: "Apply Matomo security guardrails for code changes"
+  default_prompt: "Use $matomo-security-rules to review or author Matomo changes that affect access control, CSRF, SQL safety, request trust boundaries, or secret exposure."

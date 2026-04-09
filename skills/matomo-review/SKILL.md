@@ -1,6 +1,6 @@
 ---
 name: matomo-review
-description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, code quality, migrations, Vue, and test expectations when the diff indicates they apply.
+description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, Twig, code quality, migrations, Vue, and test expectations when the diff indicates they apply.
 ---
 
 # Matomo Review
@@ -27,6 +27,9 @@ Use this skill when the task is one or more of:
 5. After selecting the diff, run cheap structural-integrity checks, then classify changed files and changed behavior before writing findings.
 6. Use existing Matomo skills as the source of truth for Matomo-specific review criteria:
 - `matomo-i18n-development-rules`
+- `matomo-security-rules`
+- `matomo-api-development-rules`
+- `matomo-twig-development-rules`
 - `matomo-code-quality`
 - `matomo-migrations-workflow`
 - `matomo-vue-development-rules`
@@ -126,7 +129,25 @@ Apply these routing rules after inspecting changed paths and diff content:
 - PHP changes under `core/`, `plugins/`, or `tests/`
 - Apply `matomo-code-quality`.
 
-3. Migration / update signals:
+3. Security signals:
+- `plugins/<Plugin>/API.php`
+- `plugins/<Plugin>/Controller.php`
+- auth, nonce, token, request parsing, or permission checks
+- SQL-building code or obvious trust-boundary handling
+- Apply `matomo-security-rules`.
+
+4. API development signals:
+- `plugins/<Plugin>/API.php`
+- API method signature changes
+- request parameter normalization or public API return-shape changes
+- Apply `matomo-api-development-rules`.
+
+5. Twig / template signals:
+- `*.twig`
+- `|raw`, `rawSafeDecoded`, `safelink`, `externallink`, or dynamic attribute escaping changes
+- Apply `matomo-twig-development-rules`.
+
+6. Migration / update signals:
 - `core/Updates/*.php`
 - `plugins/<Plugin>/Updates/*.php`
 - `core/Version.php`
@@ -134,12 +155,12 @@ Apply these routing rules after inspecting changed paths and diff content:
 - schema changes, especially core table or `log_*` table changes
 - Apply `matomo-migrations-workflow`.
 
-4. Vue / frontend build signals:
+7. Vue / frontend build signals:
 - `plugins/<Plugin>/vue/src/**`
 - `plugins/CoreVue/polyfills/**`
 - Apply `matomo-vue-development-rules`.
 
-5. Test expectation signals:
+8. Test expectation signals:
 - any change under `tests/`
 - feature or bug-fix changes without corresponding tests
 - UI, Vue, or plugin behavior changes that should have automated coverage
@@ -181,6 +202,9 @@ Examples that should normally be blocking when confirmed:
 - duplicate or unused translation keys
 - new translation keys added without checking reusable existing keys
 - non-English translation edits that violate the i18n policy
+- missing required API access checks or missing CSRF validation
+- untrusted values concatenated into SQL
+- Twig templates using `|raw` on uncontrolled content
 - likely PHPStan or PHPCS violations in changed PHP code
 - migration changes missing required version-marker bumps
 - editing an update file that should be treated as immutable
@@ -206,6 +230,10 @@ Use this policy for the generic review dimensions:
 4. Duplicate issue visible through multiple dimensions:
 - keep the strongest framing
 - mention secondary dimensions only if they materially change the fix direction or impact
+
+5. If both a framework skill and `matomo-security-rules` apply to the same sink:
+- cite the framework skill for the concrete implementation rule
+- avoid duplicating the same finding under both rule sets
 
 ## Review Target Selection
 

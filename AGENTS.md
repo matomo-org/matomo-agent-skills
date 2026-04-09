@@ -36,3 +36,16 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 3. Include examples when they remove ambiguity; avoid redundant examples.
 4. Keep skill instructions focused on operational use, not process history.
 5. Align all docs with actual scripts and command behavior; do not document unsupported flows.
+
+## Skill Ownership Split
+
+Use this split when multiple skills could plausibly cover the same review area:
+
+1. Cross-cutting security invariants belong in `matomo-security-rules`.
+2. Framework or layer skills own sink-specific implementation guidance for their area.
+3. Framework skills may reference security expectations, but should not restate full security policy.
+4. Examples:
+- Twig `|raw` belongs in `matomo-twig-development-rules`.
+- Vue `v-html` belongs in `matomo-vue-development-rules`.
+- API access control and CSRF policy belong in `matomo-security-rules`.
+5. If a review-relevant change touches both a cross-cutting security invariant and a framework-specific sink, verify `matomo-review` routes to both the framework skill and the relevant security checks without duplicating the same finding twice.
