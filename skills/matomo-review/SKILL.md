@@ -35,6 +35,7 @@ Use this skill when the task is one or more of:
 - `matomo-code-quality`
 - `matomo-migrations-workflow`
 - `matomo-vue-development-rules`
+- `matomo-documentation`
 - `matomo-test-runner`
 7. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
 8. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
@@ -81,11 +82,16 @@ Apply these dimensions when the diff makes them relevant:
 - time, timezone, DST, leap-year, midnight, and month-end handling
 - stale state, refresh, double-submit, concurrent access, multi-tab, or interrupted-flow hazards
 - slow, partial, invalid, timed-out, or failed dependency responses
+- type-safety hazards such as numeric strings used as ints without casting, nullable values used without checks, unsafe array access on possibly null values, and string-to-int or string-to-float coercions that rely on PHP implicit conversion
+- mixed-type comparisons and loose-comparison traps such as `==` behavior with `'0'`, `false`, `null`, or `''`
 
 4. Maintainability
 - unclear intent, misleading naming, hidden control flow, or excessive local complexity
 - duplication or coupling that materially raises future change cost
 - non-obvious behavior that needs to be made explicit
+- dead or unreachable code such as always-true or always-false branches, useless unconditional returns, assigned-but-never-read values, and parameters or helpers that add noise without real use
+- divergence from established nearby patterns or reinvention of existing helpers when the local Matomo convention is already clear
+- debug output accidentally left in production paths such as `var_dump()`, `print_r()`, `error_log()`, `dd()`, or bare `echo`
 
 5. Security
 - trust-boundary mistakes, access control gaps, injection risk, XSS, CSRF, unsafe file or subprocess handling, and privacy-sensitive exposure
@@ -94,11 +100,17 @@ Apply these dimensions when the diff makes them relevant:
 6. Performance
 - expensive repeated work, N+1 queries, unbounded loops or result sets, cache misuse, or scale breakpoints
 - latency-sensitive or batch-sensitive paths that become materially more costly
+- Matomo-specific anti-patterns such as `DELETE FROM` clearing entire large tables where `TRUNCATE` or batching is more appropriate, database queries inside loops, repeated `Option::get()` or `Config` reads inside loops, or `SELECT *` on `log_*` tables when only a subset of columns is needed
+- unbounded archive invalidation or archiving-related work whose scope multiplies by site, date, period, or segment and is likely to create excessive records or repeated heavy work
+- query shapes against `log_*` tables that appear unbounded or likely to miss needed indexes for new WHERE, JOIN, or ORDER BY access patterns
 
 7. Compatibility
 - backward compatibility breaks
 - plugin, extension, CLI, API, config, schema, or migration contract changes
 - mixed-version assumptions, rollout or rollback hazards, and hidden dependency on new defaults or state
+- deprecation lifecycle mistakes such as removing public methods, events, or config keys without a prior deprecation path, or adding `@deprecated` without version, replacement, or planned removal guidance when that metadata should exist
+- renamed config keys or events that do not preserve a transition path long enough for existing integrations
+- dependency-manifest changes such as `composer.json` updates without the corresponding `composer.lock` update when lockstep changes are expected
 
 8. Operability
 - missing or weak logs, metrics, diagnostics, health signals, or recoverability
@@ -162,7 +174,13 @@ Apply these routing rules after inspecting changed paths and diff content:
 - `plugins/CoreVue/polyfills/**`
 - Apply `matomo-vue-development-rules`.
 
-8. Test expectation signals:
+8. Documentation signals:
+- public method changes in `plugins/<Plugin>/API.php`
+- new or modified `@param` or `@return` tags
+- PHPDoc changes that affect public API contracts
+- Apply `matomo-documentation`.
+
+9. Test expectation signals:
 - any change under `tests/`
 - feature or bug-fix changes without corresponding tests
 - UI, Vue, or plugin behavior changes that should have automated coverage
@@ -181,7 +199,7 @@ Use the generic review dimensions in addition to routed rule sets when the diff 
 - `performance`: query, loop, caching, archive, reporting, batch, or large-result-set changes
 - `compatibility`: migrations, public APIs, plugin hooks, config, schema, CLI, or upgrade-sensitive changes
 - `operability`: jobs, retries, failures, state transitions, or operationally important workflows
-- `documentation`: behavior, config, migration, CLI, API, or rollout changes
+- `documentation`: behavior, config, migration, CLI, API, rollout, or public PHPDoc contract changes
 - `test quality`: whenever behavior changes or review findings surface important uncovered scenarios
 
 ## Severity Policy For Routed Skills
@@ -344,7 +362,12 @@ Domain-specific expectations:
 - plugin-specific config handling when relevant
 - clear routed code-quality violations are blocking by default
 
-3. migrations:
+3. documentation:
+- public API PHPDoc reflects the real request-facing contract
+- `@param` and `@return` changes stay aligned with actual code behavior
+- clear routed documentation-rule violations are blocking by default
+
+4. migrations:
 - correct update file location
 - required version marker bump exists
 - update immutability respected
@@ -352,14 +375,14 @@ Domain-specific expectations:
 - high-impact migrations guarded appropriately
 - clear routed migration workflow violations are blocking by default
 
-4. Vue:
+5. Vue:
 - plugin-scoped build expectations
 - no cross-plugin source imports
 - every `v-html` binding sanitizes content via `$sanitize(...)`
 - polyfill rebuild requirements when applicable
 - clear routed Vue workflow violations are blocking by default
 
-5. tests:
+6. tests:
 - appropriate Matomo test type exists for changed behavior
 - missing regression coverage is called out explicitly
 - weak assertions and flaky patterns are called out explicitly

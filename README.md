@@ -38,8 +38,8 @@
 10. `matomo-review`
 - Reviews Matomo branches, PRs, or arbitrary git ranges with a strict findings-first template using exact sections for `Findings`, `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
 - Primary tools: `git diff`, `git log`, `git merge-base`, plus targeted Matomo verification commands when relevant.
-- Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, Twig, code quality, migrations, Vue, and test expectations.
-- Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant.
+- Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, Twig, code quality, migrations, Vue, documentation, and test expectations.
+- Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant, including concrete checks for type/coercion safety, dead code, debug leftovers, Matomo query and archive performance anti-patterns, and deprecation or lockfile compatibility issues.
 - Requires fixed severity buckets (`Blocking`, `Medium`, `Low / Polish`), explicit `None.` markers for empty buckets, fixed verdict and merge-readiness lines, and separate `Ran` / `Not run` verification reporting so skipped checks cannot be dropped silently.
 - Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
 11. `matomo-debt-check`
