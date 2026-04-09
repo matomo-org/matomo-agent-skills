@@ -58,6 +58,8 @@ When a requested file/path is under `plugins/<Plugin>/`:
 ## Targeted Analysis for Changed Files
 
 - Changed-file-only PHPStan can be useful for iteration speed, but confirm suspicious results with a wider plugin or core-directory run when baseline noise appears.
+- Command:
+  - `git diff --name-only origin/5.x-dev...HEAD -- '*.php' | xargs ddev composer phpstan --`
 
 ## Examples
 

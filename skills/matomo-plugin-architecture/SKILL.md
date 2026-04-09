@@ -53,7 +53,7 @@ Use this skill when the task involves one or more of:
 - New top-level files or folders should have a clear architectural reason instead of bypassing the established layout.
 
 5. Dimension, Report, and Settings conventions:
-- Dimension classes should use the correct base class for visit, action, or conversion behavior.
+- Dimension classes should extend `VisitDimension`, `ActionDimension`, or `ConversionDimension` as appropriate for their tracking context.
 - Reports should map cleanly to the data they expose and keep metadata in Report classes instead of scattering it elsewhere.
 - Plugin configuration should use the appropriate settings system (`SystemSettings`, `UserSettings`, or `MeasurableSettings`) instead of ad hoc config persistence.
 

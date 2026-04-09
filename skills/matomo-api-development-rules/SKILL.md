@@ -60,8 +60,6 @@ Use this skill when the task involves one or more of:
 
 - Find public API methods:
   - `rg 'public function ' plugins/<Plugin>/API.php`
-- Find API parameter and return declarations:
-  - `rg 'public function .*\\(|: ' plugins/<Plugin>/API.php`
 
 ### Boundary and Delegation Checks
 

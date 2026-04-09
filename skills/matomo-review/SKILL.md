@@ -332,17 +332,6 @@ Use or recommend the smallest relevant verification commands for the classified 
 
 ## Matomo-Specific Review Checklist
 
-Assess the selected change set for:
-
-1. correctness and edge cases in the diff itself
-2. Matomo-specific rule compliance for every matched review domain
-3. design and API clarity
-4. maintainability and readability
-5. performance and security when relevant
-6. operability and diagnosability when relevant
-7. documentation gaps when relevant
-8. test coverage, realism, flaky patterns, and missing scenarios
-
 Domain-specific expectations:
 
 1. i18n:
@@ -377,12 +366,6 @@ Domain-specific expectations:
 7. Vue:
 - apply `matomo-vue-development-rules`
 - clear routed Vue workflow violations are blocking by default
-
-8. tests:
-- apply `matomo-test-runner`
-
-9. i18n:
-- apply `matomo-i18n-development-rules`
 
 ## Output Format
 
@@ -444,4 +427,4 @@ Prefer specific file paths, functions, and approximate line references where pos
 ## Reference Material
 
 Read `references/review-template.md` when drafting the final review output.
-Read `references/review-checks.md` when selecting exact verification commands or when the requested git range needs an explicit command form.
+Read `references/review-checks.md` for deterministic check commands (structural integrity, code quality, migration validation, Vue, tests). The Review Target Selection commands above are the authoritative source for git range forms.

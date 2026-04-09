@@ -1,6 +1,6 @@
 ---
 name: matomo-documentation
-description: Create and update Matomo PHPDoc, especially for public API methods.
+description: "Create and update Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods and posted events, and keeps internal docs minimal unless native types are missing or too broad."
 ---
 
 # Matomo Documentation
@@ -89,8 +89,6 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
 7. `@throws`.
    - Do not add `@throws` tags.
    - Remove existing `@throws` tags when updating a method docblock.
-
-
 
 ## Docblock Formatting
 

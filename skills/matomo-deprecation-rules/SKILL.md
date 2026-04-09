@@ -12,7 +12,7 @@ Use `matomo-migrations-workflow` for update execution mechanics and schema migra
 
 ## Gotchas
 
-1. Public behavior should not disappear without a prior deprecation path.
+1. Public behavior must not disappear without a prior deprecation path.
 2. Renames usually need a transition period where old and new names both work.
 3. Dependency manifest updates should not leave `composer.lock` behind.
 
@@ -57,7 +57,7 @@ Use this skill when the task involves one or more of:
 - Find deprecation annotations:
   - `rg '@deprecated|E_USER_DEPRECATED' plugins/<Plugin>/ --glob '*.php'`
 - Find removed public methods in a branch diff:
-  - `git diff origin/5.x-dev...HEAD -- '*.php'`
+  - `git diff origin/5.x-dev...HEAD -- '*.php' | grep '^-.*public function'`
 
 ### Compatibility Surface
 
