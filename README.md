@@ -21,6 +21,7 @@
 - Use when reviewing or authoring security-sensitive changes in plugin API classes, controllers, request parsing, SQL-building code, or token/auth flows.
 5. `matomo-api-development-rules`
 - Applies Matomo plugin API guardrails for `API.php` method design, request-facing parameter contracts, return-value consistency, and API-layer delegation.
+- Owns the API contract itself; use `matomo-documentation` for how that contract is expressed in PHPDoc.
 - Use when reviewing or authoring changes in `plugins/*/API.php` or closely related public API flows.
 6. `matomo-twig-development-rules`
 - Applies Matomo Twig template guardrails for safe raw-output handling, helper usage, escaping, and template nonce/link patterns.
@@ -38,6 +39,7 @@
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps.
 9. `matomo-documentation`
 - Creates and updates Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods and posted events, and keeps internal docs minimal unless native types are missing or too broad.
+- Owns PHPDoc expression rules, not the API contract semantics themselves.
 - Use when working on Matomo public API docblocks, event docs for `Piwik::postEvent()`, or preserving, adding, or fixing internal PHPDoc type information.
 10. `matomo-review`
 - Reviews Matomo branches, PRs, or arbitrary git ranges with a strict findings-first template using exact sections for `Findings`, `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.

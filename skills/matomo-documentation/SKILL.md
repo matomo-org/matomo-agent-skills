@@ -8,6 +8,7 @@ description: Create and update Matomo PHPDoc, especially for public API methods.
 ## Overview
 
 Use this skill for Matomo PHPDoc tasks, especially when updating public API method docblocks in Matomo PHP code.
+Use `matomo-api-development-rules` for defining the API contract itself; this skill owns how that contract is documented.
 
 ## Trigger Conditions
 

@@ -360,46 +360,27 @@ Domain-specific expectations:
 - duplicate or dead translation keys are blocking by default when confirmed
 
 2. code quality:
-- likely PHPStan issues
-- PHPCS compliance
-- plugin-specific config handling when relevant
-- narrowed-path PHPStan noise should be treated carefully; suspicious output should be confirmed with a wider plugin or core-directory run before classifying it as false positive or clean
+- apply `matomo-code-quality`
+- use its baseline-noise and PHPCS suppression guidance rather than restating tool policy here
 - clear routed code-quality violations are blocking by default
 
 3. documentation:
-- public API PHPDoc reflects the real request-facing contract
-- `@param` and `@return` changes stay aligned with actual code behavior
-- new posted events are documented or marked `@internal` when they should stay out of public docs
+- apply `matomo-documentation`
 - clear routed documentation-rule violations are blocking by default
 
 4. migrations:
-- correct update file location
-- required version marker bump exists
-- update immutability respected
-- install schema updated when core schema changes
-- high-impact migrations guarded appropriately
-- migration hints remain copy-pasteable CLI commands when admin-facing hints are added or changed
+- apply `matomo-migrations-workflow`
 - clear routed migration workflow violations are blocking by default
 
 5. Vue:
-- plugin-scoped build expectations
-- no cross-plugin source imports
-- every `v-html` binding sanitizes content via `$sanitize(...)`
-- polyfill rebuild requirements when applicable
-- numeric dynamic HTML `id` attributes should be prefixed with a stable string
-- jQuery UI or direct jQuery DOM work should not replace an existing Vue component or established helper without clear need
-- existing Matomo helpers should be reused before introducing local duplicates
+- apply `matomo-vue-development-rules`
 - clear routed Vue workflow violations are blocking by default
 
 6. tests:
-- appropriate Matomo test type exists for changed behavior
-- missing regression coverage is called out explicitly
-- weak assertions and flaky patterns are called out explicitly
-- fixture usage and timing assumptions should not make the new coverage fragile
+- apply `matomo-test-runner`
 
 7. i18n:
-- multi-placeholder translations should use numbered placeholders
-- touched generic key names should not become vague placeholder buckets like `Message1` when a descriptive key is feasible
+- apply `matomo-i18n-development-rules`
 
 ## Output Format
 

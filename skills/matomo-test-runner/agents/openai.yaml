@@ -1,4 +1,4 @@
 interface:
   display_name: "Matomo Test Runner"
-  short_description: "Run Matomo PHP, UI and Vue tests via ddev console and apply test coverage expectations"
-  default_prompt: "Use $matomo-test-runner to run Matomo plugin tests, suite/file-scoped tests, UI specs, or Vue/Jest specs with the proper ddev command. Also apply Matomo test expectations: bug fixes should have regression coverage, new public API methods should get integration coverage, interactive Vue components should get Vue/Jest coverage, user-visible UI changes should get UI coverage, and new tests should avoid flaky timing, ordering, and unstable fixture assumptions."
+  short_description: "Run Matomo PHP, UI, and Vue tests and apply test expectations"
+  default_prompt: "Use $matomo-test-runner to run Matomo plugin tests, suite/file-scoped tests, UI specs, or Vue/Jest specs with the proper ddev command. Also check that bug fixes get regression coverage, new public API methods get integration coverage, interactive Vue components get Vue/Jest coverage, visible UI changes get UI coverage, and new tests avoid flaky timing or fixture assumptions."

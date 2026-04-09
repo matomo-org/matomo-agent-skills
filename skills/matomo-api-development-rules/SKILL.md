@@ -50,8 +50,8 @@ Use this skill when the task involves one or more of:
 - Keep this focused on API correctness, not general internal type cleanup.
 
 8. Documentation handoff:
-- Public API method changes should be reviewed with `matomo-documentation`.
-- This skill does not redefine PHPDoc formatting rules.
+- This skill owns the request-facing API contract itself.
+- Use `matomo-documentation` only for how that contract is expressed in PHPDoc.
 
 ## Command Selection
 
