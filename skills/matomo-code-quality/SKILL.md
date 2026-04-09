@@ -9,6 +9,10 @@ description: Run Matomo PHP code quality checks and fixes (PHPStan, PHPCS, PHPCB
 
 Use this skill for Matomo PHP static analysis and coding style validation/fixes.
 
+## Gotchas
+
+1. Narrowed PHPStan runs can emit baseline-noise like `error not matched from baseline`; confirm suspicious output with a wider run before treating it as real or ignorable.
+
 ## Rules
 
 1. Use `ddev composer phpstan` for PHPStan.

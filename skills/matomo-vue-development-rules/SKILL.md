@@ -9,6 +9,12 @@ description: Apply Matomo Vue development rules for plugin Vue source changes. U
 
 Use this skill for Matomo Vue development workflows and rebuild decisions.
 
+## Gotchas
+
+1. Every `v-html` binding should sanitize at the binding site with `$sanitize(...)`.
+2. Never run `vue:build` without explicit plugin names.
+3. Numeric dynamic HTML `id` values should be string-prefixed instead of bound as bare numbers.
+
 ## Rules
 
 1. Vue source is under `plugins/<Plugin>/vue/src/`, and exports must be present in `plugins/<Plugin>/vue/src/index.ts`.

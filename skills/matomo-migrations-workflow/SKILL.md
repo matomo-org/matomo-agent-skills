@@ -10,6 +10,12 @@ description: Plan, design, and run Matomo core/plugin update migrations (Updates
 Use this skill for Matomo update/migration work across core and plugins.
 Prefer deterministic routing and idempotent migrations.
 
+## Gotchas
+
+1. The update file and its version-marker bump must land in the same change, or the updater can silently skip the update.
+2. Update files that already exist on `origin/5.x-dev` should be treated as immutable history.
+3. Admin-facing migration hints should be executable commands, not prose summaries.
+
 ## Routing Rules
 
 1. Core-owned changes go into `core/Updates/<version>.php`.

@@ -11,6 +11,12 @@ Use this skill for structured review of Matomo code changes.
 Select the correct git comparison first, run cheap repository-integrity checks, then classify the changed areas and apply the relevant Matomo review rules and review dimensions.
 For in-development cleanup review of the current working diff with a narrow technical-debt lens, prefer `matomo-debt-check`.
 
+## Gotchas
+
+1. Do not duplicate routed-skill findings across multiple review dimensions; keep the strongest framing only.
+2. Keep `Ran` and `Not run` separate. Skipped verification is part of the review result, not optional commentary.
+3. Use routed skills for concrete Matomo rules. This skill owns review structure, severity, ambiguity handling, and verification reporting.
+
 ## Trigger Conditions
 
 Use this skill when the task is one or more of:
@@ -300,41 +306,12 @@ Use this policy for the generic review dimensions:
 
 ## Deterministic Checks
 
-Use or recommend these checks when the classified diff indicates they matter:
+Use or recommend the smallest relevant verification commands for the classified diff.
 
-1. Always-safe inspection commands:
-- `git diff --stat <range>`
-- `git diff <range>`
-- `git log --oneline <range>`
-- `git diff --name-only <range>`
-- `rg` for impacted symbols, translation keys, or schema references
-
-2. Structural-integrity inspection commands:
-- `git ls-files`
-- `git grep` for unresolved conflict-marker patterns with false-positive discipline
-- `git ls-files --eol`
-- `git lfs ls-files`
-- inspect `.gitattributes` and `.editorconfig` when EOL or LFS policy matters
-
-3. PHP code quality checks:
-- Use `matomo-code-quality` command forms.
-- Prefer targeted `phpstan` for touched PHP paths when static analysis is relevant.
-- Prefer `phpcbf` then `phpcs` when style compliance is relevant.
-
-4. Migration validation checks:
-- Use `matomo-migrations-workflow` rules to verify update placement, version-marker bumps, immutability, and install schema synchronization.
-- Inspect `core/Db/Schema/Mysql.php` when core table definitions change.
-
-5. Vue validation checks:
-- Use `matomo-vue-development-rules` command forms.
-- Recommend or run `ddev matomo:console vue:build <Plugin>` for touched plugin Vue sources.
-- Recommend or run `ddev matomo:console vue:build-polyfill` for `plugins/CoreVue/polyfills/**`.
-
-6. Test validation checks:
-- Use `matomo-test-runner` command forms.
-- Recommend or run the smallest relevant Matomo test command for the touched plugin, spec, or file.
-
-If a relevant deterministic check is not run, report it in the final review as `not run` and explain why confidence is limited.
+1. Always collect the diff, commit list, and changed-file list.
+2. Use routed skill command forms for code quality, migrations, Vue, and tests instead of inventing ad hoc alternatives.
+3. If a relevant deterministic check is not run, report it in the final review as `Not run` and explain why confidence is limited.
+4. Read `references/review-checks.md` when choosing exact git, structural-integrity, code-quality, migration, Vue, or test commands.
 
 ## Matomo-Specific Review Checklist
 
@@ -396,56 +373,7 @@ Do not rename, merge, or omit any required section.
 
 ### Required Template
 
-Use this structure exactly:
-
-```markdown
-Findings
-
-Blocking
-1. ...
-None.
-
-Medium
-1. ...
-None.
-
-Low / Polish
-1. ...
-None.
-
-Problem Addressed
-<1 short paragraph>
-
-Overall Assessment
-Verdict: Yes | No | Partially
-Merge readiness: Ready | Not ready
-<1 short paragraph covering evidence, strengths, confidence, test coverage, and ambiguity when relevant>
-
-Matomo-Specific Checks
-Applied rule sets
-- ...
-- None.
-
-Applied review dimensions
-- ...
-- None.
-
-Structural integrity
-- Clean.
-- Findings listed above.
-- Not checked: <reason>
-
-Ran
-- ...
-- None.
-
-Not run
-- <command> — <reason confidence is limited>
-- None.
-
-Next Steps
-1. ...
-```
+Use the exact template in `references/review-template.md` when drafting the final review.
 
 ### Findings Requirements
 
@@ -488,66 +416,7 @@ Next Steps
 
 Prefer specific file paths, functions, and approximate line references where possible.
 
-## Examples
+## Reference Material
 
-- "Review my current Matomo branch before I push"
-  - Review `HEAD` against `origin/5.x-dev`
-  - Route review through Matomo-specific rules based on changed files
-- "Review branch `feature/faster-archive`"
-  - Review `origin/5.x-dev...feature/faster-archive`
-- "Review `origin/5.x-dev..HEAD`"
-  - Review that exact range
-- "Review `abc123...def456`"
-  - Review that exact comparison
-
-Example output:
-
-```markdown
-Findings
-
-Blocking
-1. Duplicate translation keys were added in `plugins/Example/lang/en.json` around line 42 and only registered in `plugins/Example/Example.php` around line 110, which violates `matomo-i18n-development-rules` and creates dead translator churn.
-
-Medium
-None.
-
-Low / Polish
-1. `plugins/Example/vue/src/View.vue` around line 88 still uses a legacy helper name that obscures intent, which raises maintainability cost but does not block the branch goal.
-
-Problem Addressed
-The branch appears intended to update the Example plugin GDPR copy and associated UI text.
-
-Overall Assessment
-Verdict: Partially
-Merge readiness: Not ready
-The UI copy update is mostly in place, but the branch is not merge-ready because the new translation-key set violates the routed i18n rules. Confidence is moderate: the diff is coherent, but build and UI-test coverage is incomplete because only targeted static inspection was performed.
-
-Matomo-Specific Checks
-Applied rule sets
-- `matomo-i18n-development-rules` — blocking findings listed above.
-- `matomo-vue-development-rules` — reviewed, no findings.
-- `matomo-test-runner` — review expectation applied; missing validation noted below.
-
-Applied review dimensions
-- `intent`
-- `structural integrity`
-- `maintainability`
-- `test quality`
-
-Structural integrity
-- Clean.
-
-Ran
-- `git diff --stat origin/5.x-dev...HEAD`
-- `git diff origin/5.x-dev...HEAD`
-- `git log --oneline origin/5.x-dev..HEAD`
-- `rg "ExampleKey|ExampleKeyNew" plugins/Example`
-
-Not run
-- `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.
-- `ddev matomo:console tests:run-ui Example` — not run in this environment, so screenshot and rendered-flow regressions remain unverified.
-
-Next Steps
-1. Remove the dead translation keys or reuse the existing keys instead of shipping parallel variants.
-2. Run the targeted Example Vue build and UI validation once the environment supports `ddev`.
-```
+Read `references/review-template.md` when drafting the final review output.
+Read `references/review-checks.md` when selecting exact verification commands or when the requested git range needs an explicit command form.
