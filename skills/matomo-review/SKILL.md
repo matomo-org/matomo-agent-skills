@@ -10,6 +10,7 @@ description: Review Matomo git changes for branches, PRs, or arbitrary git range
 Use this skill for structured review of Matomo code changes.
 Select the correct git comparison first, run cheap repository-integrity checks, then classify the changed areas and apply the relevant Matomo review rules and review dimensions.
 For in-development cleanup review of the current working diff with a narrow technical-debt lens, prefer `matomo-debt-check`.
+For full branch reviews, also include a compact debt check section so maintainability cleanup items are visible without replacing the main review.
 
 ## Gotchas
 
@@ -52,9 +53,11 @@ Use this skill when the task is one or more of:
 11. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
 12. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
 13. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-14. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
+14. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, `Debt Check`, and `Next Steps`.
 15. Call out ambiguity instead of guessing.
 16. Do not rename, merge, or omit required output sections or required check-summary labels.
+17. Run a compact debt pass for full reviews using the `matomo-debt-check` indicators, but keep debt-only requests routed to `matomo-debt-check`.
+18. Do not duplicate issues between `Findings` and `Debt Check`; if a maintainability concern is already reported as a defect or routed-rule finding, keep it in `Findings` only.
 
 ## Review Flow
 
@@ -65,7 +68,8 @@ Use this skill when the task is one or more of:
 5. Apply the matching Matomo rule sets first.
 6. Apply the relevant review dimensions without duplicating routed-skill findings.
 7. Run or recommend deterministic checks for the matched areas.
-8. Produce a findings-first review using the required output template and exact section names.
+8. Run a compact debt pass for duplication, convention drift, over-engineering, missing important regression coverage, and hardcoded values that should reuse existing abstractions or options.
+9. Produce a findings-first review using the required output template and exact section names.
 
 ## Review Dimensions
 
@@ -272,6 +276,7 @@ Use this policy for the generic review dimensions:
 
 3. Maintainability or docs concerns:
 - do not inflate to blocking unless the issue materially raises defect risk, upgrade risk, or recurring support cost
+- debt-level maintainability cleanup that does not independently affect merge readiness belongs in `Debt Check`, not `Findings`
 
 4. Duplicate issue visible through multiple dimensions:
 - keep the strongest framing
@@ -375,7 +380,8 @@ Respond with these exact top-level sections in this exact order:
 2. `Problem Addressed`
 3. `Overall Assessment`
 4. `Matomo-Specific Checks`
-5. `Next Steps`
+5. `Debt Check`
+6. `Next Steps`
 
 Do not rename, merge, or omit any required section.
 
@@ -396,6 +402,7 @@ Use the exact template in `references/review-template.md` when drafting the fina
 - the routed rule source when the issue is a routed-skill violation
 4. Confirmed routed-skill requirement violations belong in `Blocking` by default unless the routed skill explicitly allows a downgrade.
 5. If applicability is uncertain, call out the ambiguity and what would confirm it rather than silently downgrading or omitting it.
+6. Do not place debt-only maintainability cleanup in `Findings` unless it independently creates defect, security, compatibility, or operability risk.
 
 ### Assessment Requirements
 
@@ -405,6 +412,7 @@ Use the exact template in `references/review-template.md` when drafting the fina
 2. The assessment paragraph must state whether the change solves the inferred problem and why.
 3. Mention test coverage and gaps in the assessment paragraph if they affect confidence.
 4. If branch intent is unclear, say so explicitly in the assessment paragraph.
+5. Mention debt in the assessment paragraph only if it affects confidence or merge readiness; otherwise keep debt content in `Debt Check`.
 
 ### Checks Requirements
 
@@ -423,6 +431,14 @@ Use the exact template in `references/review-template.md` when drafting the fina
 - `Not checked: <reason>`
 
 Prefer specific file paths, functions, and approximate line references where possible.
+
+### Debt Check Requirements
+
+1. `Debt Check` is required for full branch reviews, even when there are no material debt items.
+2. If there are no material debt findings, write `No material debt findings.`
+3. Debt findings must be limited to material cleanup items the author should fix before continuing or committing.
+4. Debt findings should focus on duplication, convention drift, over-engineering, missing important regression coverage, and hardcoded values that should reuse constants, config, or existing helpers.
+5. Do not repeat issues already reported in `Findings`; keep the strongest framing only.
 
 ## Reference Material
 

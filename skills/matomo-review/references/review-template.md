@@ -47,6 +47,10 @@ Not run
 - <command> — <reason confidence is limited>
 - None.
 
+Debt Check
+- ...
+- No material debt findings.
+
 Next Steps
 1. ...
 ```
@@ -97,6 +101,9 @@ Ran
 Not run
 - `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.
 - `ddev matomo:console tests:run-ui Example` — not run in this environment, so screenshot and rendered-flow regressions remain unverified.
+
+Debt Check
+- No material debt findings.
 
 Next Steps
 1. Remove the dead translation keys or reuse the existing keys instead of shipping parallel variants.

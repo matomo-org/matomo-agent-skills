@@ -49,7 +49,7 @@
 - Owns PHPDoc expression rules, not the API contract semantics or deprecation lifecycle policy themselves.
 - Use when working on Matomo public API docblocks, event docs for `Piwik::postEvent()`, or preserving, adding, or fixing internal PHPDoc type information.
 12. `matomo-review`
-- Reviews Matomo branches, PRs, or arbitrary git ranges with a strict findings-first template using exact sections for `Findings`, `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
+- Reviews Matomo branches, PRs, or arbitrary git ranges with a strict findings-first template using exact sections for `Findings`, `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, `Debt Check`, and `Next Steps`.
 - Primary tools: `git diff`, `git log`, `git merge-base`, plus targeted Matomo verification commands when relevant.
 - Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations.
 - Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant, including concrete checks for type/coercion safety, dead code, debug leftovers, Matomo query and archive performance anti-patterns, deprecation or lockfile compatibility issues, event documentation, migration hard gates, plugin architecture guardrails, Vue implementation guardrails, and test-coverage expectations.
