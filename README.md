@@ -41,7 +41,11 @@
 - Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, Twig, code quality, migrations, Vue, and test expectations.
 - Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant.
 - Requires fixed severity buckets (`Blocking`, `Medium`, `Low / Polish`), explicit `None.` markers for empty buckets, fixed verdict and merge-readiness lines, and separate `Ran` / `Not run` verification reporting so skipped checks cannot be dropped silently.
-- Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison.
+- Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
+11. `matomo-debt-check`
+- Reviews the current working diff, pointed files, or pasted code for technical debt indicators worth fixing before continuing or committing.
+- Focuses on duplication, local pattern drift, over-engineering, missing important regression tests, and hardcoded values that should use config, constants, or existing options.
+- Use when the user asks for debt review, cleanup-before-commit feedback, or an in-development maintainability check.
 
 
 ## Install Skills with Codex CLI

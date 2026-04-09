@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Debt Check"
+  short_description: "Review the current implementation for debt indicators"
+  default_prompt: "Use $matomo-debt-check to review the current working diff, pointed Matomo files, or pasted code for technical debt indicators worth fixing before continuing or committing. Focus on duplication, local pattern drift, over-engineering, missing important regression tests, and hardcoded values that should use config, constants, or existing options. Return material findings first, or say No material debt findings."

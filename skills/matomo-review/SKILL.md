@@ -9,6 +9,7 @@ description: Review Matomo git changes for branches, PRs, or arbitrary git range
 
 Use this skill for structured review of Matomo code changes.
 Select the correct git comparison first, run cheap repository-integrity checks, then classify the changed areas and apply the relevant Matomo review rules and review dimensions.
+For in-development cleanup review of the current working diff with a narrow technical-debt lens, prefer `matomo-debt-check`.
 
 ## Trigger Conditions
 
@@ -17,6 +18,7 @@ Use this skill when the task is one or more of:
 1. Review the current Matomo branch before pushing or merging.
 2. Review a Matomo PR, branch, commit range, or explicit git comparison.
 3. Assess whether a Matomo change set is complete, safe, and aligned with Matomo development rules.
+4. Redirect narrow "debt review", "cleanup before commit", or in-progress maintainability-check requests to `matomo-debt-check` instead of forcing a full branch review.
 
 ## Rules
 
