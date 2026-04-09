@@ -5,14 +5,16 @@
 1. `matomo-code-quality`
 - Runs Matomo PHP static analysis and style checks/fixes using `ddev`.
 - Primary tools: `phpstan`, `phpcbf`, `phpcs`.
+- Also covers PHPStan baseline-noise handling and targeted PHPCS suppression guidance.
 - Use when analyzing PHP issues or fixing coding style violations in Matomo core/plugins.
 2. `matomo-test-runner`
 - Runs Matomo PHP UI and Vue/Jest tests via `ddev matomo:console`.
 - Primary tools: `tests:run`, `tests:run-ui`, `tests:run-vue`.
+- Also sets expectations for regression coverage, test type selection, fixtures, and flaky-test avoidance.
 - Use when running plugin tests, suite/file-scoped tests, UI specs or Vue/Jest specs.
 3. `matomo-i18n-development-rules`
 - Applies Matomo i18n development rules for translation key placement, reuse, and safe key lifecycle changes.
-- Enforces placeholder, naming, ordering, and translation-text HTML constraints.
+- Enforces numbered-placeholder safety for multi-placeholder strings, key naming, ordering, and translation-text HTML constraints.
 - Covers non-English translation file editing policy, including Weblate-managed and Intl exceptions.
 4. `matomo-security-rules`
 - Applies Matomo security guardrails for access control, CSRF protection, SQL injection prevention, trust-boundary request handling, and secret exposure.
@@ -27,19 +29,21 @@
 - Applies Matomo Vue development guardrails for plugin Vue source changes.
 - Requires `v-html` bindings to sanitize content via `$sanitize(...)`.
 - Primary tools: `vue:build`, `vue:build-polyfill`.
+- Also covers numeric HTML `id` safety, jQuery UI avoidance where Vue equivalents exist, and helper reuse before local reimplementation.
 - Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds.
 8. `matomo-migrations-workflow`
 - Plans and validates Matomo core/plugin update migrations (`Updates/*.php`) with strict execution preconditions.
 - Primary tools: `generate:update`, `core:update`.
+- Adds hard-gate version sync checks and requires copy-pasteable CLI migration hints when admin-facing commands are shown.
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps.
 9. `matomo-documentation`
-- Creates and updates Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods, and keeps internal docs minimal unless native types are missing or too broad.
-- Use when working on Matomo public API docblocks or preserving, adding, or fixing internal PHPDoc type information.
+- Creates and updates Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods and posted events, and keeps internal docs minimal unless native types are missing or too broad.
+- Use when working on Matomo public API docblocks, event docs for `Piwik::postEvent()`, or preserving, adding, or fixing internal PHPDoc type information.
 10. `matomo-review`
 - Reviews Matomo branches, PRs, or arbitrary git ranges with a strict findings-first template using exact sections for `Findings`, `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
 - Primary tools: `git diff`, `git log`, `git merge-base`, plus targeted Matomo verification commands when relevant.
 - Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, Twig, code quality, migrations, Vue, documentation, and test expectations.
-- Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant, including concrete checks for type/coercion safety, dead code, debug leftovers, Matomo query and archive performance anti-patterns, and deprecation or lockfile compatibility issues.
+- Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant, including concrete checks for type/coercion safety, dead code, debug leftovers, Matomo query and archive performance anti-patterns, deprecation or lockfile compatibility issues, event documentation, migration hard gates, Vue implementation guardrails, and test-coverage expectations.
 - Requires fixed severity buckets (`Blocking`, `Medium`, `Low / Polish`), explicit `None.` markers for empty buckets, fixed verdict and merge-readiness lines, and separate `Ran` / `Not run` verification reporting so skipped checks cannot be dropped silently.
 - Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
 11. `matomo-debt-check`

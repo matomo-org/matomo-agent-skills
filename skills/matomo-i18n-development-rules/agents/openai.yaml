@@ -1,4 +1,4 @@
 interface:
   display_name: "Matomo i18n Development Rules"
-  short_description: "Apply Matomo translation key and translation-file change rules"
-  default_prompt: "Use $matomo-i18n-development-rules to validate or propose Matomo i18n key placement, key reuse, placeholder safety, and non-English translation file policy decisions."
+  short_description: "Apply Matomo translation key, placeholder, and translation-file change rules"
+  default_prompt: "Use $matomo-i18n-development-rules to validate or propose Matomo i18n key placement, key reuse, placeholder safety, and non-English translation file policy decisions. For strings with two or more placeholders, require numbered placeholders so translators can reorder safely, and prefer descriptive key names over generic buckets like Message1 when a specific semantic name is available."

@@ -19,6 +19,9 @@ Use this skill for Matomo Vue development workflows and rebuild decisions.
 6. Do not bind raw translations, computed HTML strings, or server-provided content directly to `v-html`; sanitize at the template binding site.
 7. If `vue:build` reports lint issues, fix them before retrying the build.
 8. If files under `plugins/CoreVue/polyfills/**` change, run `ddev matomo:console vue:build-polyfill`.
+9. HTML `id` attributes built from numeric values should be prefixed with a string, for example `:id="'goal-' + goalId"`, instead of binding a bare number.
+10. When an existing Vue component covers the needed UI pattern, prefer it over jQuery UI widgets or direct jQuery DOM manipulation.
+11. Before creating new Vue or TS helpers, check for existing utilities in `Matomo.helper.*`, shared Core Vue sources, and nearby active helpers.
 
 ## Command Selection
 
@@ -40,6 +43,8 @@ Use this skill for Matomo Vue development workflows and rebuild decisions.
 2. If changes touch `plugins/<Plugin>/vue/src/**`, run `vue:build` for those plugin names only.
 3. If a changed Vue template uses `v-html`, verify the bound value is wrapped in `$sanitize(...)`.
 4. If `vue:build` fails with lint output, fix lint issues first, then rerun the same plugin-scoped build command.
+5. If new UI code introduces numeric dynamic IDs, prefix them with a stable string.
+6. If the change introduces jQuery UI or direct jQuery manipulation for an existing Vue-covered pattern, prefer the existing Vue component or helper instead.
 
 ## Examples
 

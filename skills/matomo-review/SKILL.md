@@ -125,6 +125,8 @@ Apply these dimensions when the diff makes them relevant:
 - weak assertions
 - flaky timing or ordering assumptions
 - important scenarios surfaced by the review that have no targeted coverage
+- missing integration coverage for new public API methods, archiving changes, segment logic, or report generation when the diff adds those behaviors
+- missing Vue/Jest coverage for new interactive Vue components and missing UI coverage for visible UI behavior changes when those surfaces are touched
 
 ## Diff Classification
 
@@ -178,6 +180,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 - public method changes in `plugins/<Plugin>/API.php`
 - new or modified `@param` or `@return` tags
 - PHPDoc changes that affect public API contracts
+- new or modified `Piwik::postEvent()` calls
 - Apply `matomo-documentation`.
 
 9. Test expectation signals:
@@ -360,11 +363,13 @@ Domain-specific expectations:
 - likely PHPStan issues
 - PHPCS compliance
 - plugin-specific config handling when relevant
+- narrowed-path PHPStan noise should be treated carefully; suspicious output should be confirmed with a wider plugin or core-directory run before classifying it as false positive or clean
 - clear routed code-quality violations are blocking by default
 
 3. documentation:
 - public API PHPDoc reflects the real request-facing contract
 - `@param` and `@return` changes stay aligned with actual code behavior
+- new posted events are documented or marked `@internal` when they should stay out of public docs
 - clear routed documentation-rule violations are blocking by default
 
 4. migrations:
@@ -373,6 +378,7 @@ Domain-specific expectations:
 - update immutability respected
 - install schema updated when core schema changes
 - high-impact migrations guarded appropriately
+- migration hints remain copy-pasteable CLI commands when admin-facing hints are added or changed
 - clear routed migration workflow violations are blocking by default
 
 5. Vue:
@@ -380,12 +386,20 @@ Domain-specific expectations:
 - no cross-plugin source imports
 - every `v-html` binding sanitizes content via `$sanitize(...)`
 - polyfill rebuild requirements when applicable
+- numeric dynamic HTML `id` attributes should be prefixed with a stable string
+- jQuery UI or direct jQuery DOM work should not replace an existing Vue component or established helper without clear need
+- existing Matomo helpers should be reused before introducing local duplicates
 - clear routed Vue workflow violations are blocking by default
 
 6. tests:
 - appropriate Matomo test type exists for changed behavior
 - missing regression coverage is called out explicitly
 - weak assertions and flaky patterns are called out explicitly
+- fixture usage and timing assumptions should not make the new coverage fragile
+
+7. i18n:
+- multi-placeholder translations should use numbered placeholders
+- touched generic key names should not become vague placeholder buckets like `Message1` when a descriptive key is feasible
 
 ## Output Format
 

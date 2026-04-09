@@ -92,6 +92,15 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
 4. Align only continuation (wrapped) lines under the description text.
 5. Avoid mass-reformatting unrelated existing docblocks.
 
+## Event Documentation Rules
+
+Events posted via `Piwik::postEvent()` are included in generated developer documentation unless they are marked internal.
+
+1. Every new `Piwik::postEvent('EventName', ...)` should have a PHPDoc block above the call that describes what the event does, the parameters it passes, and a short usage example.
+2. If an event parameter is passed by reference, document that explicitly.
+3. Events intended only for core/internal use should include `@internal`.
+4. When changing parameters or behavior of an existing posted event, update the event PHPDoc in the same change.
+
 ## API File-Specific Rules
 When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
 1. File summary

@@ -44,6 +44,17 @@ When a requested file/path is under `plugins/<Plugin>/`:
 2. If `plugins/<Plugin>/phpcs.xml` exists, use plugin PHPCS/PHPCBF `--standard` form.
 3. If config file is missing, fall back to root/default commands.
 
+## Handling False Positives and Baselines
+
+1. PHPStan output like `error not matched from baseline` during narrowed runs is expected and does not automatically mean the target file is clean or broken.
+2. If PHPStan output looks like a false positive, rerun against the full plugin or relevant core directory before treating it as a tooling issue.
+3. Do not edit `phpstan-baseline.neon` as part of normal feature work without explicit maintainer approval.
+4. If PHPCS reports an intentional exception, prefer a targeted `phpcs:ignore` with a reason over disabling broad rules or standards.
+
+## Targeted Analysis for Changed Files
+
+- Changed-file-only PHPStan can be useful for iteration speed, but confirm suspicious results with a wider plugin or core-directory run when baseline noise appears.
+
 ## Examples
 
 - "Run phpstan on `core/Log.php`"
