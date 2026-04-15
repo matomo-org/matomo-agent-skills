@@ -52,8 +52,9 @@ When a requested file/path is under `plugins/<Plugin>/`:
 
 1. PHPStan output like `error not matched from baseline` during narrowed runs is expected and does not automatically mean the target file is clean or broken.
 2. If PHPStan output looks like a false positive, rerun against the full plugin or relevant core directory before treating it as a tooling issue.
-3. Do not edit `phpstan-baseline.neon` as part of normal feature work without explicit maintainer approval.
-4. If PHPCS reports an intentional exception, prefer a targeted `phpcs:ignore` with a reason over disabling broad rules or standards.
+3. Removing obsolete entries from `phpstan-baseline.neon` is acceptable when the underlying issues are actually fixed.
+4. Adding new baseline entries or making other baseline edits requires explicit maintainer approval.
+5. If PHPCS reports an intentional exception, prefer a targeted `phpcs:ignore` with a reason over disabling broad rules or standards.
 
 ## Targeted Analysis for Changed Files
 

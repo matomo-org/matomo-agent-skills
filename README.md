@@ -57,7 +57,8 @@
 - Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
 13. `matomo-debt-check`
 - Reviews the current working diff, pointed files, or pasted code for technical debt indicators worth fixing before continuing or committing.
-- Focuses on duplication, local pattern drift, over-engineering, missing important regression tests, and hardcoded values that should use config, constants, or existing options.
+- Focuses on duplication, local pattern drift, over-engineering, missing important regression tests, hardcoded values that should use config, constants, or existing options, and newly introduced reliance on already-deprecated APIs in the reviewed surface.
+- Refers deprecation lifecycle and transition handling to `matomo-deprecation-rules` instead of turning debt review into a full deprecated-usage audit.
 - Use when the user asks for debt review, cleanup-before-commit feedback, or an in-development maintainability check.
 
 

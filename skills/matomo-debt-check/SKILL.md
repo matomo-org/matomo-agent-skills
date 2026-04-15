@@ -40,6 +40,7 @@ Check these indicators explicitly:
 3. Over-engineering relative to the stated requirement or current scope.
 4. Missing tests for important regressions or important changed paths.
 5. Hardcoded values that should use config, constants, or existing options.
+6. Newly introduced or expanded reliance on already-deprecated methods or APIs in the reviewed surface.
 
 ## Rules
 
@@ -48,7 +49,9 @@ Check these indicators explicitly:
 3. Focus on debt the author should fix before continuing or committing.
 4. Do not turn the review into a full branch-completeness or release-readiness assessment.
 5. Avoid generic style commentary or praise-heavy filler.
-6. If there are no material debt findings, say so explicitly.
+6. Treat deprecated-API usage as debt only when the reviewed surface introduces or expands it; do not turn this skill into a whole-codebase deprecated-usage audit.
+7. When deprecated-API usage is flagged, point handling guidance to `matomo-deprecation-rules` instead of restating deprecation lifecycle policy here.
+8. If there are no material debt findings, say so explicitly.
 
 ## Output Contract
 

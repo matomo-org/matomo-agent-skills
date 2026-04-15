@@ -241,6 +241,26 @@ Good:
 private function saveConfig(int $idSite, array $config): void
 ```
 
+Use a shaped input type only when the accepted array structure is itself part of the method contract. A shaped `@return` does not by itself require a shaped `@param`.
+
+Bad:
+
+```php
+/**
+ * @param array $config
+ */
+private function validateConfig(array $config): void
+```
+
+Good:
+
+```php
+/**
+ * @param array{enabled?: bool, threshold?: int} $config
+ */
+private function validateConfig(array $config): void
+```
+
 Bad:
 
 ```php

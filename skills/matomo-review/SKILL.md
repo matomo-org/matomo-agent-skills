@@ -68,7 +68,7 @@ Use this skill when the task is one or more of:
 5. Apply the matching Matomo rule sets first.
 6. Apply the relevant review dimensions without duplicating routed-skill findings.
 7. Run or recommend deterministic checks for the matched areas.
-8. Run a compact debt pass for duplication, convention drift, over-engineering, missing important regression coverage, and hardcoded values that should reuse existing abstractions or options.
+8. Run a compact debt pass for duplication, convention drift, over-engineering, missing important regression coverage, hardcoded values that should reuse existing abstractions or options, and newly introduced reliance on already-deprecated APIs.
 9. Produce a findings-first review using the required output template and exact section names.
 
 ## Review Dimensions
@@ -103,6 +103,7 @@ Apply these dimensions when the diff makes them relevant:
 - non-obvious behavior that needs to be made explicit
 - dead or unreachable code such as always-true or always-false branches, useless unconditional returns, assigned-but-never-read values, and parameters or helpers that add noise without real use
 - divergence from established nearby patterns or reinvention of existing helpers when the local Matomo convention is already clear
+- newly introduced or expanded usage of already-deprecated methods or APIs, treated as debt and referred to `matomo-deprecation-rules` for replacement or transition handling rather than handled here as standalone deprecation policy
 - debug output accidentally left in production paths such as `var_dump()`, `print_r()`, `error_log()`, `dd()`, or bare `echo`
 
 5. Security

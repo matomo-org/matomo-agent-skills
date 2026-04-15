@@ -22,7 +22,7 @@ Use this skill when the task involves one or more of:
 
 1. New plugin files or structural refactors across plugin layers.
 2. Changes to plugin bootstrap classes or `registerEvents()`.
-3. New or changed `Archiver`, `Model`, `Reports/*`, `Columns/*`, or Settings classes.
+3. New or changed `Archiver`, `Model`, `Reports/*`, `RecordBuilders/*`, `Columns/*`, or Settings classes.
 4. Questions about utility reuse, plugin file layout, or cross-plugin boundaries.
 5. Cross-layer logic placement decisions that are not limited to one `API.php` method or one Vue/Twig sink.
 
@@ -49,7 +49,7 @@ Use this skill when the task involves one or more of:
 - Do not reimplement common redirect, URL, translation, segment-hash, or table-prefix behavior locally without a clear reason.
 
 4. Plugin structure conventions:
-- Follow the standard plugin layout where appropriate: `API.php`, `Archiver.php`, `Model.php`, `Controller.php`, `Reports/*`, `Columns/*`, `lang/en.json`, `plugin.json`, and `vue/src/index.ts`.
+- Follow the standard plugin layout where appropriate: `API.php`, `Archiver.php`, `Model.php`, `Controller.php`, `Reports/*`, `RecordBuilders/*`, `Columns/*`, `lang/en.json`, `plugin.json`, and `vue/src/index.ts`.
 - New top-level files or folders should have a clear architectural reason instead of bypassing the established layout.
 
 5. Dimension, Report, and Settings conventions:
@@ -73,7 +73,7 @@ Use this skill when the task involves one or more of:
 ### Layer Boundaries
 
 - Inspect class responsibilities:
-  - `rg 'class |extends |function ' plugins/<Plugin>/{API.php,Archiver.php,Model.php,Controller.php,Reports,Columns} -g '*.php'`
+  - `rg 'class |extends |function ' plugins/<Plugin>/{API.php,Archiver.php,Model.php,Controller.php,Reports,RecordBuilders,Columns} -g '*.php'`
 - Detect direct DB usage outside Models:
   - `rg 'Db::|fetch(All|One|Row)|query\\(' plugins/<Plugin>/ --glob '*.php'`
 
@@ -86,7 +86,7 @@ Use this skill when the task involves one or more of:
 
 ## Routing Logic
 
-1. If a diff adds or refactors plugin structure across API, Model, Archiver, Report, Settings, or bootstrap files, apply this skill.
+1. If a diff adds or refactors plugin structure across API, Model, Archiver, Report, RecordBuilder, Settings, or bootstrap files, apply this skill.
 2. If a diff changes `registerEvents()` or event-handler wiring, apply this skill and pair with `matomo-documentation` when event docs are affected.
 3. If a diff introduces direct use of another plugin's internal classes, apply this skill.
 4. If the issue is only a single API method contract, prefer `matomo-api-development-rules`.

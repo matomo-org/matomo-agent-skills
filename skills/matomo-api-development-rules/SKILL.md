@@ -33,8 +33,8 @@ Use this skill when the task involves one or more of:
 - When a parameter accepts a constrained set of values, validate or normalize that set explicitly.
 
 3. Boolean request parameters:
-- Do not rely on PHP truthiness for request booleans such as `"0"`, `"1"`, `"true"`, or `"false"`.
-- Normalize them explicitly before branching on behavior.
+- Do not rely on loose PHP truthiness for request booleans such as `"0"`, `"1"`, `"true"`, or `"false"`.
+- Prefer native `bool` type hints when the API proxy handles the request parameter directly, or `Request::fromRequest()->getBoolParameter()` when reading request values explicitly.
 
 4. Enum-like request parameters:
 - Validate fixed-value parameters such as period or mode inputs against the accepted set instead of forwarding unchecked strings.
@@ -50,9 +50,15 @@ Use this skill when the task involves one or more of:
 - Normalize database-derived numeric identifiers before relying on strict comparisons or returning them as part of API output.
 - Keep this focused on API correctness, not general internal type cleanup.
 
-8. Documentation handoff:
+8. `@ignore` and non-exposed helpers:
+- `@ignore` on a public `API.php` method prevents API-proxy exposure.
+- Treat public `API.php` methods marked `@ignore` as exceptional and avoid introducing them without a clear reason.
+- If a helper is not meant to be part of the public API surface, prefer plugin or helper classes unless keeping it in `API.php` matches an established Matomo pattern.
+
+9. Documentation and security handoff:
 - This skill owns the request-facing API contract itself.
 - Use `matomo-documentation` only for how that contract is expressed in PHPDoc.
+- If `autoSanitizeInputParams` or `@unsanitized` affects how API inputs are handled, review that trust-boundary behavior with `matomo-security-rules`.
 
 ## Command Selection
 
@@ -80,6 +86,6 @@ Use this skill when the task involves one or more of:
 - "Review a new `plugins/MyPlugin/API.php` method"
   - Verify the method exposes a clear request-facing contract and delegates non-API work.
 - "Review a new boolean API parameter"
-  - Verify the value is normalized explicitly instead of tested with loose truthiness.
+  - Verify the code avoids loose truthiness and uses native `bool` handling or `getBoolParameter()` as appropriate.
 - "Review an API method that may not find a record"
   - Verify the return contract is consistent and does not introduce a new `false` sentinel.

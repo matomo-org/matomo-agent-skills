@@ -50,7 +50,7 @@ Use this skill when the task involves one or more of:
 ### Raw Output and Escaping
 
 - Find raw output sinks:
-  - `rg '\\|raw\\b|rawSafeDecoded|safelink|externallink|escape\\(' plugins/<Plugin>/templates/ --glob '*.twig'`
+  - `rg '\\|raw\\b|rawSafeDecoded|safelink|externallink|escape\\(|\\|e\\(' plugins/<Plugin>/templates/ --glob '*.twig'`
 
 ### Nonce and Token Fields
 

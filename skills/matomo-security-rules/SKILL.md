@@ -44,9 +44,12 @@ Use this skill when the task involves one or more of:
 - Do not use raw `$_GET`, `$_POST`, or `$_REQUEST` in normal plugin request handling.
 - Prefer `Request::fromRequest()` for typed request parameters.
 - If `Common::getRequestVar()` is used, provide an explicit type whenever a stable scalar type is expected.
+- If `autoSanitizeInputParams` is disabled or an API method docblock is marked `@unsanitized`, treat the input as higher-risk and validate, escape, and pass it onward with extra care.
 
 6. Secret and token exposure:
 - Do not log, echo, or include `token_auth`, passwords, auth tokens, or comparable secrets in user-visible errors, diagnostics, or URLs unless the flow is an established Matomo pattern that explicitly requires it.
+- Consider `#[\SensitiveParameter]` for method parameters that carry passwords, tokens, auth credentials, or comparable secrets.
+- Follow the existing Matomo multiline style when attributing parameters: place the attribute on its own line and place each parameter on its own line if any parameter in the signature uses an attribute.
 
 7. Raw-output principle:
 - Untrusted content must not be sent through raw HTML sinks without explicit safety guarantees.
@@ -78,7 +81,7 @@ Use this skill when the task involves one or more of:
 ### SQL Safety
 
 - Inspect SQL construction:
-  - `rg 'Db::(query|fetchAll|fetchOne|fetchRow)|SELECT |INSERT |UPDATE |DELETE ' plugins/<Plugin>/ --glob '*.php'`
+  - `rg 'Db::(query|exec|fetchAll|fetchAssoc|fetchOne|fetchRow)|Db::get\\(\\)->(query|exec|fetchAll|fetchAssoc|fetchOne|fetchRow)|SELECT |INSERT |UPDATE |DELETE ' plugins/<Plugin>/ --glob '*.php'`
 
 ## Routing Logic
 
