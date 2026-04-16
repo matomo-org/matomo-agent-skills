@@ -28,7 +28,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-6. If shell command examples changed, manually verify that literal commands are copy-pasteable, documented `rg` regexes use shell-native escaping, angle-bracket placeholders clearly require substitution before running, and environment-dependent commands state their prerequisites.
+6. If shell command examples changed, manually verify that literal commands are copy-pasteable, template commands clearly require substitution, `xargs` examples include an empty-input guard, environment-dependent commands state their prerequisites, and the changed examples are run against a suitable Matomo checkout or environment before marking the task done.
 7. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar

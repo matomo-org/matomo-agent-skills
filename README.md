@@ -87,8 +87,8 @@ Reference for public skill examples and format:
 
 Quality and maintenance rules for contributors and AI tooling are defined in `AGENTS.md`.
 
-Shell command examples in skills must be safe to use as documented. Literal commands should be copy-pasteable, documented `rg` regexes should use shell-native escaping, and commands with angle-bracket placeholders must be clearly treated as templates that require substitution before running. Environment-dependent commands such as `ddev matomo:console ...` must state their prerequisites instead of assuming a default local setup.
-If command examples change, manually verify those expectations in a suitable Matomo checkout. Use the focused `rg` checks when only regex-oriented examples changed.
+Shell command examples in skills must be safe to use as documented. Literal commands should be copy-pasteable, documented `rg` regexes should use shell-native escaping, commands with angle-bracket placeholders must be clearly treated as templates that require substitution before running, `xargs` examples should include an empty-input guard, and environment-dependent commands such as `ddev matomo:console ...` must state their prerequisites instead of assuming a default local setup.
+If command examples change, manually verify those expectations and also run the changed examples against a suitable Matomo checkout or environment when applicable.
 
 Security and framework skills intentionally split ownership:
 - `matomo-security-rules` owns cross-cutting security invariants.
