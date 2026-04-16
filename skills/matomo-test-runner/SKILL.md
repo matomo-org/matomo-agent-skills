@@ -8,6 +8,8 @@ description: Run Matomo PHP, UI and Vue/Jest tests using ddev matomo:console com
 ## Overview
 
 Use this skill for Matomo automated test execution.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Rules
 

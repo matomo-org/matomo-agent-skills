@@ -8,6 +8,8 @@ description: Apply Matomo Vue development rules for plugin Vue source changes. U
 ## Overview
 
 Use this skill for Matomo Vue development workflows and rebuild decisions.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 

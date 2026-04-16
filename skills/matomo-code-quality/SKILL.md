@@ -8,6 +8,8 @@ description: Run Matomo PHP code quality checks and fixes (PHPStan, PHPCS, PHPCB
 ## Overview
 
 Use this skill for Matomo PHP static analysis and coding style validation/fixes.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 
@@ -60,7 +62,7 @@ When a requested file/path is under `plugins/<Plugin>/`:
 
 - Changed-file-only PHPStan can be useful for iteration speed, but confirm suspicious results with a wider plugin or core-directory run when baseline noise appears.
 - Command:
-  - `git diff --name-only origin/5.x-dev...HEAD -- '*.php' | xargs ddev composer phpstan --`
+  - `git diff --name-only origin/5.x-dev...HEAD -- '*.php' | while IFS= read -r path; do ddev composer phpstan -- "$path"; done`
 
 ## Examples
 

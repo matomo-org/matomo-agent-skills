@@ -74,6 +74,8 @@ Use these exact commands when the review needs explicit verification commands or
 ### Vue validation checks
 
 - use `matomo-vue-development-rules` command forms
+- recommend or run these only when a working Matomo DDEV project is available
+- commands with angle-bracket placeholders are templates; replace them before running
 - recommend or run `ddev matomo:console vue:build <Plugin>` for touched plugin Vue sources
 - recommend or run `ddev matomo:console vue:build-polyfill` for `plugins/CoreVue/polyfills/**`
 

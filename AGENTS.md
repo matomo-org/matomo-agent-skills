@@ -13,7 +13,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 
 1. Skill folder name matches the skill name convention (lowercase, digits, hyphens).
 2. `SKILL.md` command guidance is executable and consistent with real Matomo workflows.
-3. Shell command examples are literal copy-pasteable commands; do not require manual de-escaping or agent-side regex rewriting.
+3. Shell command examples are safe as documented: literal commands are copy-pasteable, template commands clearly require substitution, and environment-dependent commands state their prerequisites.
 4. `README.md` "Available Skills" and installation guidance reflect current repository state.
 5. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
 6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
@@ -28,7 +28,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-6. If shell command examples changed, manually verify that documented `rg` examples are literal copy-pasteable commands, use shell-native escaping, do not require normalization before running, and avoid advanced PCRE-only features when a simpler command expresses the same review intent.
+6. If shell command examples changed, manually verify that literal commands are copy-pasteable, documented `rg` regexes use shell-native escaping, angle-bracket placeholders clearly require substitution before running, and environment-dependent commands state their prerequisites.
 7. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar

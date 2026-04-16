@@ -10,6 +10,8 @@ description: Plan, design, and run Matomo core/plugin update migrations (Updates
 Use this skill for Matomo update/migration work across core and plugins.
 Prefer deterministic routing and idempotent migrations.
 Use `matomo-deprecation-rules` for lifecycle policy around removing or renaming public behavior; this skill owns update execution and schema/data migration mechanics.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 
