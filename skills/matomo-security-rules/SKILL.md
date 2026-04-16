@@ -42,8 +42,13 @@ Use this skill when the task involves one or more of:
 
 5. Trust-boundary request handling:
 - Do not use raw `$_GET`, `$_POST`, or `$_REQUEST` in normal plugin request handling.
-- Prefer `Request::fromRequest()` for typed request parameters.
-- If `Common::getRequestVar()` is used, provide an explicit type whenever a stable scalar type is expected.
+- Prefer Matomo request helpers over superglobals:
+  - Use `Request::fromRequest()` for typed request parameters from the normal request flow.
+  - Use `Request::fromGet()` or `Request::fromPost()` when the source must be restricted to one request method.
+- Avoid `Common::getRequestVar()` in new code; prefer `Request::fromRequest()`, `Request::fromGet()`, or `Request::fromPost()` instead.
+- Treat values returned by request helpers and `Common::getRequestVar()` as untrusted input at the trust boundary.
+- Typed request access does not make a value safe for HTML output, SQL fragments, redirects, file paths, or other sensitive sinks; validate, normalize, bind, and escape according to the destination sink.
+- If existing code still uses `Common::getRequestVar()`, provide an explicit type whenever a stable scalar type is expected.
 - If `autoSanitizeInputParams` is disabled or an API method docblock is marked `@unsanitized`, treat the input as higher-risk and validate, escape, and pass it onward with extra care.
 
 6. Secret and token exposure:
@@ -75,8 +80,8 @@ Use this skill when the task involves one or more of:
 
 - Detect raw superglobal access:
   - `rg '\$_GET|\$_POST|\$_REQUEST' plugins/<Plugin>/`
-- Find typed request helpers:
-  - `rg 'Request::fromRequest|Common::getRequestVar' plugins/<Plugin>/`
+- Find request parsing helpers and legacy request access:
+  - `rg 'Request::fromRequest|Request::fromGet|Request::fromPost|Common::getRequestVar' plugins/<Plugin>/`
 
 ### SQL Safety
 
