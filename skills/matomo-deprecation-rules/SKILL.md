@@ -62,7 +62,7 @@ Use this skill when the task involves one or more of:
 ### Compatibility Surface
 
 - Find config-key reads and fallbacks:
-  - `rg 'config\\.ini|global\\.ini|get\\(|has\\(' plugins/<Plugin>/ --glob '*.php'`
+  - `rg 'Config::getInstance\(|GeneralConfig::getConfigValue|Config::getPathToConfigFile|Option::get\(' plugins/<Plugin>/ --glob '*.php'`
 - Find event names and transitions:
   - `rg 'Piwik::postEvent|registerEvents' plugins/<Plugin>/ --glob '*.php'`
 

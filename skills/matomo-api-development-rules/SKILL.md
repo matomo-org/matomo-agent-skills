@@ -71,8 +71,8 @@ Use this skill when the task involves one or more of:
 
 - Find request normalization:
   - `rg 'Request::fromRequest|Common::getRequestVar|filter_var' plugins/<Plugin>/API.php`
-- Find direct DB usage inside API classes:
-  - `rg 'Db::|Archive::|new View|fetch(All|One|Row)|query\\(' plugins/<Plugin>/API.php`
+- Find low-level DB or view usage inside API classes:
+  - `rg 'Db::|fetch[A-Z][A-Za-z]+|query\(|exec\(|new View' plugins/<Plugin>/API.php`
 
 ## Routing Logic
 

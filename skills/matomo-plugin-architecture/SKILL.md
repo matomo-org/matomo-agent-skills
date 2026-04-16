@@ -73,16 +73,16 @@ Use this skill when the task involves one or more of:
 ### Layer Boundaries
 
 - Inspect class responsibilities:
-  - `rg 'class |extends |function ' plugins/<Plugin>/{API.php,Archiver.php,Model.php,Controller.php,Reports,RecordBuilders,Columns} -g '*.php'`
+  - `rg 'class |extends |function ' plugins/<Plugin>/ --glob 'API.php' --glob 'Archiver.php' --glob 'Model.php' --glob 'Controller.php' --glob 'Reports/**/*.php' --glob 'RecordBuilders/**/*.php' --glob 'Columns/**/*.php'`
 - Detect direct DB usage outside Models:
-  - `rg 'Db::|fetch(All|One|Row)|query\\(' plugins/<Plugin>/ --glob '*.php'`
+  - `rg 'Db::|fetch[A-Z][A-Za-z]+|query\(|exec\(' plugins/<Plugin>/ --glob '*.php'`
 
 ### Cross-Plugin Coupling
 
 - Find cross-plugin imports:
-  - `rg 'use Piwik\\\\Plugins\\\\' plugins/<Plugin>/ --glob '*.php'`
+  - `rg '^use Piwik\\Plugins\\' plugins/<Plugin>/ --glob '*.php' | rg -v '^.*use Piwik\\\\Plugins\\\\<Plugin>\\\\'`
 - Find direct redirect-style or helper duplication in Vue:
-  - `rg 'window\\.location|Matomo\\.helper' plugins/<Plugin>/vue/src/`
+  - `rg 'window\.location|Matomo\.helper' plugins/<Plugin>/vue/src/`
 
 ## Routing Logic
 

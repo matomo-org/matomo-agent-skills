@@ -96,7 +96,7 @@ Ran
 - `git diff --stat origin/5.x-dev...HEAD`
 - `git diff origin/5.x-dev...HEAD`
 - `git log --oneline origin/5.x-dev..HEAD`
-- `rg "ExampleKey|ExampleKeyNew" plugins/Example`
+- `rg "ExampleUI_|ExamplePlugin_|ExampleReportName|ExampleReportDocumentation" plugins/ExampleUI plugins/ExamplePlugin plugins/ExampleReport`
 
 Not run
 - `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.

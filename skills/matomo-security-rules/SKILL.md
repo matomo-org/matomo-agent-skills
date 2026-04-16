@@ -69,7 +69,7 @@ Use this skill when the task involves one or more of:
 ### CSRF / Nonce Checks
 
 - Find controller nonce validation:
-  - `rg 'checkTokenInUrl|nonce|token' plugins/<Plugin>/Controller.php`
+  - `rg "checkTokenInUrl|Nonce::(getNonce|checkNonce)|getRequestVar\\('nonce'|token_auth" plugins/<Plugin>/Controller.php`
 
 ### Request Handling
 
@@ -81,7 +81,7 @@ Use this skill when the task involves one or more of:
 ### SQL Safety
 
 - Inspect SQL construction:
-  - `rg 'Db::(query|exec|fetchAll|fetchAssoc|fetchOne|fetchRow)|Db::get\\(\\)->(query|exec|fetchAll|fetchAssoc|fetchOne|fetchRow)|SELECT |INSERT |UPDATE |DELETE ' plugins/<Plugin>/ --glob '*.php'`
+  - `rg 'Db::(query|exec|fetch[A-Z][A-Za-z]+)|Db::get\(\)->(query|exec|fetch[A-Z][A-Za-z]+)|SELECT |INSERT |UPDATE |DELETE ' plugins/<Plugin>/ --glob '*.php'`
 
 ## Routing Logic
 

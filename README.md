@@ -87,6 +87,9 @@ Reference for public skill examples and format:
 
 Quality and maintenance rules for contributors and AI tooling are defined in `AGENTS.md`.
 
+Shell command examples in skills must be literal copy-pasteable commands. In particular, documented `rg` regexes should use shell-native escaping, should not require readers or agents to normalize the pattern before running it, and should avoid advanced PCRE-only features when a simpler command expresses the same review intent.
+If `rg` examples change, manually verify that they still satisfy those expectations in a suitable Matomo checkout.
+
 Security and framework skills intentionally split ownership:
 - `matomo-security-rules` owns cross-cutting security invariants.
 - `matomo-twig-development-rules` and `matomo-vue-development-rules` own framework-specific raw-output sink handling.

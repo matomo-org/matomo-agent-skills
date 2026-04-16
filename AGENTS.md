@@ -13,10 +13,11 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 
 1. Skill folder name matches the skill name convention (lowercase, digits, hyphens).
 2. `SKILL.md` command guidance is executable and consistent with real Matomo workflows.
-3. `README.md` "Available Skills" and installation guidance reflect current repository state.
-4. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
-5. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
-6. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
+3. Shell command examples are literal copy-pasteable commands; do not require manual de-escaping or agent-side regex rewriting.
+4. `README.md` "Available Skills" and installation guidance reflect current repository state.
+5. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
+6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
+7. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
 
 ## Workflow for New or Updated Skills
 
@@ -27,7 +28,8 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-6. Self-review against the required validation checklist before marking done.
+6. If shell command examples changed, manually verify that documented `rg` examples are literal copy-pasteable commands, use shell-native escaping, do not require normalization before running, and avoid advanced PCRE-only features when a simpler command expresses the same review intent.
+7. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar
 
@@ -36,6 +38,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 3. Include examples when they remove ambiguity; avoid redundant examples.
 4. Keep skill instructions focused on operational use, not process history.
 5. Align all docs with actual scripts and command behavior; do not document unsupported flows.
+6. For shell examples, prefer the simplest command form that preserves intent and avoids parser-specific regex features when a basic `rg`/shell form is sufficient.
 
 ## Skill Ownership Split
 
