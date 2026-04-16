@@ -14,7 +14,8 @@ Use `matomo-migrations-workflow` for update execution mechanics and schema migra
 
 1. Public behavior must not disappear without a prior deprecation path.
 2. Renames usually need a transition period where old and new names both work.
-3. Dependency manifest updates should not leave `composer.lock` behind.
+3. Changing existing parameters of a posted public event is usually a breaking change; additive parameters are the narrow exception.
+4. Dependency manifest updates should not leave `composer.lock` behind.
 
 ## Trigger Conditions
 
@@ -24,7 +25,8 @@ Use this skill when the task involves one or more of:
 2. Renaming or removing public methods, events, config keys, or other plugin-facing contracts.
 3. Introducing wrapper methods or transition shims for a new API.
 4. Compatibility transitions involving config-key fallback reads or dual event firing.
-5. Dependency updates touching `composer.json`.
+5. Changing the parameter list, order, meaning, or pass-by-reference behavior of an existing posted public event.
+6. Dependency updates touching `composer.json`.
 
 ## Rules
 
@@ -43,6 +45,10 @@ Use this skill when the task involves one or more of:
 4. Event deprecation:
 - When renaming or replacing an event, preserve a transition path long enough for integrators to update.
 - If both old and new events are expected during the transition, document the deprecation and keep compatibility behavior explicit.
+ - Treat existing posted event parameters as part of the public contract.
+ - Adding a new trailing event parameter is acceptable only when the existing parameters keep the same order, meaning, and pass-by-reference behavior.
+ - Reordering, removing, repurposing, or changing the by-reference behavior of existing event parameters is a breaking change.
+ - Outside major-release work, avoid breaking existing event listener contracts; use a compatibility transition such as dual event firing or a replacement event with explicit deprecation guidance.
 
 5. Removal timing:
 - Treat removals of deprecated public behavior as major-version work, not minor or patch cleanup.
@@ -74,9 +80,10 @@ Use this skill when the task involves one or more of:
 ## Routing Logic
 
 1. If a diff removes or renames public methods, events, or config keys, apply this skill.
-2. If a diff adds or changes `@deprecated` annotations, apply this skill.
-3. If a diff changes `composer.json`, apply this skill for lockstep dependency expectations.
-4. If the change is only about update execution, version markers, or migration file placement, prefer `matomo-migrations-workflow`.
+2. If a diff changes the parameters of an existing posted public event, apply this skill.
+3. If a diff adds or changes `@deprecated` annotations, apply this skill.
+4. If a diff changes `composer.json`, apply this skill for lockstep dependency expectations.
+5. If the change is only about update execution, version markers, or migration file placement, prefer `matomo-migrations-workflow`.
 
 ## Examples
 
@@ -84,5 +91,7 @@ Use this skill when the task involves one or more of:
   - Verify the old public method keeps a transition path and deprecation notice instead of disappearing immediately.
 - "Review a config key rename"
   - Verify both old and new keys are supported during the transition period.
+- "Review an existing event parameter change"
+  - Verify additive parameters do not alter the existing listener contract, and treat non-additive changes as major-version compatibility work unless an explicit transition path exists.
 - "Review a dependency upgrade"
   - Verify `composer.lock` is updated with `composer.json` and compatibility expectations are explicit.

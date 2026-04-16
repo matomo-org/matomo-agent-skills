@@ -122,6 +122,7 @@ Apply these dimensions when the diff makes them relevant:
 - plugin, extension, CLI, API, config, schema, or migration contract changes
 - mixed-version assumptions, rollout or rollback hazards, and hidden dependency on new defaults or state
 - deprecation lifecycle mistakes such as removing public methods, events, or config keys without a prior deprecation path, or adding `@deprecated` without version, replacement, or planned removal guidance when that metadata should exist
+- non-additive changes to existing posted public event parameters outside major-release work, including reordered, removed, repurposed, or by-reference-changed parameters
 - renamed config keys or events that do not preserve a transition path long enough for existing integrations
 - dependency-manifest changes such as `composer.json` updates without the corresponding `composer.lock` update when lockstep changes are expected
 
@@ -193,6 +194,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 8. Deprecation / compatibility-transition signals:
 - `@deprecated` additions or removals
 - removed or renamed public methods, events, or config keys
+- changed parameter shape or by-reference behavior for an existing `Piwik::postEvent()` contract
 - `composer.json` dependency changes
 - Apply `matomo-deprecation-rules`.
 
@@ -257,6 +259,7 @@ Examples that should normally be blocking when confirmed:
 - migration changes missing required version-marker bumps
 - editing an update file that should be treated as immutable
 - removing or renaming public behavior without the required deprecation path
+- changing existing posted public event parameters in a non-additive way outside intentional major-version compatibility work
 - dependency manifest changes missing the matching `composer.lock` update when lockstep updates are expected
 - broken plugin layer separation or direct use of another plugin's internal classes instead of a supported boundary
 - Vue code using disallowed cross-plugin source imports

@@ -43,7 +43,8 @@
 - Use when deciding migration placement, ensuring version-marker bumps (`core/Version.php` or plugin version metadata), avoiding unneeded migrations via checks, handling major `log_*` schema updates, or defining command-backed `CustomMigration` steps. Use `matomo-deprecation-rules` for public-behavior lifecycle policy.
 10. `matomo-deprecation-rules`
 - Applies Matomo deprecation and compatibility-transition rules for public APIs, events, config keys, and dependency updates.
-- Use when reviewing or authoring changes that rename, replace, deprecate, or remove plugin-facing behavior.
+- Treats existing posted event parameters as part of the public compatibility contract, allowing additive parameters only when existing listener expectations remain intact.
+- Use when reviewing or authoring changes that rename, replace, deprecate, remove, or compatibly extend plugin-facing behavior.
 11. `matomo-documentation`
 - Creates and updates Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods and posted events, and keeps internal docs minimal unless native types are missing or too broad.
 - Owns PHPDoc expression rules, not the API contract semantics or deprecation lifecycle policy themselves.
