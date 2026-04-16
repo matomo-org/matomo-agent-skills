@@ -26,21 +26,26 @@ Use these exact commands when the review needs explicit verification commands or
 ### Head only
 
 - If the user gives only `<head>`:
-  - Use `origin/5.x-dev` as `<base>`
-  - `git merge-base <head> origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...<head>`
-  - `git diff origin/5.x-dev...<head>`
-  - `git log --oneline origin/5.x-dev..<head>`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `<head>` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - `git merge-base <head> <base>`
+  - `git diff --stat <base>...<head>`
+  - `git diff <base>...<head>`
+  - `git log --oneline <base>..<head>`
 
 ### Current branch default
 
 - If the user gives no range or branch:
   - `git rev-parse --abbrev-ref HEAD`
-  - Review `HEAD` against `origin/5.x-dev`
-  - `git merge-base HEAD origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...HEAD`
-  - `git diff origin/5.x-dev...HEAD`
-  - `git log --oneline origin/5.x-dev..HEAD`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `HEAD` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - Review `HEAD` against `<base>`
+  - `git merge-base HEAD <base>`
+  - `git diff --stat <base>...HEAD`
+  - `git diff <base>...HEAD`
+  - `git log --oneline <base>..HEAD`
 
 ## Deterministic Checks
 

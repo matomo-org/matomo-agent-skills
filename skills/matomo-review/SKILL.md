@@ -30,11 +30,13 @@ Use this skill when the task is one or more of:
 ## Rules
 
 1. Prefer the exact git comparison the user provides.
-2. If the user provides no comparison, review the current branch against `origin/5.x-dev`.
-3. Base findings on the selected diff, commit list, and changed files.
-4. Lead with findings ordered by severity. If there are no findings, state that explicitly.
-5. After selecting the diff, run cheap structural-integrity checks, then classify changed files and changed behavior before writing findings.
-6. Use existing Matomo skills as the source of truth for Matomo-specific review criteria:
+2. If the user provides no comparison, review the current branch against the tracked target dev branch.
+3. Resolve the tracked target dev branch by preferring the current branch's upstream when it is a remote `*-dev` branch; otherwise use the remote `*-dev` branch the current work targets.
+4. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
+5. Base findings on the selected diff, commit list, and changed files.
+6. Lead with findings ordered by severity. If there are no findings, state that explicitly.
+7. After selecting the diff, run cheap structural-integrity checks, then classify changed files and changed behavior before writing findings.
+8. Use existing Matomo skills as the source of truth for Matomo-specific review criteria:
 - `matomo-i18n-development-rules`
 - `matomo-security-rules`
 - `matomo-api-development-rules`
@@ -46,18 +48,18 @@ Use this skill when the task is one or more of:
 - `matomo-vue-development-rules`
 - `matomo-documentation`
 - `matomo-test-runner`
-7. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
-8. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
-9. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
-10. If it is unclear whether a routed rule or review dimension applies, call out the ambiguity instead of silently downgrading the finding.
-11. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
-12. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
-13. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-14. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, `Debt Check`, and `Next Steps`.
-15. Call out ambiguity instead of guessing.
-16. Do not rename, merge, or omit required output sections or required check-summary labels.
-17. Run a compact debt pass for full reviews using the `matomo-debt-check` indicators, but keep debt-only requests routed to `matomo-debt-check`.
-18. Do not duplicate issues between `Findings` and `Debt Check`; if a maintainability concern is already reported as a defect or routed-rule finding, keep it in `Findings` only.
+9. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
+10. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
+11. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
+12. If it is unclear whether a routed rule or review dimension applies, call out the ambiguity instead of silently downgrading the finding.
+13. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
+14. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
+15. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
+16. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, `Debt Check`, and `Next Steps`.
+17. Call out ambiguity instead of guessing.
+18. Do not rename, merge, or omit required output sections or required check-summary labels.
+19. Run a compact debt pass for full reviews using the `matomo-debt-check` indicators, but keep debt-only requests routed to `matomo-debt-check`.
+20. Do not duplicate issues between `Findings` and `Debt Check`; if a maintainability concern is already reported as a defect or routed-rule finding, keep it in `Findings` only.
 
 ## Review Flow
 
@@ -314,21 +316,26 @@ Use this policy for the generic review dimensions:
 ### Head only
 
 - If the user gives only `<head>`:
-  - Use `origin/5.x-dev` as `<base>`
-  - `git merge-base <head> origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...<head>`
-  - `git diff origin/5.x-dev...<head>`
-  - `git log --oneline origin/5.x-dev..<head>`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `<head>` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - `git merge-base <head> <base>`
+  - `git diff --stat <base>...<head>`
+  - `git diff <base>...<head>`
+  - `git log --oneline <base>..<head>`
 
 ### Current branch default
 
 - If the user gives no range or branch:
   - `git rev-parse --abbrev-ref HEAD`
-  - Review `HEAD` against `origin/5.x-dev`
-  - `git merge-base HEAD origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...HEAD`
-  - `git diff origin/5.x-dev...HEAD`
-  - `git log --oneline origin/5.x-dev..HEAD`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `HEAD` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - Review `HEAD` against `<base>`
+  - `git merge-base HEAD <base>`
+  - `git diff --stat <base>...HEAD`
+  - `git diff <base>...HEAD`
+  - `git log --oneline <base>..HEAD`
 
 ## Deterministic Checks
 

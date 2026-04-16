@@ -27,9 +27,12 @@ Default target:
 If the user provides pasted code or points to specific files, review that surface instead.
 
 Default baseline:
-- `origin/5.x-dev`
+- the tracked target dev branch
 
 If the user specifies another base, use that instead.
+If the current branch's upstream is a remote `*-dev` branch, use that as the baseline.
+Otherwise use the remote `*-dev` branch the current work targets.
+If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
 
 ## Debt Indicators
 

@@ -61,8 +61,9 @@ When a requested file/path is under `plugins/<Plugin>/`:
 ## Targeted Analysis for Changed Files
 
 - Changed-file-only PHPStan can be useful for iteration speed, but confirm suspicious results with a wider plugin or core-directory run when baseline noise appears.
+- Resolve `<base>` to the tracked target dev branch when the user does not provide one: prefer the current branch's upstream when it is a remote `*-dev` branch, otherwise use the remote `*-dev` branch the current work targets. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
 - Command:
-  - `git diff --name-only origin/5.x-dev...HEAD -- '*.php' | while IFS= read -r path; do ddev composer phpstan -- "$path"; done`
+  - `git diff --name-only <base>...HEAD -- '*.php' | while IFS= read -r path; do ddev composer phpstan -- "$path"; done`
 
 ## Examples
 

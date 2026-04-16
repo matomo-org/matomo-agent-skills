@@ -7,7 +7,8 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 1. If skill inventory changes, update `README.md` in the same change.
 2. Every skill must contain a valid `SKILL.md` with `name` and `description` frontmatter.
 3. Every skill should include `agents/openai.yaml` aligned with `SKILL.md` behavior.
-4. A skill task is not complete until all checklist items in this file are satisfied.
+4. Any skill that uses a default dev-branch baseline, branch-diff example, or branch-based immutability rule must use the shared `tracked target dev branch` behavior and wording instead of a fixed-major branch such as `origin/5.x-dev`, unless the text is intentionally major-specific and clearly justified.
+5. A skill task is not complete until all checklist items in this file are satisfied.
 
 ## Required Validation Checklist
 
@@ -17,7 +18,8 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 4. `README.md` "Available Skills" and installation guidance reflect current repository state.
 5. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
 6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
-7. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
+7. Skills that use dev-branch defaults or branch-based examples align on the shared `tracked target dev branch` wording and behavior, including fallback-to-ask-user guidance when the correct base cannot be inferred confidently.
+8. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
 
 ## Workflow for New or Updated Skills
 
@@ -28,8 +30,9 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-6. If shell command examples changed, manually verify that literal commands are copy-pasteable, template commands clearly require substitution, `xargs` examples include an empty-input guard, environment-dependent commands state their prerequisites, and the changed examples are run against a suitable Matomo checkout or environment before marking the task done.
-7. Self-review against the required validation checklist before marking done.
+6. If the skill uses dev-branch defaults, branch-diff examples, or branch-based immutability guidance, update every affected `README.md`, `SKILL.md`, `agents/openai.yaml`, and routed reference file in the same change so they all use the shared `tracked target dev branch` wording and behavior.
+7. If shell command examples changed, manually verify that literal commands are copy-pasteable, template commands clearly require substitution, `xargs` examples include an empty-input guard, environment-dependent commands state their prerequisites, and the changed examples are run against a suitable Matomo checkout or environment before marking the task done.
+8. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar
 

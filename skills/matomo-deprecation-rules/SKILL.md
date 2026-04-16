@@ -62,8 +62,9 @@ Use this skill when the task involves one or more of:
 
 - Find deprecation annotations:
   - `rg '@deprecated|E_USER_DEPRECATED' plugins/<Plugin>/ --glob '*.php'`
+- Resolve `<base>` to the tracked target dev branch when the user does not provide one: prefer the current branch's upstream when it is a remote `*-dev` branch, otherwise use the remote `*-dev` branch the current work targets. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
 - Find removed public methods in a branch diff:
-  - `git diff origin/5.x-dev...HEAD -- '*.php' | grep '^-.*public function'`
+  - `git diff <base>...HEAD -- '*.php' | grep '^-.*public function'`
 
 ### Compatibility Surface
 

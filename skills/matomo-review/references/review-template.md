@@ -57,6 +57,8 @@ Next Steps
 
 ## Example Output
 
+In the example below, `<base>` means the tracked target dev branch unless the user supplied an explicit base.
+
 ```markdown
 Findings
 
@@ -93,9 +95,9 @@ Structural integrity
 - Clean.
 
 Ran
-- `git diff --stat origin/5.x-dev...HEAD`
-- `git diff origin/5.x-dev...HEAD`
-- `git log --oneline origin/5.x-dev..HEAD`
+- `git diff --stat <base>...HEAD`
+- `git diff <base>...HEAD`
+- `git log --oneline <base>..HEAD`
 - `rg "ExampleUI_|ExamplePlugin_|ExampleReportName|ExampleReportDocumentation" plugins/ExampleUI plugins/ExamplePlugin plugins/ExampleReport`
 
 Not run

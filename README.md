@@ -91,6 +91,7 @@ Quality and maintenance rules for contributors and AI tooling are defined in `AG
 
 Shell command examples in skills must be safe to use as documented. Literal commands should be copy-pasteable, documented `rg` regexes should use shell-native escaping, commands with angle-bracket placeholders must be clearly treated as templates that require substitution before running, `xargs` examples should include an empty-input guard, and environment-dependent commands such as `ddev matomo:console ...` must state their prerequisites instead of assuming a default local setup.
 If command examples change, manually verify those expectations and also run the changed examples against a suitable Matomo checkout or environment when applicable.
+When a skill needs a default Matomo dev branch baseline, use the shared `tracked target dev branch` behavior instead of a fixed-major default such as `origin/5.x-dev`: prefer the current branch's upstream when it is a remote `*-dev` branch, otherwise use the remote `*-dev` branch the current work targets, and ask the user if that base cannot be inferred confidently.
 
 Security and framework skills intentionally split ownership:
 - `matomo-security-rules` owns cross-cutting security invariants.
