@@ -15,7 +15,7 @@ Use `matomo-deprecation-rules` for deprecation lifecycle policy rather than trea
 
 1. Trust code over existing docblocks; stale PHPDoc is common and should be treated as a claim to verify.
 2. `@ignore` changes the documentation mode for public API methods: keep those under the internal minimal rules instead of the public descriptive rules.
-3. Public API docs should describe the real request-facing contract, especially when parameters are forwarded unchanged to helpers like `Archive::build()`.
+3. Public API docs should describe the real request-facing contract, especially when parameters are forwarded unchanged to helpers like `Archive::build()` or normalized through multi-site helpers such as `Site::getIdSitesFromIdSitesString()`.
 
 ## Trigger Conditions
 
@@ -65,6 +65,7 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Use types that describe the public API contract for public API methods.
    - For public API methods, document every parameter and include a description for each one.
    - For public API methods, prefer request-facing types over internal helper flexibility.
+   - For public API methods, document canonical caller inputs, not every internally tolerated parser form.
    - Public API parameter descriptions should be concise and accurate, even when the parameter is straightforward.
    - Add Matomo-specific constraints and examples when they are confidently derived from code behavior.
    - For internal or non-public methods that are documented as part of a specific task, use the real implementation type when needed.
@@ -120,6 +121,7 @@ When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
    - Every public API method must have an `@return` tag.
    - Public API `@return` tags must include descriptive text unless the return type is `void`.
    - Prioritize endpoint behavior, accepted request parameters, and return semantics.
+   - Do not advertise parser-only selector forms such as `["all"]` unless the API intentionally exposes that representation as part of its stable public contract.
    - If a public API method has `@ignore`, do not apply these descriptive public-method rules. Apply the internal minimal rules instead.
 3. Non-public methods
    - Protected and private methods do not need docblocks by default.

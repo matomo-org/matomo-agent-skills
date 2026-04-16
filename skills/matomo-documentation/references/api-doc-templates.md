@@ -44,10 +44,11 @@ Use these descriptive templates for public API methods only. The final type and 
 
 ```php
 @param string|array $idSite Website ID(s) to query.
-                            Accepts comma-separated IDs, "all", numeric IDs as strings, or ["all"].
+                            Accepts comma-separated IDs, "all", or numeric IDs as strings.
 ```
 
-- If a public API method forwards `$idSite` unchanged to `Archive::build()`, `Archive::createDataTableFromArchive()`, or another helper that clearly accepts multi-site selectors, document `$idSite` as multi-site. Do not keep or generate `@param int $idSite` just because an older docblock used it.
+- If a public API method forwards `$idSite` unchanged to `Archive::build()`, `Archive::createDataTableFromArchive()`, `Site::getIdSitesFromIdSitesString()`, or another helper that clearly accepts multi-site selectors, document `$idSite` as multi-site using canonical public forms. Treat `Site::getIdSitesFromIdSitesString()` as a strong signal that the public contract accepts multi-site selectors, not just a single `int`. Do not keep or generate `@param int $idSite` just because an older docblock used it.
+- Do not document parser-tolerated sentinel forms such as `["all"]` unless the method intentionally exposes them as part of its stable public API contract.
 - Keep the single-site `int` form only when the code clearly narrows the contract to one site before the value is used.
 
 ## `$period`
