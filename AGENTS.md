@@ -7,16 +7,19 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 1. If skill inventory changes, update `README.md` in the same change.
 2. Every skill must contain a valid `SKILL.md` with `name` and `description` frontmatter.
 3. Every skill should include `agents/openai.yaml` aligned with `SKILL.md` behavior.
-4. A skill task is not complete until all checklist items in this file are satisfied.
+4. Any skill that uses a default dev-branch baseline, branch-diff example, or branch-based immutability rule must use the shared `tracked target dev branch` behavior and wording instead of a fixed-major branch such as `origin/5.x-dev`, unless the text is intentionally major-specific and clearly justified.
+5. A skill task is not complete until all checklist items in this file are satisfied.
 
 ## Required Validation Checklist
 
 1. Skill folder name matches the skill name convention (lowercase, digits, hyphens).
 2. `SKILL.md` command guidance is executable and consistent with real Matomo workflows.
-3. `README.md` "Available Skills" and installation guidance reflect current repository state.
-4. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
-5. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
-6. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
+3. Shell command examples are safe as documented: literal commands are copy-pasteable, template commands clearly require substitution, and environment-dependent commands state their prerequisites.
+4. `README.md` "Available Skills" and installation guidance reflect current repository state.
+5. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
+6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
+7. Skills that use dev-branch defaults or branch-based examples align on the shared `tracked target dev branch` wording and behavior, including fallback-to-ask-user guidance when the correct base cannot be inferred confidently.
+8. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
 
 ## Workflow for New or Updated Skills
 
@@ -27,7 +30,9 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. Update `README.md`:
 - Add/update the skill entry under "Available Skills (This Repository)".
 - Update usage notes if behavior changed.
-6. Self-review against the required validation checklist before marking done.
+6. If the skill uses dev-branch defaults, branch-diff examples, or branch-based immutability guidance, update every affected `README.md`, `SKILL.md`, `agents/openai.yaml`, and routed reference file in the same change so they all use the shared `tracked target dev branch` wording and behavior.
+7. If shell command examples changed, manually verify that literal commands are copy-pasteable, template commands clearly require substitution, `xargs` examples include an empty-input guard, environment-dependent commands state their prerequisites, and the changed examples are run against a suitable Matomo checkout or environment before marking the task done.
+8. Self-review against the required validation checklist before marking done.
 
 ## Quality Bar
 
@@ -36,3 +41,17 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 3. Include examples when they remove ambiguity; avoid redundant examples.
 4. Keep skill instructions focused on operational use, not process history.
 5. Align all docs with actual scripts and command behavior; do not document unsupported flows.
+6. For shell examples, prefer the simplest command form that preserves intent and avoids parser-specific regex features when a basic `rg`/shell form is sufficient.
+
+## Skill Ownership Split
+
+Use this split when multiple skills could plausibly cover the same review area:
+
+1. Cross-cutting security invariants belong in `matomo-security-rules`.
+2. Framework or layer skills own sink-specific implementation guidance for their area.
+3. Framework skills may reference security expectations, but should not restate full security policy.
+4. Examples:
+- Twig `|raw` belongs in `matomo-twig-development-rules`.
+- Vue `v-html` belongs in `matomo-vue-development-rules`.
+- API access control and CSRF policy belong in `matomo-security-rules`.
+5. If a review-relevant change touches both a cross-cutting security invariant and a framework-specific sink, verify `matomo-review` routes to both the framework skill and the relevant security checks without duplicating the same finding twice.

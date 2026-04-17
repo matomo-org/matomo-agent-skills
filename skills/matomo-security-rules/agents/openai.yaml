@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Security Rules"
+  short_description: "Apply Matomo security guardrails for code changes"
+  default_prompt: "Use $matomo-security-rules to review or author Matomo changes that affect access control, CSRF, SQL safety, request trust boundaries, or secret exposure. Prefer Request::fromRequest(), Request::fromGet(), and Request::fromPost() over Common::getRequestVar() in new code, treat request-derived values as untrusted until validated for the destination sink, and when autoSanitizeInputParams is disabled or @unsanitized is involved, handle inputs with extra care. Consider #[\\SensitiveParameter] for parameters that carry secrets."

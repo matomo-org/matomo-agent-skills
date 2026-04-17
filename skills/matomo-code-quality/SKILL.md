@@ -8,6 +8,12 @@ description: Run Matomo PHP code quality checks and fixes (PHPStan, PHPCS, PHPCB
 ## Overview
 
 Use this skill for Matomo PHP static analysis and coding style validation/fixes.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
+
+## Gotchas
+
+1. Narrowed PHPStan runs can emit baseline-noise like `error not matched from baseline`; confirm suspicious output with a wider run before treating it as real or ignorable.
 
 ## Rules
 
@@ -43,6 +49,21 @@ When a requested file/path is under `plugins/<Plugin>/`:
 1. If `plugins/<Plugin>/phpstan.neon` exists, use plugin PHPStan config form.
 2. If `plugins/<Plugin>/phpcs.xml` exists, use plugin PHPCS/PHPCBF `--standard` form.
 3. If config file is missing, fall back to root/default commands.
+
+## Handling False Positives and Baselines
+
+1. PHPStan output like `error not matched from baseline` during narrowed runs is expected and does not automatically mean the target file is clean or broken.
+2. If PHPStan output looks like a false positive, rerun against the full plugin or relevant core directory before treating it as a tooling issue.
+3. Removing obsolete entries from `phpstan-baseline.neon` is acceptable when the underlying issues are actually fixed.
+4. Adding new baseline entries or making other baseline edits requires explicit maintainer approval.
+5. If PHPCS reports an intentional exception, prefer a targeted `phpcs:ignore` with a reason over disabling broad rules or standards.
+
+## Targeted Analysis for Changed Files
+
+- Changed-file-only PHPStan can be useful for iteration speed, but confirm suspicious results with a wider plugin or core-directory run when baseline noise appears.
+- Resolve `<base>` to the tracked target dev branch when the user does not provide one: prefer the current branch's upstream when it is a remote `*-dev` branch, otherwise use the remote `*-dev` branch the current work targets. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
+- Command:
+  - `git diff --name-only <base>...HEAD -- '*.php' | while IFS= read -r path; do ddev composer phpstan -- "$path"; done`
 
 ## Examples
 

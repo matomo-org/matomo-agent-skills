@@ -1,6 +1,6 @@
 ---
 name: matomo-review
-description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, code quality, migrations, Vue, and test expectations when the diff indicates they apply.
+description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations when the diff indicates they apply.
 ---
 
 # Matomo Review
@@ -9,6 +9,14 @@ description: Review Matomo git changes for branches, PRs, or arbitrary git range
 
 Use this skill for structured review of Matomo code changes.
 Select the correct git comparison first, run cheap repository-integrity checks, then classify the changed areas and apply the relevant Matomo review rules and review dimensions.
+For in-development cleanup review of the current working diff with a narrow technical-debt lens, prefer `matomo-debt-check`.
+For full branch reviews, also include a compact debt check section so maintainability cleanup items are visible without replacing the main review.
+
+## Gotchas
+
+1. Do not duplicate routed-skill findings across multiple review dimensions; keep the strongest framing only.
+2. Keep `Ran` and `Not run` separate. Skipped verification is part of the review result, not optional commentary.
+3. Use routed skills for concrete Matomo rules. This skill owns review structure, severity, ambiguity handling, and verification reporting.
 
 ## Trigger Conditions
 
@@ -17,30 +25,41 @@ Use this skill when the task is one or more of:
 1. Review the current Matomo branch before pushing or merging.
 2. Review a Matomo PR, branch, commit range, or explicit git comparison.
 3. Assess whether a Matomo change set is complete, safe, and aligned with Matomo development rules.
+4. Redirect narrow "debt review", "cleanup before commit", or in-progress maintainability-check requests to `matomo-debt-check` instead of forcing a full branch review.
 
 ## Rules
 
 1. Prefer the exact git comparison the user provides.
-2. If the user provides no comparison, review the current branch against `origin/5.x-dev`.
-3. Base findings on the selected diff, commit list, and changed files.
-4. Lead with findings ordered by severity. If there are no findings, state that explicitly.
-5. After selecting the diff, run cheap structural-integrity checks, then classify changed files and changed behavior before writing findings.
-6. Use existing Matomo skills as the source of truth for Matomo-specific review criteria:
+2. If the user provides no comparison, review the current branch against the tracked target dev branch.
+3. Resolve the tracked target dev branch by preferring the current branch's upstream when it is a remote `*-dev` branch; otherwise use the remote `*-dev` branch the current work targets.
+4. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
+5. Base findings on the selected diff, commit list, and changed files.
+6. Lead with findings ordered by severity. If there are no findings, state that explicitly.
+7. After selecting the diff, run cheap structural-integrity checks, then classify changed files and changed behavior before writing findings.
+8. Use existing Matomo skills as the source of truth for Matomo-specific review criteria:
 - `matomo-i18n-development-rules`
+- `matomo-security-rules`
+- `matomo-api-development-rules`
+- `matomo-plugin-architecture`
+- `matomo-twig-development-rules`
 - `matomo-code-quality`
 - `matomo-migrations-workflow`
+- `matomo-deprecation-rules`
 - `matomo-vue-development-rules`
+- `matomo-documentation`
 - `matomo-test-runner`
-7. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
-8. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
-9. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
-10. If it is unclear whether a routed rule or review dimension applies, call out the ambiguity instead of silently downgrading the finding.
-11. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
-12. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
-13. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
-14. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, and `Next Steps`.
-15. Call out ambiguity instead of guessing.
-16. Do not rename, merge, or omit required output sections or required check-summary labels.
+9. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
+10. When a matched routed skill defines a requirement and the diff clearly violates it, treat that as a blocking finding by default, not polish.
+11. Only downgrade a routed-skill violation when the routed skill explicitly allows a narrower exception or the diff clearly shows the rule does not apply as-is.
+12. If it is unclear whether a routed rule or review dimension applies, call out the ambiguity instead of silently downgrading the finding.
+13. Avoid duplicate findings across review dimensions. Report an issue in the dimension where it is primary.
+14. `intent` is an assessment lens, not a broad defect-hunting pass. Use it to infer the branch goal and whether the change solves it.
+15. Run deterministic verification commands when they are directly relevant and the environment supports them. If a relevant check is not run, say so explicitly.
+16. After findings, use the required output template exactly: `Problem Addressed`, `Overall Assessment`, `Matomo-Specific Checks`, `Debt Check`, and `Next Steps`.
+17. Call out ambiguity instead of guessing.
+18. Do not rename, merge, or omit required output sections or required check-summary labels.
+19. Run a compact debt pass for full reviews using the `matomo-debt-check` indicators, but keep debt-only requests routed to `matomo-debt-check`.
+20. Do not duplicate issues between `Findings` and `Debt Check`; if a maintainability concern is already reported as a defect or routed-rule finding, keep it in `Findings` only.
 
 ## Review Flow
 
@@ -51,7 +70,8 @@ Use this skill when the task is one or more of:
 5. Apply the matching Matomo rule sets first.
 6. Apply the relevant review dimensions without duplicating routed-skill findings.
 7. Run or recommend deterministic checks for the matched areas.
-8. Produce a findings-first review using the required output template and exact section names.
+8. Run a compact debt pass for duplication, convention drift, over-engineering, missing important regression coverage, hardcoded values that should reuse existing abstractions or options, and newly introduced reliance on already-deprecated APIs.
+9. Produce a findings-first review using the required output template and exact section names.
 
 ## Review Dimensions
 
@@ -76,11 +96,17 @@ Apply these dimensions when the diff makes them relevant:
 - time, timezone, DST, leap-year, midnight, and month-end handling
 - stale state, refresh, double-submit, concurrent access, multi-tab, or interrupted-flow hazards
 - slow, partial, invalid, timed-out, or failed dependency responses
+- type-safety hazards such as numeric strings used as ints without casting, nullable values used without checks, unsafe array access on possibly null values, and string-to-int or string-to-float coercions that rely on PHP implicit conversion
+- mixed-type comparisons and loose-comparison traps such as `==` behavior with `'0'`, `false`, `null`, or `''`
 
 4. Maintainability
 - unclear intent, misleading naming, hidden control flow, or excessive local complexity
 - duplication or coupling that materially raises future change cost
 - non-obvious behavior that needs to be made explicit
+- dead or unreachable code such as always-true or always-false branches, useless unconditional returns, assigned-but-never-read values, and parameters or helpers that add noise without real use
+- divergence from established nearby patterns or reinvention of existing helpers when the local Matomo convention is already clear
+- newly introduced or expanded usage of already-deprecated methods or APIs, treated as debt and referred to `matomo-deprecation-rules` for replacement or transition handling rather than handled here as standalone deprecation policy
+- debug output accidentally left in production paths such as `var_dump()`, `print_r()`, `error_log()`, `dd()`, or bare `echo`
 
 5. Security
 - trust-boundary mistakes, access control gaps, injection risk, XSS, CSRF, unsafe file or subprocess handling, and privacy-sensitive exposure
@@ -89,11 +115,18 @@ Apply these dimensions when the diff makes them relevant:
 6. Performance
 - expensive repeated work, N+1 queries, unbounded loops or result sets, cache misuse, or scale breakpoints
 - latency-sensitive or batch-sensitive paths that become materially more costly
+- Matomo-specific anti-patterns such as `DELETE FROM` clearing entire large tables where `TRUNCATE` or batching is more appropriate, database queries inside loops, repeated `Option::get()` or `Config` reads inside loops, or `SELECT *` on `log_*` tables when only a subset of columns is needed
+- unbounded archive invalidation or archiving-related work whose scope multiplies by site, date, period, or segment and is likely to create excessive records or repeated heavy work
+- query shapes against `log_*` tables that appear unbounded or likely to miss needed indexes for new WHERE, JOIN, or ORDER BY access patterns
 
 7. Compatibility
 - backward compatibility breaks
 - plugin, extension, CLI, API, config, schema, or migration contract changes
 - mixed-version assumptions, rollout or rollback hazards, and hidden dependency on new defaults or state
+- deprecation lifecycle mistakes such as removing public methods, events, or config keys without a prior deprecation path, or adding `@deprecated` without version, replacement, or planned removal guidance when that metadata should exist
+- non-additive changes to existing posted public event parameters outside major-release work, including reordered, removed, repurposed, or by-reference-changed parameters
+- renamed config keys or events that do not preserve a transition path long enough for existing integrations
+- dependency-manifest changes such as `composer.json` updates without the corresponding `composer.lock` update when lockstep changes are expected
 
 8. Operability
 - missing or weak logs, metrics, diagnostics, health signals, or recoverability
@@ -108,6 +141,8 @@ Apply these dimensions when the diff makes them relevant:
 - weak assertions
 - flaky timing or ordering assumptions
 - important scenarios surfaced by the review that have no targeted coverage
+- missing integration coverage for new public API methods, archiving changes, segment logic, or report generation when the diff adds those behaviors
+- missing Vue/Jest coverage for new interactive Vue components and missing UI coverage for visible UI behavior changes when those surfaces are touched
 
 ## Diff Classification
 
@@ -126,7 +161,31 @@ Apply these routing rules after inspecting changed paths and diff content:
 - PHP changes under `core/`, `plugins/`, or `tests/`
 - Apply `matomo-code-quality`.
 
-3. Migration / update signals:
+3. Security signals:
+- `plugins/<Plugin>/API.php`
+- `plugins/<Plugin>/Controller.php`
+- auth, nonce, token, request parsing, or permission checks
+- SQL-building code or obvious trust-boundary handling
+- Apply `matomo-security-rules`.
+
+4. API development signals:
+- `plugins/<Plugin>/API.php`
+- API method signature changes
+- request parameter normalization or public API return-shape changes
+- Apply `matomo-api-development-rules`.
+
+5. Plugin architecture signals:
+- plugin bootstrap or `registerEvents()` changes
+- new or changed `Archiver`, `Model`, `Reports/*`, `Columns/*`, or Settings classes
+- cross-plugin imports or structural refactors across plugin layers
+- Apply `matomo-plugin-architecture`.
+
+6. Twig / template signals:
+- `*.twig`
+- `|raw`, `rawSafeDecoded`, `safelink`, `externallink`, or dynamic attribute escaping changes
+- Apply `matomo-twig-development-rules`.
+
+7. Migration / update signals:
 - `core/Updates/*.php`
 - `plugins/<Plugin>/Updates/*.php`
 - `core/Version.php`
@@ -134,12 +193,26 @@ Apply these routing rules after inspecting changed paths and diff content:
 - schema changes, especially core table or `log_*` table changes
 - Apply `matomo-migrations-workflow`.
 
-4. Vue / frontend build signals:
+8. Deprecation / compatibility-transition signals:
+- `@deprecated` additions or removals
+- removed or renamed public methods, events, or config keys
+- changed parameter shape or by-reference behavior for an existing `Piwik::postEvent()` contract
+- `composer.json` dependency changes
+- Apply `matomo-deprecation-rules`.
+
+9. Vue / frontend build signals:
 - `plugins/<Plugin>/vue/src/**`
 - `plugins/CoreVue/polyfills/**`
 - Apply `matomo-vue-development-rules`.
 
-5. Test expectation signals:
+10. Documentation signals:
+- public method changes in `plugins/<Plugin>/API.php`
+- new or modified `@param` or `@return` tags
+- PHPDoc changes that affect public API contracts
+- new or modified `Piwik::postEvent()` calls
+- Apply `matomo-documentation`.
+
+11. Test expectation signals:
 - any change under `tests/`
 - feature or bug-fix changes without corresponding tests
 - UI, Vue, or plugin behavior changes that should have automated coverage
@@ -158,7 +231,7 @@ Use the generic review dimensions in addition to routed rule sets when the diff 
 - `performance`: query, loop, caching, archive, reporting, batch, or large-result-set changes
 - `compatibility`: migrations, public APIs, plugin hooks, config, schema, CLI, or upgrade-sensitive changes
 - `operability`: jobs, retries, failures, state transitions, or operationally important workflows
-- `documentation`: behavior, config, migration, CLI, API, or rollout changes
+- `documentation`: behavior, config, migration, CLI, API, rollout, or public PHPDoc contract changes
 - `test quality`: whenever behavior changes or review findings surface important uncovered scenarios
 
 ## Severity Policy For Routed Skills
@@ -181,9 +254,16 @@ Examples that should normally be blocking when confirmed:
 - duplicate or unused translation keys
 - new translation keys added without checking reusable existing keys
 - non-English translation edits that violate the i18n policy
+- missing required API access checks or missing CSRF validation
+- untrusted values concatenated into SQL
+- Twig templates using `|raw` on uncontrolled content
 - likely PHPStan or PHPCS violations in changed PHP code
 - migration changes missing required version-marker bumps
 - editing an update file that should be treated as immutable
+- removing or renaming public behavior without the required deprecation path
+- changing existing posted public event parameters in a non-additive way outside intentional major-version compatibility work
+- dependency manifest changes missing the matching `composer.lock` update when lockstep updates are expected
+- broken plugin layer separation or direct use of another plugin's internal classes instead of a supported boundary
 - Vue code using disallowed cross-plugin source imports
 - Vue templates using `v-html` without wrapping the bound content in `$sanitize(...)`
 - missing required follow-up validation implied by the routed skill when the change depends on it
@@ -202,10 +282,15 @@ Use this policy for the generic review dimensions:
 
 3. Maintainability or docs concerns:
 - do not inflate to blocking unless the issue materially raises defect risk, upgrade risk, or recurring support cost
+- debt-level maintainability cleanup that does not independently affect merge readiness belongs in `Debt Check`, not `Findings`
 
 4. Duplicate issue visible through multiple dimensions:
 - keep the strongest framing
 - mention secondary dimensions only if they materially change the fix direction or impact
+
+5. If both a framework skill and `matomo-security-rules` apply to the same sink:
+- cite the framework skill for the concrete implementation rule
+- avoid duplicating the same finding under both rule sets
 
 ## Review Target Selection
 
@@ -231,72 +316,37 @@ Use this policy for the generic review dimensions:
 ### Head only
 
 - If the user gives only `<head>`:
-  - Use `origin/5.x-dev` as `<base>`
-  - `git merge-base <head> origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...<head>`
-  - `git diff origin/5.x-dev...<head>`
-  - `git log --oneline origin/5.x-dev..<head>`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `<head>` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - `git merge-base <head> <base>`
+  - `git diff --stat <base>...<head>`
+  - `git diff <base>...<head>`
+  - `git log --oneline <base>..<head>`
 
 ### Current branch default
 
 - If the user gives no range or branch:
   - `git rev-parse --abbrev-ref HEAD`
-  - Review `HEAD` against `origin/5.x-dev`
-  - `git merge-base HEAD origin/5.x-dev`
-  - `git diff --stat origin/5.x-dev...HEAD`
-  - `git diff origin/5.x-dev...HEAD`
-  - `git log --oneline origin/5.x-dev..HEAD`
+  - Resolve `<base>` to the tracked target dev branch.
+  - If `HEAD` tracks a remote `*-dev` branch, use that upstream as `<base>`.
+  - Otherwise use the remote `*-dev` branch the current work targets, and ask the user if it cannot be inferred confidently.
+  - Review `HEAD` against `<base>`
+  - `git merge-base HEAD <base>`
+  - `git diff --stat <base>...HEAD`
+  - `git diff <base>...HEAD`
+  - `git log --oneline <base>..HEAD`
 
 ## Deterministic Checks
 
-Use or recommend these checks when the classified diff indicates they matter:
+Use or recommend the smallest relevant verification commands for the classified diff.
 
-1. Always-safe inspection commands:
-- `git diff --stat <range>`
-- `git diff <range>`
-- `git log --oneline <range>`
-- `git diff --name-only <range>`
-- `rg` for impacted symbols, translation keys, or schema references
-
-2. Structural-integrity inspection commands:
-- `git ls-files`
-- `git grep` for unresolved conflict-marker patterns with false-positive discipline
-- `git ls-files --eol`
-- `git lfs ls-files`
-- inspect `.gitattributes` and `.editorconfig` when EOL or LFS policy matters
-
-3. PHP code quality checks:
-- Use `matomo-code-quality` command forms.
-- Prefer targeted `phpstan` for touched PHP paths when static analysis is relevant.
-- Prefer `phpcbf` then `phpcs` when style compliance is relevant.
-
-4. Migration validation checks:
-- Use `matomo-migrations-workflow` rules to verify update placement, version-marker bumps, immutability, and install schema synchronization.
-- Inspect `core/Db/Schema/Mysql.php` when core table definitions change.
-
-5. Vue validation checks:
-- Use `matomo-vue-development-rules` command forms.
-- Recommend or run `ddev matomo:console vue:build <Plugin>` for touched plugin Vue sources.
-- Recommend or run `ddev matomo:console vue:build-polyfill` for `plugins/CoreVue/polyfills/**`.
-
-6. Test validation checks:
-- Use `matomo-test-runner` command forms.
-- Recommend or run the smallest relevant Matomo test command for the touched plugin, spec, or file.
-
-If a relevant deterministic check is not run, report it in the final review as `not run` and explain why confidence is limited.
+1. Always collect the diff, commit list, and changed-file list.
+2. Use routed skill command forms for code quality, migrations, Vue, and tests instead of inventing ad hoc alternatives.
+3. If a relevant deterministic check is not run, report it in the final review as `Not run` and explain why confidence is limited.
+4. Read `references/review-checks.md` when choosing exact git, structural-integrity, code-quality, migration, Vue, or test commands.
 
 ## Matomo-Specific Review Checklist
-
-Assess the selected change set for:
-
-1. correctness and edge cases in the diff itself
-2. Matomo-specific rule compliance for every matched review domain
-3. design and API clarity
-4. maintainability and readability
-5. performance and security when relevant
-6. operability and diagnosability when relevant
-7. documentation gaps when relevant
-8. test coverage, realism, flaky patterns, and missing scenarios
 
 Domain-specific expectations:
 
@@ -309,30 +359,29 @@ Domain-specific expectations:
 - duplicate or dead translation keys are blocking by default when confirmed
 
 2. code quality:
-- likely PHPStan issues
-- PHPCS compliance
-- plugin-specific config handling when relevant
+- apply `matomo-code-quality`
+- use its baseline-noise and PHPCS suppression guidance rather than restating tool policy here
 - clear routed code-quality violations are blocking by default
 
-3. migrations:
-- correct update file location
-- required version marker bump exists
-- update immutability respected
-- install schema updated when core schema changes
-- high-impact migrations guarded appropriately
+3. plugin architecture:
+- apply `matomo-plugin-architecture`
+- broken layer separation and direct cross-plugin internal coupling are blocking by default; narrower convention drift is usually medium
+
+4. documentation:
+- apply `matomo-documentation`
+- clear routed documentation-rule violations are blocking by default
+
+5. migrations:
+- apply `matomo-migrations-workflow`
 - clear routed migration workflow violations are blocking by default
 
-4. Vue:
-- plugin-scoped build expectations
-- no cross-plugin source imports
-- every `v-html` binding sanitizes content via `$sanitize(...)`
-- polyfill rebuild requirements when applicable
-- clear routed Vue workflow violations are blocking by default
+6. deprecation:
+- apply `matomo-deprecation-rules`
+- removing public behavior without a valid deprecation path is blocking by default
 
-5. tests:
-- appropriate Matomo test type exists for changed behavior
-- missing regression coverage is called out explicitly
-- weak assertions and flaky patterns are called out explicitly
+7. Vue:
+- apply `matomo-vue-development-rules`
+- clear routed Vue workflow violations are blocking by default
 
 ## Output Format
 
@@ -342,62 +391,14 @@ Respond with these exact top-level sections in this exact order:
 2. `Problem Addressed`
 3. `Overall Assessment`
 4. `Matomo-Specific Checks`
-5. `Next Steps`
+5. `Debt Check`
+6. `Next Steps`
 
 Do not rename, merge, or omit any required section.
 
 ### Required Template
 
-Use this structure exactly:
-
-```markdown
-Findings
-
-Blocking
-1. ...
-None.
-
-Medium
-1. ...
-None.
-
-Low / Polish
-1. ...
-None.
-
-Problem Addressed
-<1 short paragraph>
-
-Overall Assessment
-Verdict: Yes | No | Partially
-Merge readiness: Ready | Not ready
-<1 short paragraph covering evidence, strengths, confidence, test coverage, and ambiguity when relevant>
-
-Matomo-Specific Checks
-Applied rule sets
-- ...
-- None.
-
-Applied review dimensions
-- ...
-- None.
-
-Structural integrity
-- Clean.
-- Findings listed above.
-- Not checked: <reason>
-
-Ran
-- ...
-- None.
-
-Not run
-- <command> — <reason confidence is limited>
-- None.
-
-Next Steps
-1. ...
-```
+Use the exact template in `references/review-template.md` when drafting the final review.
 
 ### Findings Requirements
 
@@ -412,6 +413,7 @@ Next Steps
 - the routed rule source when the issue is a routed-skill violation
 4. Confirmed routed-skill requirement violations belong in `Blocking` by default unless the routed skill explicitly allows a downgrade.
 5. If applicability is uncertain, call out the ambiguity and what would confirm it rather than silently downgrading or omitting it.
+6. Do not place debt-only maintainability cleanup in `Findings` unless it independently creates defect, security, compatibility, or operability risk.
 
 ### Assessment Requirements
 
@@ -421,6 +423,7 @@ Next Steps
 2. The assessment paragraph must state whether the change solves the inferred problem and why.
 3. Mention test coverage and gaps in the assessment paragraph if they affect confidence.
 4. If branch intent is unclear, say so explicitly in the assessment paragraph.
+5. Mention debt in the assessment paragraph only if it affects confidence or merge readiness; otherwise keep debt content in `Debt Check`.
 
 ### Checks Requirements
 
@@ -440,66 +443,15 @@ Next Steps
 
 Prefer specific file paths, functions, and approximate line references where possible.
 
-## Examples
+### Debt Check Requirements
 
-- "Review my current Matomo branch before I push"
-  - Review `HEAD` against `origin/5.x-dev`
-  - Route review through Matomo-specific rules based on changed files
-- "Review branch `feature/faster-archive`"
-  - Review `origin/5.x-dev...feature/faster-archive`
-- "Review `origin/5.x-dev..HEAD`"
-  - Review that exact range
-- "Review `abc123...def456`"
-  - Review that exact comparison
+1. `Debt Check` is required for full branch reviews, even when there are no material debt items.
+2. If there are no material debt findings, write `No material debt findings.`
+3. Debt findings must be limited to material cleanup items the author should fix before continuing or committing.
+4. Debt findings should focus on duplication, convention drift, over-engineering, missing important regression coverage, and hardcoded values that should reuse constants, config, or existing helpers.
+5. Do not repeat issues already reported in `Findings`; keep the strongest framing only.
 
-Example output:
+## Reference Material
 
-```markdown
-Findings
-
-Blocking
-1. Duplicate translation keys were added in `plugins/Example/lang/en.json` around line 42 and only registered in `plugins/Example/Example.php` around line 110, which violates `matomo-i18n-development-rules` and creates dead translator churn.
-
-Medium
-None.
-
-Low / Polish
-1. `plugins/Example/vue/src/View.vue` around line 88 still uses a legacy helper name that obscures intent, which raises maintainability cost but does not block the branch goal.
-
-Problem Addressed
-The branch appears intended to update the Example plugin GDPR copy and associated UI text.
-
-Overall Assessment
-Verdict: Partially
-Merge readiness: Not ready
-The UI copy update is mostly in place, but the branch is not merge-ready because the new translation-key set violates the routed i18n rules. Confidence is moderate: the diff is coherent, but build and UI-test coverage is incomplete because only targeted static inspection was performed.
-
-Matomo-Specific Checks
-Applied rule sets
-- `matomo-i18n-development-rules` — blocking findings listed above.
-- `matomo-vue-development-rules` — reviewed, no findings.
-- `matomo-test-runner` — review expectation applied; missing validation noted below.
-
-Applied review dimensions
-- `intent`
-- `structural integrity`
-- `maintainability`
-- `test quality`
-
-Structural integrity
-- Clean.
-
-Ran
-- `git diff --stat origin/5.x-dev...HEAD`
-- `git diff origin/5.x-dev...HEAD`
-- `git log --oneline origin/5.x-dev..HEAD`
-- `rg "ExampleKey|ExampleKeyNew" plugins/Example`
-
-Not run
-- `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.
-- `ddev matomo:console tests:run-ui Example` — not run in this environment, so screenshot and rendered-flow regressions remain unverified.
-
-Next Steps
-1. Remove the dead translation keys or reuse the existing keys instead of shipping parallel variants.
-2. Run the targeted Example Vue build and UI validation once the environment supports `ddev`.
-```
+Read `references/review-template.md` when drafting the final review output.
+Read `references/review-checks.md` for deterministic check commands (structural integrity, code quality, migration validation, Vue, tests). The Review Target Selection commands above are the authoritative source for git range forms.

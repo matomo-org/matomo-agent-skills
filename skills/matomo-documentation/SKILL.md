@@ -1,6 +1,6 @@
 ---
 name: matomo-documentation
-description: Create and update Matomo PHPDoc, especially for public API methods.
+description: "Create and update Matomo PHPDoc: derives contracts from code, adds descriptive docs for public API methods and posted events, and keeps internal docs minimal unless native types are missing or too broad."
 ---
 
 # Matomo Documentation
@@ -8,6 +8,14 @@ description: Create and update Matomo PHPDoc, especially for public API methods.
 ## Overview
 
 Use this skill for Matomo PHPDoc tasks, especially when updating public API method docblocks in Matomo PHP code.
+Use `matomo-api-development-rules` for defining the API contract itself; this skill owns how that contract is documented.
+Use `matomo-deprecation-rules` for deprecation lifecycle policy rather than treating docblocks as the source of deprecation timing rules.
+
+## Gotchas
+
+1. Trust code over existing docblocks; stale PHPDoc is common and should be treated as a claim to verify.
+2. `@ignore` changes the documentation mode for public API methods: keep those under the internal minimal rules instead of the public descriptive rules.
+3. Public API docs should describe the real request-facing contract, especially when parameters are forwarded unchanged to helpers like `Archive::build()` or normalized through multi-site helpers such as `Site::getIdSitesFromIdSitesString()`.
 
 ## Trigger Conditions
 
@@ -57,6 +65,7 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Use types that describe the public API contract for public API methods.
    - For public API methods, document every parameter and include a description for each one.
    - For public API methods, prefer request-facing types over internal helper flexibility.
+   - For public API methods, document canonical caller inputs, not every internally tolerated parser form.
    - Public API parameter descriptions should be concise and accurate, even when the parameter is straightforward.
    - Add Matomo-specific constraints and examples when they are confidently derived from code behavior.
    - For internal or non-public methods that are documented as part of a specific task, use the real implementation type when needed.
@@ -82,8 +91,6 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
    - Do not add `@throws` tags.
    - Remove existing `@throws` tags when updating a method docblock.
 
-
-
 ## Docblock Formatting
 
 1. Wrapped lines must align with the description column.
@@ -91,6 +98,16 @@ Public API methods must have PHPDoc immediately above them. Protected and privat
 3. Use normal single-space formatting on the first line of each tag.
 4. Align only continuation (wrapped) lines under the description text.
 5. Avoid mass-reformatting unrelated existing docblocks.
+
+## Event Documentation Rules
+
+Events posted via `Piwik::postEvent()` are included in generated developer documentation unless they are marked internal.
+
+1. Every new `Piwik::postEvent('EventName', ...)` should have a PHPDoc block above the call that describes what the event does, the parameters it passes, and a short usage example.
+2. If an event parameter is passed by reference, document that explicitly.
+3. Events intended only for core/internal use should include `@internal`.
+4. When changing parameters or behavior of an existing posted event, update the event PHPDoc in the same change.
+5. If an event is being deprecated, use `matomo-deprecation-rules` for the lifecycle and transition policy, and use this skill only for documenting that policy correctly.
 
 ## API File-Specific Rules
 When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
@@ -104,264 +121,17 @@ When working with plugin API classes in `plugins/*/API.php`, extra rules apply:
    - Every public API method must have an `@return` tag.
    - Public API `@return` tags must include descriptive text unless the return type is `void`.
    - Prioritize endpoint behavior, accepted request parameters, and return semantics.
+   - Do not advertise parser-only selector forms such as `["all"]` unless the API intentionally exposes that representation as part of its stable public contract.
    - If a public API method has `@ignore`, do not apply these descriptive public-method rules. Apply the internal minimal rules instead.
 3. Non-public methods
    - Protected and private methods do not need docblocks by default.
 
 For non-plugin `API.php` files, apply only the general PHPDoc rules above.
 
-## Public API Templates
+## Reference Templates
 
-Use these descriptive templates for public API methods only. The final type and description must match the actual accepted public input in the code.
+Read `references/api-doc-templates.md` when:
 
-- Determine the final parameter contract by inspecting the method signature and how the value is normalized or consumed.
-- Validate any existing parameter documentation against the code before reusing it.
-- Do not trust existing parameter docblocks for the final type. Use native types when present; otherwise derive the contract from code behavior and forwarded helper contracts.
-- For public API methods, document request-facing inputs, not broader internal PHP flexibility.
-- For public API methods, always include parameter descriptions, even for straightforward parameters.
-
-### \$date
-
-- For public API methods, document `$date` as `string`.
-- Use this when the public method accepts date strings or date ranges via API request input.
-```php
-@param string $date The date or date range to process.
-                    'YYYY-MM-DD', magic keywords (today, yesterday, lastWeek, lastMonth, lastYear),
-                    or date range (ie, 'YYYY-MM-DD,YYYY-MM-DD', lastX, previousX).
-```
-
-### \$idSite and \$idSites
-
-- Use this when a single numeric site ID is accepted.
-```php
-@param int $idSite The numeric ID of the website to query.
-```
-
-- Use this when the parameter accepts a single site, multiple sites, comma-separated selectors, or `all`.
-```php
-@param int|string|int[] $idSite Website ID(s) to query.
-                         - Single site ID (e.g. 1)
-                         - Multiple site IDs (e.g. [1, 4, 5])
-                         - Comma-separated list ("1,4,5") or "all"
-```
-
-- Use this when the method explicitly accepts selector strings or an array of strings.
-```php
-@param string|array $idSite Website ID(s) to query.
-                            Accepts comma-separated IDs, "all", numeric IDs as strings, or ["all"].
-```
-
-- If a public API method forwards `$idSite` unchanged to `Archive::build()`, `Archive::createDataTableFromArchive()`, or another helper that clearly accepts multi-site selectors, document `$idSite` as multi-site. Do not keep or generate `@param int $idSite` just because an older docblock used it.
-- Keep the single-site `int` form only when the code clearly narrows the contract to one site before the value is used.
-
-### \$period
-
-- Use this when `$period` must be one of the standard archive period strings.
-```php
-@param 'day'|'week'|'month'|'year'|'range' $period The period to process, processes data for the period
-                                                   containing the specified date.
-```
-
-### \$segment
-
-- Match the documented type to the actual accepted public input.
-- Valid forms are `string|null` or `string|null|false`, depending on the method contract.
-- Reuse the standard example and operator description for public API `$segment` docblocks instead of rewriting or tailoring it.
-```php
-@param string|null $segment Custom segment to filter the report.
-                            Example: "referrerName==example.com"
-                            Supports AND (;) and OR (,) operators.
-```
-
-## Internal Type-Only Guidance
-
-Use this guidance for protected, private, and other non-public methods.
-
-- Add or fix type-only `@param` tags when native parameter types are missing or too broad.
-- Add or fix type-only `@return` tags when native return types are missing or too broad.
-- If native types fully cover the contract, omit redundant PHPDoc instead of rewriting it.
-- Add descriptions only when they provide non-obvious information such as array structure, sentinel values, or special normalization behavior.
-
-### Internal Type Examples
-
-Use real implementation types for internal methods when they provide information the signature does not express.
-
-```php
-@param Date|string $date
-```
-
-## Internal Method Examples
-
-Use these examples to keep internal/protected/private fixes minimal.
-
-Bad:
-```php
-/**
- * @param integer $idGoal The goal id
- */
-protected function loadGoal($idGoal)
-```
-
-Good:
-```php
-/**
- * @param int $idGoal
- */
-protected function loadGoal($idGoal)
-```
-
-Bad:
-```php
-/**
- * @return bool Returns whether the value is true or false.
- */
-private function isEnabled()
-```
-
-Good:
-```php
-/**
- * @return bool
- */
-private function isEnabled()
-```
-
-Bad:
-```php
-private function loadGoal($idGoal)
-```
-
-Good:
-```php
-/**
- * @param int $idGoal
- */
-private function loadGoal($idGoal)
-```
-
-Bad:
-```php
-private function isEnabled()
-```
-
-Good:
-```php
-/**
- * @return bool
- */
-private function isEnabled()
-```
-
-Bad:
-```php
-/**
- * @param int $idGoal
- * @return bool
- */
-private function hasGoal(int $idGoal): bool
-```
-
-Good:
-```php
-private function hasGoal(int $idGoal): bool
-```
-
-Bad:
-```php
-/**
- * @param int $idSite The numeric ID of the website to query.
- */
-public function get($idSite, $period, $date, $segment = false)
-{
-    return Archive::createDataTableFromArchive('Example_record', $idSite, $period, $date, $segment);
-}
-```
-
-Good:
-```php
-/**
- * @param int|string|int[] $idSite Website ID(s) to query.
- *                                 - Single site ID (e.g. 1)
- *                                 - Multiple site IDs (e.g. [1, 4, 5])
- *                                 - Comma-separated list ("1,4,5") or "all"
- */
-public function get($idSite, $period, $date, $segment = false)
-{
-    return Archive::createDataTableFromArchive('Example_record', $idSite, $period, $date, $segment);
-}
-```
-
-Bad:
-```php
-/**
- * @param int $limit
- */
-public function getList($limit)
-{
-    return $this->fetchList($limit);
-}
-```
-
-Good:
-```php
-/**
- * @param int|string $limit
- */
-public function getList($limit)
-{
-    return $this->fetchList($limit);
-}
-```
-
-Bad:
-```php
-/**
- * @param int $idSite
- * @param array $config
- * @return void
- */
-private function saveConfig(int $idSite, array $config): void
-```
-
-Good:
-```php
-/**
- * @param array<string, mixed> $config
- */
-private function saveConfig(int $idSite, array $config): void
-```
-
-Bad:
-```php
-/**
- * @return array
- */
-private function normalizeConfig(array $config): array
-```
-
-Good:
-```php
-/**
- * @return array{enabled: bool, threshold: int}
- */
-private function normalizeConfig(array $config): array
-```
-
-Bad:
-```php
-/**
- * Returns whether the feature is enabled.
- * @return bool
- */
-private function isEnabled()
-```
-
-Good:
-```php
-/**
- * @return bool
- */
-private function isEnabled()
-```
-
-Keep a non-public summary only when it adds remarkable information, for example non-obvious normalization behavior, sentinel values, or important side effects not already clear from the signature and tags.
+1. documenting common public API parameters such as `$idSite`, `$date`, `$period`, or `$segment`
+2. deciding whether an API method should document single-site or multi-site `$idSite`
+3. updating internal type-only PHPDoc and you want a minimal before/after example

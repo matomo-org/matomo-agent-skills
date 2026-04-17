@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Deprecation Rules"
+  short_description: "Apply Matomo deprecation lifecycle and compatibility-transition rules"
+  default_prompt: "Use $matomo-deprecation-rules when reviewing or authoring changes that deprecate, rename, replace, or remove public Matomo behavior. Require an explicit deprecation path for public APIs, events, and config keys, preserve compatibility wrappers or fallback reads during the transition, treat existing posted event parameters as part of the public contract, allow only additive event parameters that preserve existing listener expectations, keep non-additive event changes and removals to major-version work, and keep composer.json and composer.lock in sync when dependency selections change."

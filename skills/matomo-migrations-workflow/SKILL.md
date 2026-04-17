@@ -9,6 +9,15 @@ description: Plan, design, and run Matomo core/plugin update migrations (Updates
 
 Use this skill for Matomo update/migration work across core and plugins.
 Prefer deterministic routing and idempotent migrations.
+Use `matomo-deprecation-rules` for lifecycle policy around removing or renaming public behavior; this skill owns update execution and schema/data migration mechanics.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
+
+## Gotchas
+
+1. The update file and its version-marker bump must land in the same change, or the updater can silently skip the update.
+2. Update files that already exist on the tracked target dev branch should be treated as immutable history.
+3. Admin-facing migration hints should be executable commands, not prose summaries.
 
 ## Routing Rules
 
@@ -18,6 +27,15 @@ Prefer deterministic routing and idempotent migrations.
 - Check `.gitmodules` for submodule status.
 - Check `tests/PHPUnit/Integration/ReleaseCheckListTest.php` for `corePluginsThatAreIndependent`.
 4. If branch policy is unclear, default to plugin-owned updates for plugin-owned schema/data.
+
+## Version File Sync Checklist (Hard Gate)
+
+Before marking a migration change as ready:
+
+1. If a core update file is added, bump `core/Version.php` in the same PR.
+2. If a plugin update file is added, bump the matching plugin version metadata in the same PR.
+3. Do not rely on a follow-up PR for the version bump; the update file and its version marker must ship together.
+4. If the update file version and the bumped target version differ, the updater can silently skip the update.
 
 ## Version Marker Rules (Execution Preconditions)
 
@@ -37,19 +55,21 @@ Prefer deterministic routing and idempotent migrations.
 ## Update File Immutability Rules
 
 1. Treat update files as append-only history.
-2. Do not edit an update file that already exists on latest `5.x-dev`.
+2. Do not edit an update file that already exists on the tracked target dev branch.
 3. If logic must change, create a new update file with a new version.
-4. Exception: editing is allowed if the update file was recently added on the current feature branch and is not present on `5.x-dev`.
+4. Exception: editing is allowed if the update file was recently added on the current feature branch and is not present on the tracked target dev branch.
 5. Exception: editing is allowed with explicit maintainer instruction.
 6. When using an exception, include a short PR note explaining why editing the existing file is intended and safe.
 
-### Check Whether File Exists On `5.x-dev`
+Resolve the tracked target dev branch by preferring the current branch's upstream when it is a remote `*-dev` branch; otherwise use the remote `*-dev` branch the current work targets. If the correct target dev branch cannot be inferred confidently, ask the user instead of guessing.
 
-- Check file on `5.x-dev` directly:
-  - `git show origin/5.x-dev:<path-to-update-file>`
+### Check Whether File Exists On The Tracked Target Dev Branch
+
+- Check file on the tracked target dev branch directly:
+  - `git show <base>:<path-to-update-file>`
 - Check branch-only history for a file:
   - `git log --oneline --decorate -- <path-to-update-file>`
-- If file exists on `origin/5.x-dev`, do not edit it by default.
+- If the file exists on `<base>`, do not edit it by default.
 
 ## Command Selection
 
@@ -111,6 +131,12 @@ Prefer deterministic routing and idempotent migrations.
 3. If no existing command safely covers the migration, create a dedicated command and reference it in `__toString`.
 4. Keep callback behavior and command behavior equivalent.
 5. Never use narrative-only `__toString` text.
+
+## Migration Hint Formatting Rules
+
+1. Migration hints shown to admins should be directly copy-pasteable CLI commands.
+2. When a migration applies per site, generate one hint command per affected site instead of one aggregated prose hint.
+3. Include the full command text, including the `./console` prefix when that is the executable form.
 
 ## Special Cases
 

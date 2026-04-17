@@ -46,7 +46,9 @@ Use this skill when the task involves one or more of:
 
 6. Placeholder safety:
 - Keep placeholder compatibility for existing keys.
-- For multiple placeholders, use numbered placeholders (for example `%1$s`, `%2$s`) so translators can reorder safely.
+- For strings with two or more placeholders, use numbered placeholders (for example `%1$s`, `%2$s`) so translators can reorder safely.
+- For strings with exactly one placeholder, `%s` is acceptable, but `%1$s` is also fine.
+- If a touched key still uses multiple positional placeholders, convert it to numbered placeholders in the same change.
 - If placeholder semantics change, require a new key.
 
 7. Dead key removal:
@@ -58,6 +60,7 @@ Use this skill when the task involves one or more of:
 - Keep entries alphabetically ordered.
 - Key names must use CamelCase in the key part.
 - Use alphanumeric characters in key names; namespace separator is underscore (for example `Plugin_KeyName`).
+- Prefer descriptive names over generic suffixes like `Message1`, `Text`, `Label`, or `String` when a more specific semantic name is available.
 
 9. Translation text HTML policy:
 - Do not include structural or interactive HTML in translation values.

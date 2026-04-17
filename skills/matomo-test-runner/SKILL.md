@@ -8,6 +8,8 @@ description: Run Matomo PHP, UI and Vue/Jest tests using ddev matomo:console com
 ## Overview
 
 Use this skill for Matomo automated test execution.
+The commands below assume you are in a Matomo checkout with a working Matomo DDEV project.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Rules
 
@@ -59,6 +61,29 @@ and `UI` signals = "ui, screenshot, puppeteer"
      - If path contains `plugins/<Plugin>/tests/UI/`, use `tests:run-ui`
 3. Otherwise use `tests:run`.
 4. If both testsuite and file are provided, prioritize `--file` and ignore testsuite.
+
+## Test Coverage Expectations
+
+1. Bug fixes should include a regression test that fails without the fix and passes with it.
+2. New public API methods in `plugins/*/API.php` should have integration coverage for the happy path and at least one error or edge case.
+3. New Vue components with meaningful user interaction such as forms, dialogs, or selectors should have Vue/Jest coverage.
+4. Changes to archiving logic, segment handling, or report generation should have integration coverage with realistic fixture data.
+5. UI-visible behavior changes such as new pages, layouts, widgets, or interaction flows should have UI or screenshot coverage.
+6. If adding tests is impractical for a specific change, call out the reason explicitly in review or PR notes instead of silently omitting coverage.
+
+## Test Fixture Patterns
+
+1. Reuse existing fixtures in `tests/PHPUnit/Fixtures/` before creating new ones.
+2. Put plugin-specific fixtures in `plugins/<Plugin>/tests/Fixtures/`.
+3. Fixtures should be self-contained and clean up after themselves.
+4. For integration tests needing site or visit data, prefer fixture helpers and the tracking API over direct DB inserts when practical.
+
+## Avoiding Flaky Tests
+
+1. Do not rely on execution order between test methods.
+2. Avoid time-sensitive assertions tied to the current date or time; use fixed dates or mocks.
+3. For UI tests, prefer explicit wait conditions over fixed sleeps.
+4. Avoid assertions on auto-increment IDs or row counts that are unstable across fixture ordering.
 
 ## Examples
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Plugin Architecture"
+  short_description: "Apply Matomo plugin structure, layer, and boundary rules"
+  default_prompt: "Use $matomo-plugin-architecture when working on Matomo plugin structure beyond a single API method or framework sink. Keep Controller, API, Model, Archiver, Report, and Settings responsibilities separated, use registerEvents() correctly, reuse existing Matomo helpers and conventions before inventing local ones, and avoid direct dependencies on other plugins' internal classes."

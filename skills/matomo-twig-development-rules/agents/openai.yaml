@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Twig Development Rules"
+  short_description: "Apply Matomo Twig safety and template guardrails"
+  default_prompt: "Use $matomo-twig-development-rules to review or author Matomo Twig template changes, especially raw output handling, escaping, helper usage, and template nonce patterns."

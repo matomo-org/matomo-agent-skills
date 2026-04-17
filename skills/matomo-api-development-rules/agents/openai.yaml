@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo API Development Rules"
+  short_description: "Apply Matomo API.php design and contract guardrails"
+  default_prompt: "Use $matomo-api-development-rules to review or author changes in plugins/*/API.php, including API contracts, parameter normalization, return consistency, and API-layer delegation. Avoid loose boolean truthiness, prefer native bool handling or Request::fromRequest()->getBoolParameter() where appropriate, treat public @ignore API methods as an anti-pattern, and hand off autoSanitizeInputParams or @unsanitized trust-boundary handling to $matomo-security-rules."
