@@ -1,58 +1,48 @@
 # Review Template
 
-Use this structure exactly for the final review output:
+Use this structure exactly for the final review output. It is a work list: everything in it is something someone has to act on before the change ships.
+
+The section list is closed. Do not add an appendix for observations the Severity Derivation dropped, and do not emit the coverage ledger — those were removed on purpose, because nothing acts on them. A section is legal when a skill defines it — `Prior Findings` here, or the groups `matomo-adversarial-review` adds back when it wraps this review — never when a run decides it needs somewhere to put something.
 
 ```markdown
+Target
+- Base `<sha>` / Head `<sha>`
+- Working tree: clean | <n> uncommitted paths, excluded from the target
+
 Findings
 
 Blocking
-1. ...
+1. `<path>:<approximate line> — <rule or contract at issue>` — <impact and evidence>
 None.
+(within a bucket, heaviest consequence first; numbering follows that order)
 
 Medium
-1. ...
+2. `<path>:<approximate line> — <rule or contract at issue>` — <impact and evidence>
 None.
 
-Low / Polish
-1. ...
-None.
+Prior Findings
+(only when earlier findings were supplied; match by anchor, not by number)
+- <anchor> — resolved: <evidence>
+- <anchor> — unresolved: <what the fix missed>
+- <anchor> — withdrawn: <reason>
 
 Problem Addressed
 <1 short paragraph>
 
 Overall Assessment
 Verdict: Yes | No | Partially
-Merge readiness: Ready | Not ready
-<1 short paragraph covering evidence, strengths, confidence, test coverage, and ambiguity when relevant>
+Merge readiness: Ready | Not ready (#<n>, #<n>)
+<1 short paragraph: whether the change solves the inferred problem and why, plus test-coverage or ambiguity limits where they affect confidence, plus one clause for each degradation that occurred — verification self-administered or not run, fan-out run sequentially rather than dispatched — and nothing about either when it ran normally>
+<`Verdict` answers whether the change does what it set out to do; `Merge readiness` is `Not ready` whenever a `Blocking` finding exists, and names the findings it rests on. Do not lower `Verdict` because findings exist, and do not narrate what the review did.>
 
 Matomo-Specific Checks
-Applied rule sets
-- ...
-- None.
-
-Applied review dimensions
-- ...
-- None.
-
-Structural integrity
-- Clean.
-- Findings listed above.
-- Not checked: <reason>
-
-Ran
-- ...
-- None.
-
-Not run
-- <command> — <reason confidence is limited>
-- None.
-
-Debt Check
-- ...
-- No material debt findings.
+Mechanical: 12/12 ran. #<n> → finding #<n>. #12: <n> judged, <m> failing. | 12/12 ran, nothing to report. #12: <n> judged, 0 failing.
+Rule sets: `<skill>`, `<skill>` (all loaded). | `<skill>` unverified — not loaded.
+Probes: precedent, untrusted-input, scope attribution — all run, nothing further. | <probe> n/a.
+Not verified: `<path>` — <reason> | None.
 
 Next Steps
-1. ...
+1. ... (heaviest consequence first; no step states that the branch becomes mergeable)
 ```
 
 ## Example Output
@@ -60,54 +50,42 @@ Next Steps
 In the example below, `<base>` means the tracked target dev branch unless the user supplied an explicit base.
 
 ```markdown
+Target
+- Base `a1b2c3d` / Head `e4f5a6b`
+- Working tree: 2 uncommitted paths, excluded from the target
+
 Findings
 
 Blocking
-1. Duplicate translation keys were added in `plugins/Example/lang/en.json` around line 42 and only registered in `plugins/Example/Example.php` around line 110, which violates `matomo-i18n-development-rules` and creates dead translator churn.
+1. `plugins/Example/lang/en.json:42 — matomo-i18n-development-rules key reuse` — the four added keys duplicate existing GDPR keys and are only registered in `plugins/Example/Example.php` around line 110, so translators get parallel variants of the same strings to maintain.
 
 Medium
-None.
-
-Low / Polish
-1. `plugins/Example/vue/src/View.vue` around line 88 still uses a legacy helper name that obscures intent, which raises maintainability cost but does not block the branch goal.
+2. `plugins/ExampleSubmodulePlugin — scope attribution` — the submodule pointer moves with no related change in the branch, which ships an unreviewed plugin update alongside a copy change and makes the merge harder to revert.
 
 Problem Addressed
 The branch appears intended to update the Example plugin GDPR copy and associated UI text.
 
 Overall Assessment
 Verdict: Partially
-Merge readiness: Not ready
-The UI copy update is mostly in place, but the branch is not merge-ready because the new translation-key set violates the routed i18n rules. Confidence is moderate: the diff is coherent, but build and UI-test coverage is incomplete because only targeted static inspection was performed.
+Merge readiness: Not ready (#1)
+`Partially` because the header copy is updated but the consent-dialog strings named in the branch description are untouched. Independently of that, finding #1 is `Blocking`, so the branch is `Not ready`. Confidence is high; the copy change needs no new test coverage.
 
 Matomo-Specific Checks
-Applied rule sets
-- `matomo-i18n-development-rules` — blocking findings listed above.
-- `matomo-vue-development-rules` — reviewed, no findings.
-- `matomo-test-runner` — review expectation applied; missing validation noted below.
-
-Applied review dimensions
-- `intent`
-- `structural integrity`
-- `maintainability`
-- `test quality`
-
-Structural integrity
-- Clean.
-
-Ran
-- `git diff --stat <base>...HEAD`
-- `git diff <base>...HEAD`
-- `git log --oneline <base>..HEAD`
-- `rg "ExampleUI_|ExamplePlugin_|ExampleReportName|ExampleReportDocumentation" plugins/ExampleUI plugins/ExamplePlugin plugins/ExampleReport`
-
-Not run
-- `ddev matomo:console vue:build Example` — not run in this environment, so build/lint regressions remain unverified.
-- `ddev matomo:console tests:run-ui Example` — not run in this environment, so screenshot and rendered-flow regressions remain unverified.
-
-Debt Check
-- No material debt findings.
+Mechanical: 12/12 ran. #3 → finding #2.
+Rule sets: `matomo-i18n-development-rules`, `matomo-vue-development-rules`, `matomo-test-runner` (all loaded).
+Probes: precedent, untrusted-input, scope attribution — all run, nothing further.
+Not verified: None.
 
 Next Steps
-1. Remove the dead translation keys or reuse the existing keys instead of shipping parallel variants.
-2. Run the targeted Example Vue build and UI validation once the environment supports `ddev`.
+1. Reuse the existing GDPR keys instead of shipping parallel variants.
+2. Drop the unrelated submodule pointer bump or split it into its own change.
 ```
+
+## What The Example Deliberately Omits
+
+Each of these was produced by the review and is absent from the output on purpose. Reinstating any of them is a template violation.
+
+- The `Noted` bucket. The run also saw a local date helper in `View.vue` duplicating the shared one, with no behavioural difference. It has no shipping consequence, so it is not written down anywhere. `matomo-adversarial-review` is where an observation like that belongs.
+- The coverage ledger. All five changed paths carried a verdict internally, including the regenerated `vue/dist` bundle; only the two that became findings appear above, and an `unreviewed` path would have appeared under `Not verified`.
+- The counts for mechanical check 12, because this diff adds no PHP method docblocks and so produced no candidates to judge. A diff that produces candidates carries `#12: <n> judged, <m> failing` even when none of them failed.
+- The eleven clean or `n/a` mechanical checks, the per-rule-set clean bases, the applied review dimensions, the lens fan-out — which is absent here because it was dispatched, and would have cost one clause in `Overall Assessment` had it run sequentially — the untrusted-input inventory rows, and the list of read-only commands the review ran.
