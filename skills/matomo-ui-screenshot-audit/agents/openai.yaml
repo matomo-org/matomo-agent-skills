@@ -1,0 +1,6 @@
+interface:
+  display_name: "Matomo UI Screenshot Audit"
+  short_description: "Deterministic Matomo UI screenshot audits, plugin by plugin"
+  default_prompt: "Use $matomo-ui-screenshot-audit to audit screenshot-based UI tests for the specified Matomo plugin(s). Group screenshots by plugin-owned rendered component region, mark each as keep, replace, remove, or flag using the deterministic decision policy, and produce a repeatable cleanup plan without applying code changes."
+policy:
+  allow_implicit_invocation: true

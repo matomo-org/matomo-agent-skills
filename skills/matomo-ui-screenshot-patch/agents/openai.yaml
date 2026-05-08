@@ -1,0 +1,6 @@
+interface:
+  display_name: "Matomo UI Screenshot Patch"
+  short_description: "Apply an approved Matomo UI screenshot audit for one plugin"
+  default_prompt: "Use $matomo-ui-screenshot-patch to apply the approved screenshot audit for the specified Matomo plugin. Edit only that plugin's UI specs and expected screenshots, replace approved screenshot assertions with plugin-local DOM/state assertions, remove approved duplicates, keep only the approved retained screenshots, and verify with `ddev matomo:console tests:run-ui --plugin=<Plugin>`."
+policy:
+  allow_implicit_invocation: true
