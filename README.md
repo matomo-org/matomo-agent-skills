@@ -62,6 +62,16 @@
 - Focuses on duplication, local pattern drift, over-engineering, missing important regression tests, hardcoded values that should use config, constants, or existing options, and newly introduced reliance on already-deprecated APIs in the reviewed surface.
 - Refers deprecation lifecycle and transition handling to `matomo-deprecation-rules` instead of turning debt review into a full deprecated-usage audit.
 - Use when the user asks for debt review, cleanup-before-commit feedback, or an in-development maintainability check.
+14. `matomo-ui-screenshot-audit`
+- Audits screenshot-based UI tests in `plugins/<Plugin>/tests/UI/*_spec.js` and produces a deterministic, plugin-by-plugin cleanup plan without applying code changes.
+- Groups screenshots by plugin-owned rendered component region and marks each as `keep`, `replace`, `remove`, or `flag` using a fixed decision policy and tie-breakers.
+- Pairs with `matomo-ui-screenshot-patch` for implementation; defers UI test execution patterns to `matomo-test-runner`.
+- Use when triaging screenshot duplication or overuse plugin-by-plugin and writing audit files such as `docs/screenshot-audit/<Plugin>.md`.
+15. `matomo-ui-screenshot-patch`
+- Applies an approved screenshot audit for one plugin: replaces approved screenshot assertions with plugin-local DOM/state assertions, removes approved duplicates, keeps only approved retained screenshots, and runs `ddev matomo:console tests:run-ui --plugin=<Plugin>`.
+- Stays plugin-local: does not edit shared helpers, fixtures, or other plugins, and stops rather than widening scope when broader refactoring would be required.
+- Requires an approved audit (e.g. `docs/screenshot-audit/<Plugin>.md`) produced by `matomo-ui-screenshot-audit`.
+- Use when implementing one plugin's approved screenshot audit and verifying the result with the plugin-scoped UI test run.
 
 
 ## Install Skills with Codex CLI
