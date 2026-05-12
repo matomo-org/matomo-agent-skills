@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Code Change Quality Loop"
+  short_description: "Self-review and fix Matomo code changes"
+  default_prompt: "Use $matomo-code-change-quality-loop after generating or modifying Matomo code to review only the files changed in the current task, route them through the relevant Matomo review gates, fix clear local findings, ask before risky or out-of-scope fixes, and report targeted verification."
