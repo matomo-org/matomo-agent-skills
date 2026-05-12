@@ -19,7 +19,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 5. No stale or contradictory descriptions between `README.md`, `SKILL.md`, and `agents/openai.yaml`.
 6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
 7. Skills that use dev-branch defaults or branch-based examples align on the shared `tracked target dev branch` wording and behavior, including fallback-to-ask-user guidance when the correct base cannot be inferred confidently.
-8. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
+8. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routing and `matomo-code-change-quality-loop`'s gate list cover those expectations, map their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
 
 ## Workflow for New or Updated Skills
 
