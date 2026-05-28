@@ -1,6 +1,6 @@
 ---
 name: matomo-vue-development-rules
-description: Apply Matomo Vue development rules for plugin Vue source changes. Use this skill when updating plugins/<Plugin>/vue/src code, deciding how to run vue:build with explicit plugin names, handling vue:build lint failures, rebuilding CoreVue polyfills, or checking Matomo's `v-html` sanitization requirement.
+description: Apply Matomo Vue development rules for plugin Vue source changes. Use this skill when updating plugins/<Plugin>/vue/src code, deciding how to run vue:build with explicit plugin names, handling vue:build lint failures, rebuilding CoreVue polyfills, checking Matomo's `v-html` sanitization requirement, or reviewing Vue SFC block order.
 ---
 
 # Matomo Vue Development Rules
@@ -16,6 +16,7 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 1. Every `v-html` binding should sanitize at the binding site with `$sanitize(...)`.
 2. Never run `vue:build` without explicit plugin names.
 3. Numeric dynamic HTML `id` values should be string-prefixed instead of bound as bare numbers.
+4. Vue SFCs with templates should put `<template>` before `<script>` or `<script setup>`.
 
 ## Rules
 
@@ -30,7 +31,9 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 9. HTML `id` attributes built from numeric values should be prefixed with a string, for example `:id="'goal-' + goalId"`, instead of binding a bare number.
 10. When an existing Vue component covers the needed UI pattern, prefer it over jQuery UI widgets or direct jQuery DOM manipulation.
 11. Before creating new Vue or TS helpers, check for existing utilities in `Matomo.helper.*`, shared Core Vue sources, and nearby active helpers.
-12. Use `matomo-plugin-architecture` when the real question is broader plugin utility reuse or cross-layer structure, not a Vue-specific sink or build rule.
+12. Vue single-file components that contain a `<template>` block should use block order `<template>`, then `<script>` or `<script setup>`, then optional style-related blocks.
+13. Render-only Vue files with no `<template>` block may start with `<script>`.
+14. Use `matomo-plugin-architecture` when the real question is broader plugin utility reuse or cross-layer structure, not a Vue-specific sink or build rule.
 
 ## Command Selection
 
@@ -54,6 +57,7 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 4. If `vue:build` fails with lint output, fix lint issues first, then rerun the same plugin-scoped build command.
 5. If new UI code introduces numeric dynamic IDs, prefix them with a stable string.
 6. If the change introduces jQuery UI or direct jQuery manipulation for an existing Vue-covered pattern, prefer the existing Vue component or helper instead.
+7. If a changed `.vue` file contains both `<script>` and `<template>`, verify `<template>` appears first; report new script-before-template ordering as a maintainability/style issue, not blocking by default.
 
 ## Examples
 
@@ -65,6 +69,8 @@ Commands with angle-bracket placeholders are templates; replace them before runn
   - `ddev matomo:console vue:build-polyfill`
 - "I added `v-html` to a Vue template"
   - Wrap the value with `$sanitize(...)`, for example `v-html="$sanitize(htmlString)"`
+- "I added a `.vue` file with both script and template blocks"
+  - Put `<template>` before `<script>` or `<script setup>`; render-only files with no `<template>` are exempt.
 - "`vue:build UsersManager` failed with lint errors"
   - Fix lint issues in the changed Vue/TS code, then rerun:
   - `ddev matomo:console vue:build UsersManager`
