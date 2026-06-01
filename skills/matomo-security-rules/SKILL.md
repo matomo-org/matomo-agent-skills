@@ -1,6 +1,6 @@
 ---
 name: matomo-security-rules
-description: Apply Matomo security guardrails for access control, CSRF protection, SQL injection prevention, trust-boundary request handling, and secret exposure. Use this skill when reviewing or authoring security-sensitive changes in plugin API classes, controllers, request parsing, SQL-building code, or token/auth flows.
+description: Apply Matomo security guardrails for access control, CSRF protection, SQL injection prevention, trust-boundary request handling, secret exposure, and externally reported vulnerability confidentiality. Use this skill when reviewing or authoring security-sensitive changes in plugin API classes, controllers, request parsing, SQL-building code, token/auth flows, or fixes based on private vulnerability reports.
 ---
 
 # Matomo Security Rules
@@ -19,6 +19,7 @@ Use this skill when the task involves one or more of:
 3. SQL queries built in PHP code.
 4. Request parsing, auth, nonce, or token handling.
 5. Rendering or returning data that crosses a trust boundary.
+6. Fixes, tests, fixtures, payloads, snapshots, changelogs, comments, or documentation based on private externally reported vulnerabilities.
 
 ## Rules
 
@@ -56,7 +57,12 @@ Use this skill when the task involves one or more of:
 - Consider `#[\SensitiveParameter]` for method parameters that carry passwords, tokens, auth credentials, or comparable secrets.
 - Follow the existing Matomo multiline style when attributing parameters: place the attribute on its own line and place each parameter on its own line if any parameter in the signature uses an attribute.
 
-7. Raw-output principle:
+7. Externally reported vulnerability confidentiality:
+- When validating or fixing privately reported vulnerabilities, do not commit reported payloads, reporter names, report IDs, private links, or report-derived exploit details into code, comments, tests, fixtures, snapshots, changelogs, or public docs.
+- Use minimized synthetic inputs that prove the vulnerability class without preserving confidential report material.
+- Do not reference private report sources in commit-facing implementation details unless the repository already has an approved private-security disclosure pattern for that artifact.
+
+8. Raw-output principle:
 - Untrusted content must not be sent through raw HTML sinks without explicit safety guarantees.
 - Use framework-specific rules for exact sink handling:
   - Twig `|raw`: apply `matomo-twig-development-rules`
@@ -94,6 +100,7 @@ Use this skill when the task involves one or more of:
 2. If a diff changes state-changing controller actions, apply this skill for CSRF and token handling.
 3. If a diff adds or changes SQL, apply this skill for parameter binding and trust-boundary checks.
 4. If a diff touches raw output sinks in Twig or Vue, use this skill for the high-level security expectation and the framework skill for the concrete rule.
+5. If a diff includes payloads, fixtures, snapshots, comments, changelogs, or docs derived from a private vulnerability report, apply this skill for confidentiality review.
 
 ## Examples
 

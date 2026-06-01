@@ -17,9 +17,9 @@
 - Enforces numbered-placeholder safety for multi-placeholder strings, key naming, ordering, and translation-text HTML constraints.
 - Covers non-English translation file editing policy, including Weblate-managed and Intl exceptions.
 4. `matomo-security-rules`
-- Applies Matomo security guardrails for access control, CSRF protection, SQL injection prevention, trust-boundary request handling, and secret exposure.
+- Applies Matomo security guardrails for access control, CSRF protection, SQL injection prevention, trust-boundary request handling, secret exposure, and externally reported vulnerability confidentiality.
 - Prefers `Request::fromRequest()`, `Request::fromGet()`, and `Request::fromPost()` for new request parsing code, and treats helper-returned values as untrusted until validated for the destination sink.
-- Use when reviewing or authoring security-sensitive changes in plugin API classes, controllers, request parsing, SQL-building code, or token/auth flows.
+- Use when reviewing or authoring security-sensitive changes in plugin API classes, controllers, request parsing, SQL-building code, token/auth flows, or fixes based on private vulnerability reports.
 5. `matomo-api-development-rules`
 - Applies Matomo plugin API guardrails for `API.php` method design, request-facing parameter contracts, return-value consistency, and API-layer delegation.
 - Owns the API contract itself; use `matomo-documentation` for how that contract is expressed in PHPDoc.

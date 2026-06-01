@@ -111,6 +111,7 @@ Apply these dimensions when the diff makes them relevant:
 5. Security
 - trust-boundary mistakes, access control gaps, injection risk, XSS, CSRF, unsafe file or subprocess handling, and privacy-sensitive exposure
 - auth, token, secret, or sensitive-data handling when those paths are touched
+- private vulnerability report material, reported payloads, reporter names, report IDs, private links, or report-derived exploit details committed into code, tests, fixtures, snapshots, changelogs, or public docs
 
 6. Performance
 - expensive repeated work, N+1 queries, unbounded loops or result sets, cache misuse, or scale breakpoints
@@ -166,6 +167,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 - `plugins/<Plugin>/Controller.php`
 - auth, nonce, token, request parsing, or permission checks
 - SQL-building code or obvious trust-boundary handling
+- fixes, tests, fixtures, snapshots, comments, changelogs, or docs that may be derived from a private vulnerability report
 - Apply `matomo-security-rules`.
 
 4. API development signals:
@@ -256,6 +258,7 @@ Examples that should normally be blocking when confirmed:
 - non-English translation edits that violate the i18n policy
 - missing required API access checks or missing CSRF validation
 - untrusted values concatenated into SQL
+- private vulnerability report payloads, report IDs, reporter names, private links, or report-derived exploit details committed into code, tests, fixtures, snapshots, changelogs, or public docs
 - Twig templates using `|raw` on uncontrolled content
 - likely PHPStan or PHPCS violations in changed PHP code
 - migration changes missing required version-marker bumps
