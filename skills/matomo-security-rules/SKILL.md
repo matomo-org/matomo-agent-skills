@@ -19,7 +19,7 @@ Use this skill when the task involves one or more of:
 3. SQL queries built in PHP code.
 4. Request parsing, auth, nonce, or token handling.
 5. Rendering or returning data that crosses a trust boundary.
-6. Fixes, tests, fixtures, comments, or documentation based on private externally reported vulnerabilities.
+6. Fixes, tests, fixtures, payloads, snapshots, changelogs, comments, or documentation based on private externally reported vulnerabilities.
 
 ## Rules
 
