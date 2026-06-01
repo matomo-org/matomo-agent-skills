@@ -35,7 +35,7 @@
 - Applies Matomo Vue development guardrails for plugin Vue source changes.
 - Requires `v-html` bindings to sanitize content via `$sanitize(...)`.
 - Primary tools: `vue:build`, `vue:build-polyfill`.
-- Also covers numeric HTML `id` safety, jQuery UI avoidance where Vue equivalents exist, and helper reuse before local reimplementation.
+- Also covers Vue SFC template-before-script ordering, numeric HTML `id` safety, jQuery UI avoidance where Vue equivalents exist, and helper reuse before local reimplementation.
 - Use when deciding targeted Vue rebuild commands, lint-first rebuild handling, and CoreVue polyfill rebuilds. Use `matomo-plugin-architecture` when the real issue is broader utility reuse or plugin structure rather than Vue-specific behavior.
 9. `matomo-migrations-workflow`
 - Plans and validates Matomo core/plugin update migrations (`Updates/*.php`) with strict execution preconditions.

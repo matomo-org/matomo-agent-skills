@@ -1,4 +1,4 @@
 interface:
   display_name: "Matomo Vue Development Rules"
   short_description: "Apply Matomo Vue source, build, and sink rules"
-  default_prompt: "Use $matomo-vue-development-rules for Matomo Vue source changes. Keep code under plugins/<Plugin>/vue/src with index.ts exports, avoid cross-plugin source imports, require `$sanitize(...)` for every `v-html`, prefix numeric dynamic HTML ids with a stable string, prefer existing Vue components or helpers over jQuery UI or local duplication, run vue:build only for explicit plugin names, and run vue:build-polyfill when CoreVue polyfills change."
+  default_prompt: "Use $matomo-vue-development-rules for Matomo Vue source changes. Keep code under plugins/<Plugin>/vue/src with index.ts exports, avoid cross-plugin source imports, require `$sanitize(...)` for every `v-html`, put `<template>` before `<script>` or `<script setup>` in Vue SFCs that contain templates, prefix numeric dynamic HTML ids with a stable string, prefer existing Vue components or helpers over jQuery UI or local duplication, run vue:build only for explicit plugin names, and run vue:build-polyfill when CoreVue polyfills change."

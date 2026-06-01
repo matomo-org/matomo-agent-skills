@@ -381,7 +381,7 @@ Domain-specific expectations:
 
 7. Vue:
 - apply `matomo-vue-development-rules`
-- clear routed Vue workflow violations are blocking by default
+- clear routed Vue workflow violations are blocking by default, except script-before-template SFC block ordering, which is a maintainability/style issue by default unless it combines with functional risk
 
 ## Output Format
 
