@@ -1,0 +1,6 @@
+interface:
+  display_name: "Matomo QA Test Plan Support"
+  short_description: "Create Matomo QA support docs with test ideas"
+  default_prompt: "Use $matomo-qa-test-plan-support to create one QA support document for this Matomo change, combining feature and behavior summaries, happy-path expectations, suggested QA checks, known defects, deferred work, ignored cases, and open QA questions without performing a code review."
+policy:
+  allow_implicit_invocation: true
