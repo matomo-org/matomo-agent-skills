@@ -1,6 +1,6 @@
 ---
 name: matomo-code-quality
-description: Run Matomo PHP code quality checks and fixes (PHPStan, PHPCS, PHPCBF) using ddev commands. Use this skill when asked to analyze PHP static issues, check coding style, or auto-fix style violations in Matomo core or plugins.
+description: Run Matomo PHP code quality checks with ddev. Use this skill for required default-level PHPStan validation, advisory PHPStan level 9 changed-line triage, and PHPCS/PHPCBF style checks in Matomo core or plugins.
 ---
 
 # Matomo Code Quality
@@ -15,22 +15,89 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 
 1. Narrowed PHPStan runs can emit baseline-noise like `error not matched from baseline`; confirm suspicious output with a wider run before treating it as real or ignorable.
 
+PHPStan uses a two-pass policy:
+
+1. Default PHPStan pass is required and blocking.
+2. PHPStan level 9 pass is non-blocking and advisory, filtered to changed lines only.
+3. If effective default PHPStan level is already 9, skip pass 2.
+
 ## Rules
 
 1. Use `ddev composer phpstan` for PHPStan.
 2. Use `ddev exec ./vendor/bin/phpcs -q -s` for style checks.
 3. Use `ddev exec ./vendor/bin/phpcbf` for style auto-fixes.
 4. Always run `phpcbf` before `phpcs` when style checking/fixing is requested.
+5. Exclude untracked files from changed-file collection.
+6. Never auto-apply PHPStan level 9 suggestions; ask for explicit confirmation first.
+7. Never suggest or apply a change that touches files outside the already changed file set.
+8. Default PHPStan must pass before the task is considered complete.
+9. Skip advisory pass 2 when the selected default config level is already 9.
+10. Run every `ddev` invocation as its own standalone command segment.
+11. Do not chain `ddev` with `&&`, `||`, pipes, or semicolon-separated command chains.
+12. Do not wrap `ddev` inside shell wrappers like `/bin/bash -lc "<chain>"`.
+13. Do not inline env assignments in front of `ddev`; set variables first, then run a `ddev ...` command that starts with `ddev`.
+
+## Approval Compatibility
+
+Approval prefix matching can fail when `ddev` appears later in a chained command segment.
+To avoid unnecessary escalation prompts, keep setup/post-processing commands separate and run each `ddev` command on its own line.
+
+## Changed File Scope
+
+Resolve changed PHP files and changed lines with:
+
+- `MATOMO_CODE_QUALITY_SCRIPTS="${CODEX_HOME:-$HOME/.codex}/skills/matomo-code-quality/scripts"`
+- `RUN_TMP_DIR="$(mktemp -d /tmp/matomo-code-quality.XXXXXX)"`
+- `CHANGED_PHP_JSON="$RUN_TMP_DIR/changed-php.json"`
+- `PHPSTAN_L9_JSON="$RUN_TMP_DIR/phpstan-l9.json"`
+- `PHPSTAN_L9_FILTERED_JSON="$RUN_TMP_DIR/phpstan-l9-filtered.json"`
+- `PHPSTAN_L9_REPORT_TXT="$RUN_TMP_DIR/phpstan-l9-report.txt"`
+- `trap 'rm -rf "$RUN_TMP_DIR"' EXIT`
+- `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/collect_changed_php.py" --repo-root <repo-root> > "$CHANGED_PHP_JSON"`
+
+Behavior:
+
+1. Try current branch upstream (`@{upstream}`) and merge base with `HEAD`.
+2. If merge base is available, include PHP files changed in `merge_base..HEAD`.
+3. Always include local tracked staged and unstaged PHP changes.
+4. If merge base is unavailable, use local tracked staged+unstaged changes only.
+5. Never include untracked files.
+6. If zero changed PHP files are found, skip pass 2 and report that no advisory level 9 scope exists.
 
 ## Command Selection
 
 ### PHPStan
 
-- Single file or directory:
+#### Pass 1 (Required): Default Level
+
+- Standard run on requested path:
   - `ddev composer phpstan -- <path>`
-- Plugin-specific config, when target is in `plugins/<Plugin>/` and `plugins/<Plugin>/phpstan.neon` exists:
-  - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon`
-- Note: single-file or narrowed-path runs can show false positives like "error not matched from baseline".
+- Plugin-specific config, when target is under `plugins/<Plugin>/` and `plugins/<Plugin>/phpstan.neon` exists:
+  - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon <path>`
+- If this pass fails, stop and report required fixes.
+- Detect whether pass 2 should be skipped:
+  - Plugin config run:
+    - `PHPSTAN_DEFAULT_LEVEL="$(rg -o --replace '$1' '^[[:space:]]*level:[[:space:]]*([0-9]+)[[:space:]]*$' plugins/<Plugin>/phpstan.neon | tail -n1)"`
+  - Root/default config run:
+    - `PHPSTAN_DEFAULT_CONFIG="$( [ -f phpstan.neon ] && echo phpstan.neon || { [ -f phpstan.neon.dist ] && echo phpstan.neon.dist; } )"`
+    - `PHPSTAN_DEFAULT_LEVEL="$( [ -n "$PHPSTAN_DEFAULT_CONFIG" ] && rg -o --replace '$1' '^[[:space:]]*level:[[:space:]]*([0-9]+)[[:space:]]*$' "$PHPSTAN_DEFAULT_CONFIG" | tail -n1 )"`
+  - Skip pass 2 when `PHPSTAN_DEFAULT_LEVEL=9`.
+
+#### Pass 2 (Advisory): Level 9 on Relevant Changed PHP Files
+
+- Run this pass only when default level is not already 9.
+- Build the changed PHP file list from `$CHANGED_PHP_JSON`:
+  - `PHPSTAN_L9_TARGETS="$(python3 -c "import json; data=json.load(open('$CHANGED_PHP_JSON')); print(' '.join(data['php_files']))")"`
+- Reuse the same config selection from pass 1 and add `--level=9` to override configured default level:
+  - Root/default config:
+    - `ddev composer phpstan -- --level=9 --error-format=json $PHPSTAN_L9_TARGETS > "$PHPSTAN_L9_JSON"`
+  - Plugin config (`plugins/<Plugin>/phpstan.neon`):
+    - `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon --level=9 --error-format=json $PHPSTAN_L9_TARGETS > "$PHPSTAN_L9_JSON"`
+- Filter to changed lines only:
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" > "$PHPSTAN_L9_FILTERED_JSON"`
+- Generate per-file violation report (required for user-facing output):
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" --format text > "$PHPSTAN_L9_REPORT_TXT"`
+- Use filtered output only for optional improvement suggestions.
 
 ### PHPCBF + PHPCS
 
@@ -49,6 +116,39 @@ When a requested file/path is under `plugins/<Plugin>/`:
 1. If `plugins/<Plugin>/phpstan.neon` exists, use plugin PHPStan config form.
 2. If `plugins/<Plugin>/phpcs.xml` exists, use plugin PHPCS/PHPCBF `--standard` form.
 3. If config file is missing, fall back to root/default commands.
+4. Pass 2 must reuse the same PHPStan configuration chosen in pass 1 and only add `--level=9`.
+5. If selected default config level is 9, skip pass 2 because it cannot add findings beyond pass 1.
+
+## Suggestion Policy for Level 9 Findings
+
+1. Suggestions are optional and must be shown as a full "would-change" list first.
+2. Ask for explicit confirmation before applying any suggestion.
+3. Reject any suggestion that edits files outside the changed file set.
+4. Suggestions must keep default PHPStan passing; reject suggestions that would introduce default-level violations on unchanged lines.
+5. Report findings per file. Do not reply with summary-only output.
+6. For each file, list each violation with line and message (and identifier when available). Summary counts are optional and must come after per-file details.
+
+### BC Safety Hard Gates
+
+1. Existing public/protected methods: do not suggest native parameter/return type changes.
+2. Existing public/protected APIs: prefer docblock type hints (`@param`, `@return`, `@var`).
+3. Newly introduced public/protected methods in the current change set may use native types only when no inheritance/interface/trait contract risk is introduced.
+4. Never suggest changes that alter visibility or break parent/child signature compatibility.
+
+## Fallback Without Scripts
+
+If scripts cannot be used, fallback to command-only collection and manual changed-line filtering:
+
+1. Collect changed tracked PHP files:
+  - `git diff --name-only --cached -- '*.php'`
+  - `git diff --name-only -- '*.php'`
+  - If merge base exists: `git diff --name-only <merge_base>..HEAD -- '*.php'`
+2. Run level 9 JSON output for the union file list.
+  - Reuse pass 1 config selection and only add `--level=9`.
+  - Skip this step when selected default config level is 9.
+3. Compare finding lines against hunk additions from `git diff -U0` for the same scopes.
+4. Only keep changed-line findings for advisory suggestions.
+5. When reporting findings, always group by file and list each violation under that file.
 
 ## Handling False Positives and Baselines
 
@@ -68,7 +168,31 @@ When a requested file/path is under `plugins/<Plugin>/`:
 ## Examples
 
 - "Run phpstan on `core/Log.php`"
+  - `MATOMO_CODE_QUALITY_SCRIPTS="${CODEX_HOME:-$HOME/.codex}/skills/matomo-code-quality/scripts"`
+  - `RUN_TMP_DIR="$(mktemp -d /tmp/matomo-code-quality.XXXXXX)"`
+  - `CHANGED_PHP_JSON="$RUN_TMP_DIR/changed-php.json"`
+  - `PHPSTAN_L9_JSON="$RUN_TMP_DIR/phpstan-l9.json"`
+  - `PHPSTAN_L9_FILTERED_JSON="$RUN_TMP_DIR/phpstan-l9-filtered.json"`
+  - `PHPSTAN_L9_REPORT_TXT="$RUN_TMP_DIR/phpstan-l9-report.txt"`
+  - `trap 'rm -rf "$RUN_TMP_DIR"' EXIT`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/collect_changed_php.py" --repo-root . > "$CHANGED_PHP_JSON"`
   - `ddev composer phpstan -- core/Log.php`
+  - `ddev composer phpstan -- --level=9 --error-format=json core/Log.php > "$PHPSTAN_L9_JSON"`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" > "$PHPSTAN_L9_FILTERED_JSON"`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" --format text > "$PHPSTAN_L9_REPORT_TXT"`
+- "Run phpstan for `plugins/MyPlugin/API.php` with plugin config and level 9 advisory triage"
+  - `MATOMO_CODE_QUALITY_SCRIPTS="${CODEX_HOME:-$HOME/.codex}/skills/matomo-code-quality/scripts"`
+  - `RUN_TMP_DIR="$(mktemp -d /tmp/matomo-code-quality.XXXXXX)"`
+  - `CHANGED_PHP_JSON="$RUN_TMP_DIR/changed-php.json"`
+  - `PHPSTAN_L9_JSON="$RUN_TMP_DIR/phpstan-l9.json"`
+  - `PHPSTAN_L9_FILTERED_JSON="$RUN_TMP_DIR/phpstan-l9-filtered.json"`
+  - `PHPSTAN_L9_REPORT_TXT="$RUN_TMP_DIR/phpstan-l9-report.txt"`
+  - `trap 'rm -rf "$RUN_TMP_DIR"' EXIT`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/collect_changed_php.py" --repo-root . > "$CHANGED_PHP_JSON"`
+  - `ddev composer phpstan -- --configuration plugins/MyPlugin/phpstan.neon plugins/MyPlugin/API.php`
+  - `ddev composer phpstan -- --configuration plugins/MyPlugin/phpstan.neon --level=9 --error-format=json plugins/MyPlugin/API.php > "$PHPSTAN_L9_JSON"`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" > "$PHPSTAN_L9_FILTERED_JSON"`
+  - `python3 "$MATOMO_CODE_QUALITY_SCRIPTS/filter_phpstan_changed_lines.py" --phpstan-json "$PHPSTAN_L9_JSON" --changes-json "$CHANGED_PHP_JSON" --format text > "$PHPSTAN_L9_REPORT_TXT"`
 - "Check style in `plugins/MyPlugin/API.php`"
   - `ddev exec ./vendor/bin/phpcbf --standard=plugins/MyPlugin/phpcs.xml plugins/MyPlugin/API.php`
   - `ddev exec ./vendor/bin/phpcs -q -s --standard=plugins/MyPlugin/phpcs.xml plugins/MyPlugin/API.php`
