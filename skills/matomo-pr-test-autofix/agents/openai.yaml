@@ -1,4 +1,0 @@
-interface:
-  display_name: "Matomo PR Test Autofix"
-  short_description: "Autofix Matomo PR test failures"
-  default_prompt: "Use $matomo-pr-test-autofix to inspect failing GitHub Actions checks for the current Matomo PR, classify related versus flaky failures, sync GitHub-produced system test expected files or UI screenshots only when the new output is intended, preserve unrelated local changes, commit guarded fixes, push to the PR branch, rerun failed checks, and report any ignored unrelated failures with run URLs."

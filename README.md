@@ -12,10 +12,10 @@
 - Primary tools: `tests:run`, `tests:run-ui`, `tests:run-vue`.
 - Also sets expectations for regression coverage, test type selection, fixtures, and flaky-test avoidance.
 - Use when running plugin tests, suite/file-scoped tests, UI specs or Vue/Jest specs.
-3. `matomo-pr-test-autofix`
-- Orchestrates fixing failing GitHub Actions checks for a Matomo PR using `gh`, DDEV, and Matomo artifact sync commands.
-- Primary tools: `gh pr checks`, `gh run view --log-failed`, `development:sync-system-test-processed`, `tests:sync-ui-screenshots`.
-- Preserves pre-existing local changes, classifies related versus flaky failures, syncs only intended expected output changes, commits guarded fixes, pushes to the PR branch, and reports ignored unrelated failures.
+3. `matomo-pr-autofix`
+- Orchestrates fixing failing GitHub Actions checks for a Matomo PR using `gh`, DDEV, and Matomo artifact sync commands. Covers test suites and non-test required checks (AI checklist, milestone, security annotations).
+- Primary tools: `gh pr checks`, `gh api .../actions/jobs/<id>/logs`, `development:sync-system-test-processed`, `tests:sync-ui-screenshots`.
+- Preserves pre-existing local changes, classifies related versus flaky failures, syncs only intended expected output changes, commits guarded fixes, pushes to the PR branch, handles submodule-located expected files, and reports ignored unrelated failures.
 - Use when asked to autofix failing PR checks, sync GitHub-produced system expected files or UI screenshots, rerun flaky suites, and repeat until the PR is green except for explicitly reported unrelated failures.
 4. `matomo-i18n-development-rules`
 - Applies Matomo i18n development rules for translation key placement, reuse, and safe key lifecycle changes.
