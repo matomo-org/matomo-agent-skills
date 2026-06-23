@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Adversarial Review"
+  short_description: "Adversarial Matomo PR review with exhaustive findings"
+  default_prompt: "Use $matomo-adversarial-review to perform an adversarial, super-senior Matomo branch or PR review that layers on top of $matomo-review, reports every material flaw with reasoning and fixes, and uses the tracked target dev branch when no explicit base is provided."
