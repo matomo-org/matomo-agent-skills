@@ -77,6 +77,12 @@
 - Stays plugin-local: does not edit shared helpers, fixtures, or other plugins, and stops rather than widening scope when broader refactoring would be required.
 - Requires an approved audit (e.g. `docs/screenshot-audit/<Plugin>.md`) produced by `matomo-ui-screenshot-audit`.
 - Use when implementing one plugin's approved screenshot audit and verifying the result with the plugin-scoped UI test run.
+16. `matomo-qa-test-plan-support`
+- Creates combined Matomo QA support documents for test-plan preparation without performing code review.
+- Captures feature and behavior summaries, happy-path expectations, setup and data prerequisites, suggested QA checks, known defects, deferred or ignored work, out-of-scope items, evidence limits, and open QA questions.
+- Uses the tracked target dev branch when a branch baseline is needed and asks if it cannot infer the base confidently.
+- Intentionally not routed through `matomo-review`; switch to review only when the user asks for implementation-quality findings.
+- Use when preparing QA-facing behavior notes for a branch, PR, issue, implementation, or pasted change context.
 
 
 ## Install Skills with Codex CLI
