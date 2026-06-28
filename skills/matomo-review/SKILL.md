@@ -46,6 +46,7 @@ Use this skill when the task is one or more of:
 - `matomo-migrations-workflow`
 - `matomo-deprecation-rules`
 - `matomo-vue-development-rules`
+- `matomo-frontend-direction`
 - `matomo-documentation`
 - `matomo-test-runner`
 9. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
@@ -202,10 +203,12 @@ Apply these routing rules after inspecting changed paths and diff content:
 - `composer.json` dependency changes
 - Apply `matomo-deprecation-rules`.
 
-9. Vue / frontend build signals:
+9. Vue / frontend direction and build signals:
 - `plugins/<Plugin>/vue/src/**`
 - `plugins/CoreVue/polyfills/**`
-- Apply `matomo-vue-development-rules`.
+- new UI features, new or expanded jQuery / jQuery UI usage, or touched legacy UI where Vue was practical
+- Apply `matomo-vue-development-rules` for Vue source, build, and sink mechanics.
+- Apply `matomo-frontend-direction` for UI direction and policy (jQuery reduction, Vue-first, long-term SPA, Vue component-test adoption). Report direction-only concerns (for example new jQuery where Vue was practical) as `Medium` findings by default, not blocking violations, and keep mechanics findings under `matomo-vue-development-rules` so the same issue is not reported twice.
 
 10. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`
@@ -385,6 +388,11 @@ Domain-specific expectations:
 7. Vue:
 - apply `matomo-vue-development-rules`
 - clear routed Vue workflow violations are blocking by default, except script-before-template SFC block ordering, which is a maintainability/style issue by default unless it combines with functional risk
+
+8. frontend direction:
+- apply `matomo-frontend-direction`
+- direction and policy concerns (new jQuery or jQuery UI where Vue was practical, new UI not built Vue-first, missing incremental-migration discipline) are `Medium` by default, not blocking
+- escalate only when the change also violates a concrete routed rule owned by another skill (for example a Vue mechanics or test-coverage rule), and report that under the owning skill to avoid duplicate findings
 
 ## Output Format
 

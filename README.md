@@ -77,6 +77,11 @@
 - Stays plugin-local: does not edit shared helpers, fixtures, or other plugins, and stops rather than widening scope when broader refactoring would be required.
 - Requires an approved audit (e.g. `docs/screenshot-audit/<Plugin>.md`) produced by `matomo-ui-screenshot-audit`.
 - Use when implementing one plugin's approved screenshot audit and verifying the result with the plugin-scoped UI test run.
+17. `matomo-frontend-direction`
+- Applies Matomo's frontend direction: incremental jQuery and jQuery UI reduction, Vue-first for new and touched UI, the long-term single-page-application trajectory, and Vue component-test adoption.
+- Owns UI *direction* and policy only; defers Vue source, build, and sink mechanics to `matomo-vue-development-rules` and test commands and coverage to `matomo-test-runner`.
+- In review, direction-only concerns (for example new jQuery where Vue was practical) are `Medium` findings by default, not blocking.
+- Use when planning, authoring, or reviewing UI work to decide framework direction rather than implementation mechanics. Use `matomo-plugin-architecture` for broader structure raised by a UI change.
 
 
 ## Install Skills with Codex CLI
