@@ -33,6 +33,10 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 
 - Single UI spec by filename or describe name:
   - `ddev matomo:console tests:run-ui <SpecName>`
+- Single UI spec reusing persisted fixture data:
+  - `ddev matomo:console tests:run-ui <SpecName> --persist-fixture-data`
+- Single UI spec recreating persisted fixture data before the run:
+  - `ddev matomo:console tests:run-ui <SpecName> --persist-fixture-data --drop`
 
 ### Vue Component Tests
 - Full plugin tests
@@ -78,6 +82,12 @@ and `UI` signals = "ui, screenshot, puppeteer"
 3. Fixtures should be self-contained and clean up after themselves.
 4. For integration tests needing site or visit data, prefer fixture helpers and the tracking API over direct DB inserts when practical.
 
+## UI Persisted Fixture Data
+
+1. Do not add `--persist-fixture-data` unless the user asks for fixture reuse or repeated UI test speed is clearly useful.
+2. When using `--persist-fixture-data`, add `--drop` if the fixture code or data changed during the task, the persisted fixture may be stale, the fixture was just created, or the previous fixture origin is uncertain.
+3. Do not add `--drop` to ordinary non-persisted `tests:run-ui` commands.
+
 ## Avoiding Flaky Tests
 
 1. Do not rely on execution order between test methods.
@@ -95,6 +105,10 @@ and `UI` signals = "ui, screenshot, puppeteer"
   - `ddev matomo:console tests:run --file=plugins/MyPlugin/tests/Unit/MyUnitTest.php`
 - "Run UI spec VisitsOverview"
   - `ddev matomo:console tests:run-ui VisitsOverview`
+- "Run UI spec VisitsOverview with persisted fixture data"
+  - `ddev matomo:console tests:run-ui VisitsOverview --persist-fixture-data`
+- "Run UI spec VisitsOverview and recreate persisted fixture data first"
+  - `ddev matomo:console tests:run-ui VisitsOverview --persist-fixture-data --drop`
 - "Run Jest tests for plugin ScheduledReports"
   - `ddev matomo:console tests:run-vue --plugin=ScheduledReports`
 - "Run tests for Vue component spec PeriodOptions"
