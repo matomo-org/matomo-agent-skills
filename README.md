@@ -61,18 +61,23 @@
 - Uses changed-file signals to apply the relevant Matomo review rules for i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations.
 - Adds targeted review dimensions for intent, structural integrity, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality when the diff makes them relevant, including concrete checks for type/coercion safety, dead code, debug leftovers, Matomo query and archive performance anti-patterns, deprecation or lockfile compatibility issues, event documentation, migration hard gates, plugin architecture guardrails, Vue implementation guardrails, and test-coverage expectations.
 - Requires fixed severity buckets (`Blocking`, `Medium`, `Low / Polish`), explicit `None.` markers for empty buckets, fixed verdict and merge-readiness lines, and separate `Ran` / `Not run` verification reporting so skipped checks cannot be dropped silently.
-- Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
-14. `matomo-debt-check`
+- Use when reviewing the current branch before pushing, reviewing a PR as a third party, or assessing a specific Matomo git comparison. For adversarial or exhaustive "find every flaw" review, use `matomo-adversarial-review`; for narrow in-development cleanup review of the working diff, use `matomo-debt-check` instead.
+14. `matomo-adversarial-review`
+- Performs an adversarial, exhaustive Matomo branch, PR, commit-range, or working-diff review on top of `matomo-review`.
+- Reuses `matomo-review` target selection, tracked target dev branch behavior, routed Matomo rule sets, severity policy, deterministic checks, and final section structure.
+- Adds stricter issue standards requiring impact, evidence, reasoning, fix direction, and verification for every finding, plus explicit probes for plausible but unconfirmed risks.
+- Use when the user asks for an extended, super-senior, adversarial, picky, deep, security-focused, flaw-finding, or "every issue" review. This skill is intentionally not routed through `matomo-review`; it wraps it when requested.
+15. `matomo-debt-check`
 - Reviews the current working diff, pointed files, or pasted code for technical debt indicators worth fixing before continuing or committing.
 - Focuses on duplication, local pattern drift, over-engineering, missing important regression tests, hardcoded values that should use config, constants, or existing options, and newly introduced reliance on already-deprecated APIs in the reviewed surface.
 - Refers deprecation lifecycle and transition handling to `matomo-deprecation-rules` instead of turning debt review into a full deprecated-usage audit.
 - Use when the user asks for debt review, cleanup-before-commit feedback, or an in-development maintainability check.
-15. `matomo-ui-screenshot-audit`
+16. `matomo-ui-screenshot-audit`
 - Audits screenshot-based UI tests in `plugins/<Plugin>/tests/UI/*_spec.js` and produces a deterministic, plugin-by-plugin cleanup plan without applying code changes.
 - Groups screenshots by plugin-owned rendered component region and marks each as `keep`, `replace`, `remove`, or `flag` using a fixed decision policy and tie-breakers.
 - Pairs with `matomo-ui-screenshot-patch` for implementation; defers UI test execution patterns to `matomo-test-runner`.
 - Use when triaging screenshot duplication or overuse plugin-by-plugin and writing audit files such as `docs/screenshot-audit/<Plugin>.md`.
-16. `matomo-ui-screenshot-patch`
+17. `matomo-ui-screenshot-patch`
 - Applies an approved screenshot audit for one plugin: replaces approved screenshot assertions with plugin-local DOM/state assertions, removes approved duplicates, keeps only approved retained screenshots, and runs `ddev matomo:console tests:run-ui --plugin=<Plugin>`.
 - Stays plugin-local: does not edit shared helpers, fixtures, or other plugins, and stops rather than widening scope when broader refactoring would be required.
 - Requires an approved audit (e.g. `docs/screenshot-audit/<Plugin>.md`) produced by `matomo-ui-screenshot-audit`.
