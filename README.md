@@ -10,7 +10,7 @@
 2. `matomo-test-runner`
 - Runs Matomo PHP UI and Vue/Jest tests via `ddev matomo:console`.
 - Primary tools: `tests:run`, `tests:run-ui`, `tests:run-vue`.
-- Also sets expectations for regression coverage, test type selection, fixtures, and flaky-test avoidance.
+- Also sets expectations for regression coverage, test type selection, persisted UI fixture reuse/reset handling, fixtures, and flaky-test avoidance.
 - Use when running plugin tests, suite/file-scoped tests, UI specs or Vue/Jest specs.
 3. `matomo-pr-autofix`
 - Orchestrates fixing failing GitHub Actions checks for a Matomo PR using `gh`, DDEV, and Matomo artifact sync commands. Covers test suites and non-test required checks (AI checklist, milestone, security annotations).
