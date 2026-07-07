@@ -27,7 +27,8 @@ Use this skill when the task involves one or more of:
 6. Adding or reviewing util classes.
 7. Naming `@keyframes` animations.
 8. Writing responsive breakpoints / media queries.
-9. Using Less `calc()` or component-level variables.
+9. Writing flexbox layout.
+10. Using Less `calc()` or component-level variables.
 
 ## A. File placement & scope (Vue + CSS)
 
@@ -226,10 +227,17 @@ OK — named after appearance/intention:
 - Acceptable: `.evolutionBadge--positiveFeedback .evolutionBadge__number`
 - Preferred: `.evolutionBadge__number--green`
 
-21. No pseudo-classes that couple the selector to DOM structure.
-- OK: `:hover`, `:active`, `:focus`, and similar state pseudo-classes; pseudo-elements
-- NOT OK: `:nth-child()`, `:last-child`, `:first-child`, `:has()`
-- Exception: `:has(:focus)` and `:has(:focus-visible)` are allowed
+21. Pseudo-classes are allowed only when they match on the element's own intrinsic state —
+    never on its position or count among siblings (which changes when DOM is added or
+    reordered). Pseudo-elements are always allowed.
+- OK — interaction: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`
+- OK — form/validation state: `:disabled`, `:enabled`, `:checked`, `:indeterminate`,
+  `:required`, `:optional`, `:read-only`, `:valid`, `:invalid`, `:placeholder-shown`
+- OK — content: `:empty`; all pseudo-elements (`::before`, `::after`, `::selection`, …)
+- NOT OK — positional/structural: `:nth-child()`, `:nth-of-type()`, `:first-child`,
+  `:last-child`, `:only-child`, `:first-of-type`, `:last-of-type`, `:has()`
+- Exception: `:has(:focus)` and `:has(:focus-visible)` are allowed.
+- `:not(…)` only when its argument is itself an allowed (non-structural) selector.
 
 22. No `#id` and no attribute selectors. Keep specificity low and reuse high.
 
@@ -269,34 +277,52 @@ OK — override scoped to the component block, with a comment:
 - NOT OK: overriding external DOM without an explaining comment, or widening the selector
   beyond the component's own wrapper.
 
-## F. Media queries (desktop-first)
+## F. Flexbox
 
-28. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
+28. Avoid the multi-value `flex` shorthand (for example `flex: 0 0 auto`). Use one of three
+    keyword values so the intent is obvious at a glance:
+- `flex: initial` — the element shrinks but does not grow. This is the default value, so it
+  can be omitted; set it explicitly only to override another `flex` value.
+- `flex: auto` — the element grows and shrinks.
+- `flex: none` — the element neither grows nor shrinks.
+- OK: `flex: initial;`, `flex: auto;`, `flex: none;`
+- NOT OK: `flex: 0 0 auto;`, `flex: 1 1 0;`
+
+29. When centering with `justify-content`, `align-items`, or `align-content`, always use the
+    `safe` keyword (`safe center`). Plain `center` lets an oversized item overflow the start
+    edge, where it can be clipped and unreachable; `safe center` falls back to `start` on
+    overflow, keeping content accessible. It behaves like `center` when there is no overflow.
+- OK: `justify-content: safe center;`, `align-items: safe center;`
+- NOT OK: `justify-content: center;`, `align-items: center;`
+
+## G. Media queries (desktop-first)
+
+30. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
     only.
 - OK: `@media (max-width: 600px) { … }`
 - NOT OK: `@media (min-width: 600px) { … }`, `@media (min-height: 600px) { … }`
 - NOT OK: `@media (min-width: 601px) and (max-width: 767px) { … }` (range queries rely on
   `min-width`)
 
-29. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
+31. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
     limits edge cases and existing display states.
 - OK: `@media (max-width: 1200px) { … }`
 - NOT OK: `@media (max-width: 768px) { … }`
 - Exception: to align with the Materialize grid, the framework `max-width` breakpoints
   `992px` and `1200px` are allowed. Prefer multiples of 40 otherwise.
 
-30. Do not use `@media (max-height: <height>)`. It is only valid for components used on
+32. Do not use `@media (max-height: <height>)`. It is only valid for components used on
     pages with no vertical scroll, which is not how Matomo works today. Treat it as
     forbidden until there is evidence that constraint has changed.
 - NOT OK: `@media (max-height: 400px) { … }`
 
-## G. Less tips
+## H. Less tips
 
-31. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
+33. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
 - OK: `width: ~"calc(100% - 8px)";`
 - NOT OK: `width: calc(100% - 8px);`
 
-32. Component-level variables are defined inside the block definition and prefixed with an
+34. Component-level variables are defined inside the block definition and prefixed with an
     underscore.
 ```less
 .block {
@@ -332,11 +358,15 @@ OK — override scoped to the component block, with a comment:
 10. At most two classes per selector, descendant combinator only, no chained classes
     (except an `app-` state class on `body`/`html`, or a commented external-DOM override).
 11. Prefer element modifiers over root-modifier descendant selectors.
-12. Only state pseudo-classes / pseudo-elements; no structural pseudo-classes
-    (`:has()` allowed only for `:focus`/`:focus-visible`).
+12. Only own-state pseudo-classes (interaction, form/validation, `:empty`) and
+    pseudo-elements; no positional/structural pseudo-classes (`:nth-child()`,
+    `:first-child`, …); `:has()` allowed only for `:focus`/`:focus-visible`; `:not(…)` only
+    with a non-structural argument.
 13. Util classes use the `u-` prefix, are self-describing, single-class, and use
     `!important`; `!important` appears nowhere else (except a commented external-DOM override).
-14. Media queries are desktop-first: `max-width` only, sizes in multiples of 40 (Materialize
+14. Flexbox uses a keyword `flex` value (`initial`/`auto`/`none`), not the multi-value
+    shorthand (`flex: 0 0 auto`); centering uses `safe center` (never bare `center`).
+15. Media queries are desktop-first: `max-width` only, sizes in multiples of 40 (Materialize
     mirrors `992px`/`1200px` allowed); no `min-width`/`min-height`; `max-height` forbidden.
-15. Less `calc()` is escaped (`~"calc(...)"`); component variables are block-scoped and
+16. Less `calc()` is escaped (`~"calc(...)"`); component variables are block-scoped and
     underscore-prefixed.
