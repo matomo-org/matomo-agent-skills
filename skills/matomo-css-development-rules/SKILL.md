@@ -1,6 +1,6 @@
 ---
 name: matomo-css-development-rules
-description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external & legacy DOM handling, util classes, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
+description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external & legacy DOM handling, util classes, flexbox conventions, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
 ---
 
 # Matomo CSS Development Rules
@@ -41,8 +41,8 @@ Use this skill when the task involves one or more of:
 2. The style file targets only DOM defined in that Vue component. The target (rightmost)
    element of every rule must carry a class that starts with the block name; pseudo-classes
    and pseudo-elements on it are fine.
-- NOT OK: `.myBlock p`, `.myBlock .notification`
-- OK: `.myBlock:hover`, `.myBlock::before`
+- NOT OK: `.evolutionBadge p`, `.evolutionBadge .notification`
+- OK: `.evolutionBadge:hover`, `.evolutionBadge::before`
 - Exception: overriding third-party DOM a component wraps (rule 28).
 
 3. Style with classes only, and prefix every class with the component name in camelCase —
@@ -186,25 +186,18 @@ OK — named after appearance/intention:
 - OK: `body.app-featureFlagXyz .evolutionBadge__number`
 
 16. Name new app-wide state classes (set on `html`/`body`) with the `app-` prefix. Dark
-    mode is not one of these: style dark mode with the `.inDarkMode({ … })` mixin (Morpheus
-    base mixins, `plugins/Morpheus/stylesheets/base/mixins.less`) and theme color tokens —
-    it also covers OS-`auto` dark mode.
+    mode is not one of these: theme color tokens resolve colors per mode, and the
+    `.inDarkMode({ … })` mixin covers genuine light/dark design differences (rule 38). Do
+    not invent an `app-`/`body` dark-mode class.
 - OK: `.app-featureFlagXyz`
-- OK (dark mode): wrap dark-mode overrides in `.inDarkMode({ … })` and use theme color
-  tokens rather than hardcoded colors:
-```less
-.evolutionBadge__number {
-  .inDarkMode({ /* dark-mode overrides using theme color tokens */ });
-}
-```
-- NOT OK: `body.app-darkMode .evolutionBadge__number` (no such class exists; also misses
-  OS-`auto` dark mode)
+- NOT OK: `body.app-darkMode .evolutionBadge__number` (no such class exists; theme tokens +
+  `.inDarkMode()` handle dark mode, and this also misses OS-`auto` mode)
 
 17. Avoid two class names that differ by only one character — this happens most often with
     singular/plural pairs, which are easy to confuse and to mistype. Give paired concepts
     distinct, descriptive names.
-- NOT OK: `.myBlock__actions` and `.myBlock__action`
-- OK: `.myBlock__actionList` and `.myBlock__actionItem`
+- NOT OK: `.evolutionBadge__actions` and `.evolutionBadge__action`
+- OK: `.evolutionBadge__actionList` and `.evolutionBadge__actionItem`
 
 ## C. Selector complexity & reusability
 
@@ -214,8 +207,8 @@ OK — named after appearance/intention:
     alters rendering. Use a modifier instead.
 - OK: `.evolutionBadge .evolutionBadge__arrowTop`
 - NOT OK: `.evolutionBadge > .evolutionBadge__arrowTop`
-- NOT OK: `.myBlock__title + .myBlock__subtitle` (unpredictable alteration of
-  `.myBlock__subtitle`) → use `.myBlock__subtitle--noMarginTop`
+- NOT OK: `.evolutionBadge__title + .evolutionBadge__subtitle` (unpredictable alteration of
+  `.evolutionBadge__subtitle`) → use `.evolutionBadge__subtitle--noMarginTop`
 
 19. Never use more than two classes, and never chain classes on a single target.
 - NOT OK: `.evolutionBadge__arrow.evolutionBadge__arrow--top`
@@ -263,7 +256,7 @@ OK — named after appearance/intention:
 
 25. Util classes have no dependencies — target them with a single class only.
 - OK: `.u-textUppercase`
-- NOT OK: `.myComponent .u-textUppercase`, `p.u-textUppercase`
+- NOT OK: `.evolutionBadge .u-textUppercase`, `p.u-textUppercase`
 
 26. Util classes use `!important`.
 - OK: `.u-textUppercase { text-transform: uppercase !important; }`
@@ -369,13 +362,39 @@ OK — override scoped to the component block, with comments:
     stays greppable.
 ```less
 // NOT OK — `&__element` hides the real class name from a codebase search
-.myBlock {
+.block {
   &__element { … }
 }
 
 // OK — the full class name appears verbatim
-.myBlock {
-  .myBlock__element { … }
+.block {
+  .block__element { … }
+}
+```
+
+38. Dark-mode styling: theme CSS variables for colors and `box-shadow` already resolve per
+    mode, so most components need no dark-mode code. Use the `.inDarkMode({ … })` mixin
+    (Morpheus base mixins, `plugins/Morpheus/stylesheets/base/mixins.less`) — which also
+    covers OS-`auto` mode — only when the design itself differs between light and dark, not
+    for a plain color swap.
+
+NOT OK — a color change belongs in a theme variable, not the mixin:
+```less
+.alert {
+  color: #333;
+  .inDarkMode({ color: #eee; });
+}
+```
+
+OK — the design differs (filled in light mode, bordered in dark mode):
+```less
+.alert {
+  background: @theme-color-alert-background;
+  border: 0;
+  .inDarkMode({
+    background: transparent;
+    border: 1px solid @theme-color-alert-border;
+  });
 }
 ```
 
@@ -396,7 +415,8 @@ OK — override scoped to the component block, with comments:
 6. Elements use `block__element` (double underscore); modifiers use `block__element--mod`;
    no two class names differ by only one character (e.g. `__action`/`__actions`).
 7. `@keyframes` are block-prefixed (`block__animationName`).
-8. Dark mode uses the `.inDarkMode({ … })` mixin + theme color tokens, not an `app-` class.
+8. Dark mode: theme color tokens handle per-mode colors; `.inDarkMode({ … })` is used only
+   for genuine light/dark design differences (not color swaps), never via an `app-` class.
 9. Third-party overrides are scoped inside the component block, use the narrowest selector
    (tag/attribute/`#id` only as needed) with minimal `!important`, and carry an explaining
    comment; legacy/global conflicts you own are resolved at the source with
