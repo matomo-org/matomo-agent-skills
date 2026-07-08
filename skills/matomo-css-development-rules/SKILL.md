@@ -193,7 +193,7 @@ OK — named after appearance/intention:
 
 16. Name new app-wide state classes (set on `html`/`body`) with the `app-` prefix. Dark
     mode is not one of these: theme color tokens resolve colors per mode, and the
-    `.inDarkMode({ … })` mixin covers genuine light/dark design differences (rule 38). Do
+    `.inDarkMode({ … })` mixin covers genuine light/dark design differences (rule 39). Do
     not invent an `app-`/`body` dark-mode class.
 - OK: `.app-featureFlagXyz`
 - NOT OK: `body.app-darkMode .evolutionBadge__number` (no such class exists; theme tokens +
