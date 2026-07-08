@@ -1,6 +1,6 @@
 ---
 name: matomo-css-development-rules
-description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external-DOM overrides, util classes, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
+description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external & legacy DOM handling, util classes, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
 ---
 
 # Matomo CSS Development Rules
@@ -43,7 +43,7 @@ Use this skill when the task involves one or more of:
    and pseudo-elements on it are fine.
 - NOT OK: `.myBlock p`, `.myBlock .notification`
 - OK: `.myBlock:hover`, `.myBlock::before`
-- Exception: overriding external DOM a component wraps (rule 27).
+- Exception: overriding third-party DOM a component wraps (rule 28).
 
 3. Style with classes only, and prefix every class with the component name in camelCase —
    the PascalCase file name with a lowercased first letter (`EvolutionBadge.vue` →
@@ -200,86 +200,115 @@ OK — named after appearance/intention:
 - NOT OK: `body.app-darkMode .evolutionBadge__number` (no such class exists; also misses
   OS-`auto` dark mode)
 
+17. Avoid two class names that differ by only one character — this happens most often with
+    singular/plural pairs, which are easy to confuse and to mistype. Give paired concepts
+    distinct, descriptive names.
+- NOT OK: `.myBlock__actions` and `.myBlock__action`
+- OK: `.myBlock__actionList` and `.myBlock__actionItem`
+
 ## C. Selector complexity & reusability
 
-17. Two classes are allowed to reduce nesting, using the descendant combinator (space):
-    `root element`. The child combinator is forbidden.
+18. Two classes are allowed to reduce nesting, using the descendant combinator (space):
+    `root element`. Do not use the child (`>`), adjacent-sibling (`+`), or general-sibling
+    (`~`) combinators — they couple styling to DOM structure, so a markup change silently
+    alters rendering. Use a modifier instead.
 - OK: `.evolutionBadge .evolutionBadge__arrowTop`
 - NOT OK: `.evolutionBadge > .evolutionBadge__arrowTop`
+- NOT OK: `.myBlock__title + .myBlock__subtitle` (unpredictable alteration of
+  `.myBlock__subtitle`) → use `.myBlock__subtitle--noMarginTop`
 
-18. Never use more than two classes, and never chain classes on a single target.
+19. Never use more than two classes, and never chain classes on a single target.
 - NOT OK: `.evolutionBadge__arrow.evolutionBadge__arrow--top`
   → use `.evolutionBadge__arrow--top`
 - NOT OK: `.evolutionBadge .evolutionBadge__number .evolutionBadge__percentage`
   → use `.evolutionBadge .evolutionBadge__percentage`
 - Exception: an `html`/`body` app state class may prefix a block/element selector
-  (rules 15–16), e.g. `body.app-featureFlagXyz .evolutionBadge__number`; and external-DOM
-  overrides (rule 27).
+  (rules 15–16), e.g. `body.app-featureFlagXyz .evolutionBadge__number`; and third-party
+  overrides (rule 28).
 
-19. No tag names in selectors. If an element has no class, add one.
+20. No tag names in selectors. If an element has no class, add one.
 - NOT OK: `p.evolutionBadge__number`
   → use `.evolutionBadge__number`
 - Exception: the `body` (or `html`) tag may be used to target app state classes
-  (rules 15–16), e.g. `body.app-featureFlagXyz`.
+  (rules 15–16), e.g. `body.app-featureFlagXyz`; and tag selectors inside a third-party
+  override (rule 28).
 
-20. An element may be styled via a root modifier, but prefer an element modifier for reuse
+21. An element may be styled via a root modifier, but prefer an element modifier for reuse
     and predictability.
 - Acceptable: `.evolutionBadge--positiveFeedback .evolutionBadge__number`
 - Preferred: `.evolutionBadge__number--green`
 
-21. Pseudo-classes are allowed only when they match on the element's own intrinsic state —
+22. Pseudo-classes are allowed only when they match on the element's own intrinsic state —
     never on its position or count among siblings (which changes when DOM is added or
     reordered). Pseudo-elements are always allowed.
 - OK — interaction: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`
 - OK — form/validation state: `:disabled`, `:enabled`, `:checked`, `:indeterminate`,
   `:required`, `:optional`, `:read-only`, `:valid`, `:invalid`, `:placeholder-shown`
 - OK — content: `:empty`; all pseudo-elements (`::before`, `::after`, `::selection`, …)
+- OK — `:where()` as a zero-specificity wrapper (see the legacy carve-out, rule 29)
 - NOT OK — positional/structural: `:nth-child()`, `:nth-of-type()`, `:first-child`,
   `:last-child`, `:only-child`, `:first-of-type`, `:last-of-type`, `:has()`
 - Exception: `:has(:focus)` and `:has(:focus-visible)` are allowed.
 - `:not(…)` only when its argument is itself an allowed (non-structural) selector.
 
-22. No `#id` and no attribute selectors. Keep specificity low and reuse high.
+23. No `#id` and no attribute selectors. Keep specificity low and reuse high.
+- Exception: a third-party override (rule 28) may use an attribute or, only when the
+  library exposes nothing else, an `#id` selector.
 
 ## D. Util classes
 
-23. Util class names are non-abstract and use the `u-` namespace prefix: the name states
+24. Util class names are non-abstract and use the `u-` namespace prefix: the name states
     exactly what CSS is applied.
 - OK: `.u-textUppercase`
 
-24. Util classes have no dependencies — target them with a single class only.
+25. Util classes have no dependencies — target them with a single class only.
 - OK: `.u-textUppercase`
 - NOT OK: `.myComponent .u-textUppercase`, `p.u-textUppercase`
 
-25. Util classes use `!important`.
+26. Util classes use `!important`.
 - OK: `.u-textUppercase { text-transform: uppercase !important; }`
 
-26. `!important` is allowed only in util classes (rule 25). Do not use it anywhere else.
+27. `!important` is allowed only in util classes (rule 26). Do not use it anywhere else.
 - NOT OK: `.evolutionBadge__number { color: red !important; }`
-- Exception: external-DOM overrides (rule 27).
+- Exception: third-party overrides (rule 28).
 
-## E. Overriding external DOM
+## E. Overriding external & legacy DOM
 
-27. When a component wraps legacy, global, or third-party DOM it cannot rename (legacy
-    widgets, Materialize, third-party libraries), it may target that DOM inside its own
-    block wrapper. Use the narrowest possible selector and only the specificity or
-    `!important` actually required, and mark it with an explicit comment explaining the
-    override. This is the only exception to rules 2, 18, and 26.
+28. Third-party DOM you cannot edit at the source: a component may override it inside its
+    own block wrapper. Use the narrowest selector that works — including a tag, attribute,
+    or (only when the library exposes nothing else) `#id` selector — and only the
+    specificity or `!important` actually required. Mark every such override with an
+    explicit comment explaining it. This is the only exception to rules 2, 19, 20, 23,
+    and 27.
 
-OK — override scoped to the component block, with a comment:
+OK — override scoped to the component block, with comments:
 ```less
 .cohortControls {
   // override: Materialize form-field spacing inside our control
   .input-field { margin-top: 0 !important; }
+
+  // override: Materialize leaves a native number spinner we don't want
+  input[type="number"] { appearance: textfield; }
 }
 ```
 
-- NOT OK: overriding external DOM without an explaining comment, or widening the selector
-  beyond the component's own wrapper.
+- NOT OK: overriding third-party DOM without an explaining comment, or widening the
+  selector beyond the component's own wrapper.
+
+29. Legacy or global styles you can edit: when an existing global/legacy selector overrides
+    a component's own class, do not fight it from the component. Exclude the component's
+    element from that selector with `:where(:not(.block__element))` so the component's own
+    rule wins cleanly — no override on your side.
+- Before: `.widget .widgetTop h3 { … }`
+- After: `.widget .widgetTop h3:where(:not(.reportHeader__title)) { … }`
+- Several exclusions — pass a selector list to a single `:not()`:
+  `.widget .widgetTop h3:where(:not(.reportHeader__title, .dashboardWidget__title)) { … }`
+- `:where()` contributes zero specificity, so the legacy selector's specificity is
+  unchanged and other elements are unaffected.
 
 ## F. Flexbox
 
-28. Avoid the multi-value `flex` shorthand (for example `flex: 0 0 auto`). Use one of three
+30. Avoid the multi-value `flex` shorthand (for example `flex: 0 0 auto`). Use one of three
     keyword values so the intent is obvious at a glance:
 - `flex: initial` — the element shrinks but does not grow. This is the default value, so it
   can be omitted; set it explicitly only to override another `flex` value.
@@ -288,7 +317,7 @@ OK — override scoped to the component block, with a comment:
 - OK: `flex: initial;`, `flex: auto;`, `flex: none;`
 - NOT OK: `flex: 0 0 auto;`, `flex: 1 1 0;`
 
-29. When centering with `justify-content`, `align-items`, or `align-content`, always use the
+31. When centering with `justify-content`, `align-items`, or `align-content`, always use the
     `safe` keyword (`safe center`). Plain `center` lets an oversized item overflow the start
     edge, where it can be clipped and unreachable; `safe center` falls back to `start` on
     overflow, keeping content accessible. It behaves like `center` when there is no overflow.
@@ -297,32 +326,32 @@ OK — override scoped to the component block, with a comment:
 
 ## G. Media queries (desktop-first)
 
-30. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
+32. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
     only.
 - OK: `@media (max-width: 600px) { … }`
 - NOT OK: `@media (min-width: 600px) { … }`, `@media (min-height: 600px) { … }`
 - NOT OK: `@media (min-width: 601px) and (max-width: 767px) { … }` (range queries rely on
   `min-width`)
 
-31. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
+33. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
     limits edge cases and existing display states.
 - OK: `@media (max-width: 1200px) { … }`
 - NOT OK: `@media (max-width: 768px) { … }`
-- Exception: to align with the Materialize grid, the framework `max-width` breakpoints
-  `992px` and `1200px` are allowed. Prefer multiples of 40 otherwise.
+- Exception: to align with the Materialize grid, the framework `max-width` breakpoint
+  `992px` is allowed. Prefer multiples of 40 otherwise.
 
-32. Do not use `@media (max-height: <height>)`. It is only valid for components used on
+34. Do not use `@media (max-height: <height>)`. It is only valid for components used on
     pages with no vertical scroll, which is not how Matomo works today. Treat it as
     forbidden until there is evidence that constraint has changed.
 - NOT OK: `@media (max-height: 400px) { … }`
 
 ## H. Less tips
 
-33. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
+35. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
 - OK: `width: ~"calc(100% - 8px)";`
 - NOT OK: `width: calc(100% - 8px);`
 
-34. Component-level variables are defined inside the block definition and prefixed with an
+36. Component-level variables are defined inside the block definition and prefixed with an
     underscore.
 ```less
 .block {
@@ -336,13 +365,27 @@ OK — override scoped to the component block, with a comment:
 }
 ```
 
+37. Do not build class names with the `&` parent selector; write each class in full so it
+    stays greppable.
+```less
+// NOT OK — `&__element` hides the real class name from a codebase search
+.myBlock {
+  &__element { … }
+}
+
+// OK — the full class name appears verbatim
+.myBlock {
+  .myBlock__element { … }
+}
+```
+
 ## Review Checklist
 
 1. Style file sits next to the component, same basename, `.less`/`.css` only; no `<style>`
    block in the `.vue` SFC (styles live in the sibling file; isolation comes from naming).
 2. Classes only, all prefixed with the component name in camelCase (except `u-` util,
    `app-` state, and `mtm-` classes); no tag/id/attribute (except `body`/`html` for app
-   state classes, or a commented external-DOM override).
+   state classes, or a third-party override).
 3. Names are camelCase with no internal dash/underscore; a single leading dash marks a
    namespace prefix only (`mtm-`, `u-`, `app-`). Modifiers use `block--modifier`; the block
    root carries no parent-block class.
@@ -350,23 +393,27 @@ OK — override scoped to the component block, with a comment:
    the child block root, and the nested block is never a sibling of a parent element.
 5. Modifiers describe appearance/intention (`--primary`), not context or displayed data
    (`--card`, `--product`).
-6. Elements use `block__element` (double underscore); modifiers use `block__element--mod`.
+6. Elements use `block__element` (double underscore); modifiers use `block__element--mod`;
+   no two class names differ by only one character (e.g. `__action`/`__actions`).
 7. `@keyframes` are block-prefixed (`block__animationName`).
 8. Dark mode uses the `.inDarkMode({ … })` mixin + theme color tokens, not an `app-` class.
-9. External-DOM overrides are scoped inside the component block, use the narrowest selector
-   and only the `!important` actually required, and carry an explaining comment.
-10. At most two classes per selector, descendant combinator only, no chained classes
-    (except an `app-` state class on `body`/`html`, or a commented external-DOM override).
+9. Third-party overrides are scoped inside the component block, use the narrowest selector
+   (tag/attribute/`#id` only as needed) with minimal `!important`, and carry an explaining
+   comment; legacy/global conflicts you own are resolved at the source with
+   `:where(:not(.block__element))`, not a component-side override.
+10. At most two classes per selector, descendant combinator only (no `>`/`+`/`~`), no
+    chained classes (except an `app-` state class on `body`/`html`, or a third-party
+    override).
 11. Prefer element modifiers over root-modifier descendant selectors.
 12. Only own-state pseudo-classes (interaction, form/validation, `:empty`) and
-    pseudo-elements; no positional/structural pseudo-classes (`:nth-child()`,
-    `:first-child`, …); `:has()` allowed only for `:focus`/`:focus-visible`; `:not(…)` only
-    with a non-structural argument.
+    pseudo-elements; `:where()` allowed as a zero-specificity wrapper; no
+    positional/structural pseudo-classes (`:nth-child()`, `:first-child`, …); `:has()`
+    allowed only for `:focus`/`:focus-visible`; `:not(…)` only with a non-structural argument.
 13. Util classes use the `u-` prefix, are self-describing, single-class, and use
-    `!important`; `!important` appears nowhere else (except a commented external-DOM override).
+    `!important`; `!important` appears nowhere else (except a third-party override).
 14. Flexbox uses a keyword `flex` value (`initial`/`auto`/`none`), not the multi-value
     shorthand (`flex: 0 0 auto`); centering uses `safe center` (never bare `center`).
 15. Media queries are desktop-first: `max-width` only, sizes in multiples of 40 (Materialize
-    mirrors `992px`/`1200px` allowed); no `min-width`/`min-height`; `max-height` forbidden.
+    `992px` allowed); no `min-width`/`min-height`; `max-height` forbidden.
 16. Less `calc()` is escaped (`~"calc(...)"`); component variables are block-scoped and
-    underscore-prefixed.
+    underscore-prefixed; class names are written in full (no `&` concatenation).
