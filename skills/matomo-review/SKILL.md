@@ -49,6 +49,7 @@ Use this skill when the task is one or more of:
 - `matomo-deprecation-rules`
 - `matomo-vue-development-rules`
 - `matomo-frontend-direction`
+- `matomo-css-development-rules`
 - `matomo-documentation`
 - `matomo-test-runner`
 9. Apply generic review dimensions only when the diff makes them relevant: intent, correctness, maintainability, security, performance, compatibility, operability, documentation, and test quality.
@@ -212,14 +213,19 @@ Apply these routing rules after inspecting changed paths and diff content:
 - Apply `matomo-vue-development-rules` for Vue source, build, and sink mechanics.
 - Apply `matomo-frontend-direction` for UI direction and policy (jQuery reduction, Vue-first, long-term SPA, Vue component-test adoption). Report direction-only concerns (for example new jQuery where Vue was practical) as `Medium` findings by default, not blocking violations, and keep mechanics findings under `matomo-vue-development-rules` so the same issue is not reported twice.
 
-10. Documentation signals:
+10. Component CSS / Less signals:
+- `.less` or `.css` files, especially next to a Vue component under `plugins/<Plugin>/vue/src/**`
+- CSS class names in `.vue` templates, or a `<style>` block added to a Vue SFC
+- Apply `matomo-css-development-rules` (BEM naming, nest elements, namespacing prefixes, selector-complexity limits, external-DOM overrides, util classes, flexbox conventions, desktop-first media queries, Less pitfalls). Report CSS-convention violations as `Medium`/style findings by default, not blocking, unless they combine with functional risk.
+
+11. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`
 - new or modified `@param` or `@return` tags
 - PHPDoc changes that affect public API contracts
 - new or modified `Piwik::postEvent()` calls
 - Apply `matomo-documentation`.
 
-11. Test expectation signals:
+12. Test expectation signals:
 - any change under `tests/`
 - feature or bug-fix changes without corresponding tests
 - UI, Vue, or plugin behavior changes that should have automated coverage
