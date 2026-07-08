@@ -216,7 +216,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 10. Component CSS / Less signals:
 - `.less` or `.css` files, especially next to a Vue component under `plugins/<Plugin>/vue/src/**`
 - CSS class names in `.vue` templates, or a `<style>` block added to a Vue SFC
-- Apply `matomo-css-development-rules` (BEM naming, nest elements, namespacing prefixes, selector-complexity limits, external-DOM overrides, util classes, desktop-first media queries, Less pitfalls). Report CSS-convention violations as `Medium`/style findings by default, not blocking, unless they combine with functional risk.
+- Apply `matomo-css-development-rules` (BEM naming, nest elements, namespacing prefixes, selector-complexity limits, external-DOM overrides, util classes, flexbox conventions, desktop-first media queries, Less pitfalls). Report CSS-convention violations as `Medium`/style findings by default, not blocking, unless they combine with functional risk.
 
 11. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`

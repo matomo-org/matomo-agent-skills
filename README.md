@@ -89,7 +89,7 @@
 - Use when planning, authoring, or reviewing UI work to decide framework direction rather than implementation mechanics. Use `matomo-plugin-architecture` for broader structure raised by a UI change.
 19. `matomo-css-development-rules`
 - Applies Matomo BEM CSS/Less conventions for Vue component styling.
-- Covers file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external-DOM overrides, util classes, desktop-first media queries, and Less pitfalls.
+- Covers file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external-DOM overrides, util classes, flexbox conventions, desktop-first media queries, and Less pitfalls.
 - Use when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether a Vue SFC may contain a `<style>` block.
 
 

@@ -33,7 +33,8 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 11. Before creating new Vue or TS helpers, check for existing utilities in `Matomo.helper.*`, shared Core Vue sources, and nearby active helpers.
 12. Vue single-file components that contain a `<template>` block should use block order `<template>`, then `<script>` or `<script setup>`, then, if a style block is present, order it last. Whether an SFC should contain a `<style>` block at all is governed by `matomo-css-development-rules`, which requires component styles to live in a sibling `.less`/`.css` file rather than in the SFC.
 13. Render-only Vue files with no `<template>` block may start with `<script>`.
-14. Use `matomo-plugin-architecture` when the real question is broader plugin utility reuse or cross-layer structure, not a Vue-specific sink or build rule.
+14. Use `matomo-css-development-rules` for component styling in the sibling `.less`/`.css` file — BEM naming, selector complexity, flexbox conventions (keyword `flex` values, `safe center`), and desktop-first media queries.
+15. Use `matomo-plugin-architecture` when the real question is broader plugin utility reuse or cross-layer structure, not a Vue-specific sink or build rule.
 
 ## Command Selection
 
