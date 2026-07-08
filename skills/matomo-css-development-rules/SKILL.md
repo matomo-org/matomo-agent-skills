@@ -47,7 +47,8 @@ Use this skill when the task involves one or more of:
 
 3. Style with classes only, and prefix every class with the component name in camelCase —
    the PascalCase file name with a lowercased first letter (`EvolutionBadge.vue` →
-   `.evolutionBadge`).
+   `.evolutionBadge`). If the bare file name is not unique or descriptive in the global CSS
+   namespace, qualify the block with its plugin/feature folder (rule 6).
 - OK: `.evolutionBadge`, `.evolutionBadge__arrow`
 - NOT OK: styling by tag, id, or attribute
 - Exception: util classes (`u-`, section D), app state classes (`app-`, on `html`/`body`,
@@ -71,14 +72,19 @@ Use this skill when the task involves one or more of:
 - OK (namespaced): `.mtm-notification`, `.u-textUppercase`, `.app-featureFlagXyz`
 - NOT OK: `.evolution-badge`, `.evolution_badge`
 
-6. When the component name is too generic or conflicts in the CSS namespace (for example
-   `.notification`), prefix the block name with `mtm-`. The prefix carries through to
-   modifiers and elements. To detect a conflict, scan the existing CSS for the class name
-   already appearing in a selector.
-- block: `.mtm-notification`
-- block modifier: `.mtm-notification--warning`
-- element: `.mtm-notification__icon`
-- element modifier: `.mtm-notification__icon--big`
+6. When the bare file name is not unique or descriptive enough in the global CSS namespace
+   (for example `.dateComparison` or `.notification`), make the block name safe. To detect a
+   conflict, scan the existing CSS for the class name already appearing in a selector. Two
+   options, preferred first:
+- Qualify with the plugin/feature folder (preferred — unique and self-documenting):
+  concatenate the meaningful ancestor before the file name, context-first camelCase. Use a
+  feature/plugin folder, not a structural one (`vue`, `src`, `components`).
+  `Sparkline/DateComparison.vue` → block `.sparklineDateComparison`
+  (element `.sparklineDateComparison__row`, modifier `.sparklineDateComparison--compact`).
+- Prefix with `mtm-` — for generic common-word blocks, or when there is no meaningful folder
+  to qualify with. The prefix carries through to modifiers and elements:
+  `.mtm-notification`, `.mtm-notification--warning`, `.mtm-notification__icon`,
+  `.mtm-notification__icon--big`.
 
 7. The root may carry the block class plus block modifier classes. A block modifier is
    `block--modifierCamelCase` (double dash).
@@ -407,7 +413,8 @@ OK — the design differs (filled in light mode, bordered in dark mode):
    state classes, or a third-party override).
 3. Names are camelCase with no internal dash/underscore; a single leading dash marks a
    namespace prefix only (`mtm-`, `u-`, `app-`). Modifiers use `block--modifier`; the block
-   root carries no parent-block class.
+   root carries no parent-block class. A non-unique block name is qualified with its
+   plugin/feature folder (`.sparklineDateComparison`) or, for generic words, `mtm-` prefixed.
 4. Child blocks sit alone in a nest element (`block__wrapper`); the nest class is never on
    the child block root, and the nested block is never a sibling of a parent element.
 5. Modifiers describe appearance/intention (`--primary`), not context or displayed data
