@@ -89,7 +89,7 @@
 - Use when planning, authoring, or reviewing UI work to decide framework direction rather than implementation mechanics. Use `matomo-plugin-architecture` for broader structure raised by a UI change.
 19. `matomo-css-development-rules`
 - Applies Matomo BEM CSS/Less conventions for Vue component styling.
-- Covers file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, external-DOM overrides, util classes, flexbox conventions, desktop-first media queries, and Less pitfalls.
+- Covers file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, restyling nested/external/legacy DOM, util classes, flexbox conventions, desktop-first media queries, and Less pitfalls.
 - Use when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether a Vue SFC may contain a `<style>` block.
 
 
@@ -126,3 +126,4 @@ Security and framework skills intentionally split ownership:
 - `matomo-security-rules` owns cross-cutting security invariants.
 - `matomo-twig-development-rules` and `matomo-vue-development-rules` own framework-specific raw-output sink handling.
 - `matomo-api-development-rules` owns API-layer design and request-facing contracts, while deferring access control and token policy to `matomo-security-rules`.
+- `matomo-css-development-rules` owns component CSS/Less authoring and the SFC `<style>`-block existence policy, while `matomo-vue-development-rules` owns SFC block mechanics and the Vue build.
