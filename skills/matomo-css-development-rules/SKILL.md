@@ -1,6 +1,6 @@
 ---
 name: matomo-css-development-rules
-description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, restyling nested/external/legacy DOM, util classes, flexbox conventions, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
+description: Apply Matomo CSS/Less BEM rules for Vue component styling — file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, cross-block styling (nested, context hooks, external & legacy DOM), util classes, flexbox conventions, desktop-first media queries, and Less pitfalls. Use this skill when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether an SFC may contain a `<style>` block.
 ---
 
 # Matomo CSS Development Rules
@@ -23,7 +23,8 @@ Use this skill when the task involves one or more of:
 2. Naming CSS selectors for a block, element, or modifier.
 3. Nesting a child component inside a block (nest elements).
 4. Reducing selector specificity or complexity.
-5. Overriding legacy/global/third-party DOM a component wraps.
+5. Styling across a block boundary — restyling a nested block, reacting to an ancestor's
+   context (context hooks), or overriding legacy/global/third-party DOM.
 6. Adding or reviewing util classes.
 7. Naming `@keyframes` animations.
 8. Writing responsive breakpoints / media queries.
@@ -53,7 +54,8 @@ Use this skill when the task involves one or more of:
 - NOT OK: styling by tag, id, or attribute
 - Exception: util classes (`u-`, section D), app state classes (`app-`, on `html`/`body`,
   rules 15–16), and generic/conflicting-block prefixes (`mtm-`, rule 6) are not
-  component-name-prefixed.
+  component-name-prefixed; `__` context hooks (rule 31) are references, not styled classes,
+  and are exempt too.
 
 4. Do not put a `<style>` block in the Vue SFC — neither `<style>` nor `<style scoped>`.
    Styles live only in the sibling `.less`/`.css` file (rule 1). Isolation comes from the
@@ -71,6 +73,9 @@ Use this skill when the task involves one or more of:
 - OK: `.evolutionBadge`
 - OK (namespaced): `.mtm-notification`, `.u-textUppercase`, `.app-featureFlagXyz`
 - NOT OK: `.evolution-badge`, `.evolution_badge`
+- Exception: a context hook (rule 31) is the one form exempt from the above — it is
+  `__<block>-<context>`: a leading `__` plus a single dash separating the block from the
+  context (e.g. `.__widgetControl-onHover`). It is a reference-only class, never styled.
 
 6. When the bare file name is not unique or descriptive enough in the global CSS namespace
    (for example `.dateComparison` or `.notification`), make the block name safe. To detect a
@@ -90,7 +95,8 @@ Use this skill when the task involves one or more of:
    `block--modifierCamelCase` (double dash).
 - OK: `.evolutionBadge--positiveFeedback`
 
-8. The root carries no other class — not even a class from the parent block. For a
+8. The root carries no other class — not even a class from the parent block (exception: a
+   `__` context hook, rule 31, may sit on any element including a root). For a
    block-to-block transition, wrap the child block in a **nest element**: an element class
    on a dedicated wrapper. Never put the nest class directly on the nested block's root,
    which risks style interference.
@@ -193,7 +199,7 @@ OK — named after appearance/intention:
 
 16. Name new app-wide state classes (set on `html`/`body`) with the `app-` prefix. Dark
     mode is not one of these: theme color tokens resolve colors per mode, and the
-    `.inDarkMode({ … })` mixin covers genuine light/dark design differences (rule 39). Do
+    `.inDarkMode({ … })` mixin covers genuine light/dark design differences (rule 40). Do
     not invent an `app-`/`body` dark-mode class.
 - OK: `.app-featureFlagXyz`
 - NOT OK: `body.app-darkMode .evolutionBadge__number` (no such class exists; theme tokens +
@@ -222,8 +228,8 @@ OK — named after appearance/intention:
 - NOT OK: `.evolutionBadge .evolutionBadge__number .evolutionBadge__percentage`
   → use `.evolutionBadge .evolutionBadge__percentage`
 - Exception: an `html`/`body` app state class may prefix a block/element selector
-  (rules 15–16), e.g. `body.app-featureFlagXyz .evolutionBadge__number`; and third-party
-  overrides (rule 29).
+  (rules 15–16), e.g. `body.app-featureFlagXyz .evolutionBadge__number`; a `__` context hook
+  as the ancestor condition (rule 31); and third-party overrides (rule 29).
 
 20. No tag names in selectors. If an element has no class, add one.
 - NOT OK: `p.evolutionBadge__number`
@@ -239,7 +245,8 @@ OK — named after appearance/intention:
 
 22. Pseudo-classes are allowed only when they match on the element's own intrinsic state —
     never on its position or count among siblings (which changes when DOM is added or
-    reordered). Pseudo-elements are always allowed.
+    reordered). This applies whether the element is the styled target or a `__` context
+    hook's ancestor (rule 31). Pseudo-elements are always allowed.
 - OK — interaction: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`
 - OK — form/validation state: `:disabled`, `:enabled`, `:checked`, `:indeterminate`,
   `:required`, `:optional`, `:read-only`, `:valid`, `:invalid`, `:placeholder-shown`
@@ -271,7 +278,7 @@ OK — named after appearance/intention:
 - NOT OK: `.evolutionBadge__number { color: red !important; }`
 - Exception: third-party overrides (rule 29).
 
-## E. Restyling nested, external & legacy DOM
+## E. Cross-block styling: nested, context, external & legacy
 
 28. To restyle a nested block you own for a specific context, do not reach into it from the
     parent block. Add a modifier to the nested block instead:
@@ -290,8 +297,8 @@ OK — named after appearance/intention:
     own block wrapper. Use the narrowest selector that works — including a tag, attribute,
     or (only when the library exposes nothing else) `#id` selector — and only the
     specificity or `!important` actually required. Mark every such override with an
-    explicit comment explaining it. This is the only exception to rules 2, 19, 20, 23,
-    and 27.
+    explicit comment explaining it. This is the only exception to rules 2, 23, and 27, and
+    it also relaxes rules 19 and 20.
 
 OK — override scoped to the component block, with comments:
 ```less
@@ -318,9 +325,42 @@ OK — override scoped to the component block, with comments:
 - `:where()` contributes zero specificity, so the legacy selector's specificity is
   unchanged and other elements are unaffected.
 
+31. A context hook lets a component react to an ancestor's context (the component-scoped
+    counterpart of an `app-` class, rules 15–16). It is a `__`-prefixed class named
+    `__<block>-<context>`, and it is a reference only — never styled directly, only the
+    ancestor condition in a selector whose rightmost, styled target is the reacting block,
+    defined in that component's own file. `<context>` is a placeholder (camelCase) — name it
+    after the ancestor context (`-expanded`, `-onHover`), never the literal word `context` or
+    `state`. Pair it with the mechanism that fits: a hook the ancestor toggles, whose
+    presence is the context (`-expanded`, no pseudo), or a hook read with a live pseudo-class
+    (`-onHover` with `:hover`). The reacting component owns the hook (names it and styles from
+    it); the **ancestor component adds it in its own template** — a class on its own element,
+    not a rule-28 violation. It is a shared, opt-in contract, like an `app-` class but
+    component-scoped, and may sit on any ancestor including another block's root (exception
+    to rule 8).
+```less
+// pseudo-driven — read with a live pseudo-class on the ancestor
+// markup: <div class="widget __widgetControl-onHover"> … <div class="widgetControl">
+.widgetControl {
+  visibility: hidden;
+  .__widgetControl-onHover:hover & { visibility: visible; }
+}
+
+// toggled — the ancestor adds/removes the hook; its presence is the context (no pseudo)
+// markup: <div class="widget __widgetControl-expanded"> … <div class="widgetControl__label">
+.widgetControl__label {
+  display: none;
+  .__widgetControl-expanded & { display: block; }
+}
+```
+- OK (namespaced block): the reacting block keeps its prefix —
+  `.__mtm-notification-dismissing` is a context hook for block `.mtm-notification`.
+- NOT OK: a declaration directly on a `__` class (`.__widgetControl-onHover { … }`), or
+  using it as the styled (rightmost) target — it is only a context reference.
+
 ## F. Flexbox
 
-31. Avoid the multi-value `flex` shorthand (for example `flex: 0 0 auto`). Use one of three
+32. Avoid the multi-value `flex` shorthand (for example `flex: 0 0 auto`). Use one of three
     keyword values so the intent is obvious at a glance:
 - `flex: initial` — the element shrinks but does not grow. This is the default value, so it
   can be omitted; set it explicitly only to override another `flex` value.
@@ -329,7 +369,7 @@ OK — override scoped to the component block, with comments:
 - OK: `flex: initial;`, `flex: auto;`, `flex: none;`
 - NOT OK: `flex: 0 0 auto;`, `flex: 1 1 0;`
 
-32. When centering with `justify-content`, `align-items`, or `align-content`, always use the
+33. When centering with `justify-content`, `align-items`, or `align-content`, always use the
     `safe` keyword (`safe center`). Plain `center` lets an oversized item overflow the start
     edge, where it can be clipped and unreachable; `safe center` falls back to `start` on
     overflow, keeping content accessible. It behaves like `center` when there is no overflow.
@@ -338,32 +378,32 @@ OK — override scoped to the component block, with comments:
 
 ## G. Media queries (desktop-first)
 
-33. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
+34. This is a desktop-first project: write breakpoints with `@media (max-width: <width>)`
     only.
 - OK: `@media (max-width: 600px) { … }`
 - NOT OK: `@media (min-width: 600px) { … }`, `@media (min-height: 600px) { … }`
 - NOT OK: `@media (min-width: 601px) and (max-width: 767px) { … }` (range queries rely on
   `min-width`)
 
-34. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
+35. Use only multiples of 40 for media-query sizes. This groups nearby breakpoints and
     limits edge cases and existing display states.
 - OK: `@media (max-width: 1200px) { … }`
 - NOT OK: `@media (max-width: 768px) { … }`
 - Exception: to align with the Materialize grid, the framework `max-width` breakpoint
   `992px` is allowed. Prefer multiples of 40 otherwise.
 
-35. Do not use `@media (max-height: <height>)`. It is only valid for components used on
+36. Do not use `@media (max-height: <height>)`. It is only valid for components used on
     pages with no vertical scroll, which is not how Matomo works today. Treat it as
     forbidden until there is evidence that constraint has changed.
 - NOT OK: `@media (max-height: 400px) { … }`
 
 ## H. Less tips
 
-36. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
+37. Wrap `calc()` in Less escaping so the browser (not the Less compiler) evaluates it.
 - OK: `width: ~"calc(100% - 8px)";`
 - NOT OK: `width: calc(100% - 8px);`
 
-37. Component-level variables are defined inside the block definition and prefixed with an
+38. Component-level variables are defined inside the block definition and prefixed with an
     underscore.
 ```less
 .block {
@@ -377,8 +417,9 @@ OK — override scoped to the component block, with comments:
 }
 ```
 
-38. Do not build class names with the `&` parent selector; write each class in full so it
-    stays greppable.
+39. Do not build class names with the `&` parent selector; write each class in full so it
+    stays greppable. (A standalone `&` parent reference, e.g. `.__hook:hover & { … }` in
+    rule 31, is fine — this bans only gluing `&` to build a name.)
 ```less
 // NOT OK — `&__element` hides the real class name from a codebase search
 .block {
@@ -391,7 +432,7 @@ OK — override scoped to the component block, with comments:
 }
 ```
 
-39. Dark-mode styling: theme CSS variables for colors and `box-shadow` already resolve per
+40. Dark-mode styling: theme CSS variables for colors and `box-shadow` already resolve per
     mode, so most components need no dark-mode code. Use the `.inDarkMode({ … })` mixin
     (Morpheus base mixins, `plugins/Morpheus/stylesheets/base/mixins.less`) — which also
     covers OS-`auto` mode — only when the design itself differs between light and dark, not
@@ -422,12 +463,13 @@ OK — the design differs (filled in light mode, bordered in dark mode):
 1. Style file sits next to the component, same basename, `.less`/`.css` only; no `<style>`
    block in the `.vue` SFC (styles live in the sibling file; isolation comes from naming).
 2. Classes only, all prefixed with the component name in camelCase (except `u-` util,
-   `app-` state, and `mtm-` classes); no tag/id/attribute (except `body`/`html` for app
-   state classes, or a third-party override).
+   `app-` state, `mtm-`, and `__` context-hook classes); no tag/id/attribute (except
+   `body`/`html` for app state classes, or a third-party override).
 3. Names are camelCase with no internal dash/underscore; a single leading dash marks a
-   namespace prefix only (`mtm-`, `u-`, `app-`). Modifiers use `block--modifier`; the block
-   root carries no parent-block class. A non-unique block name is qualified with its
-   plugin/feature folder (`.sparklineDateComparison`) or, for generic words, `mtm-` prefixed.
+   namespace prefix only (`mtm-`, `u-`, `app-`), and a leading `__` marks a context hook
+   (`__block-context`, rule 31). Modifiers use `block--modifier`; the block root carries no
+   parent-block class. A non-unique block name is qualified with its plugin/feature folder
+   (`.sparklineDateComparison`) or, for generic words, `mtm-` prefixed.
 4. Child blocks sit alone in a nest element (`block__wrapper`); the nest class is never on
    the child block root, and the nested block is never a sibling of a parent element.
 5. Modifiers describe appearance/intention (`--primary`), not context or displayed data
@@ -438,18 +480,21 @@ OK — the design differs (filled in light mode, bordered in dark mode):
 8. Dark mode: theme color tokens handle per-mode colors; `.inDarkMode({ … })` is used only
    for genuine light/dark design differences (not color swaps), never via an `app-` class.
 9. A nested block you own is restyled via its own modifier (defined in its file), never by
-   reaching in (`.block1 .block2`); third-party overrides are scoped inside the component
-   block, use the narrowest selector (tag/attribute/`#id` only as needed) with minimal
-   `!important`, and carry an explaining comment; legacy/global conflicts you own are
-   resolved at the source with `:where(:not(.block__element))`, not a component-side override.
+   reaching in (`.block1 .block2`); a component reacts to an ancestor's context via a `__`
+   context hook (reference only, never styled directly); third-party overrides are scoped
+   inside the component block, use the narrowest selector (tag/attribute/`#id` only as
+   needed) with minimal `!important`, and carry an explaining comment; legacy/global
+   conflicts you own are resolved at the source with `:where(:not(.block__element))`, not a
+   component-side override.
 10. At most two classes per selector, descendant combinator only (no `>`/`+`/`~`), no
-    chained classes (except an `app-` state class on `body`/`html`, or a third-party
-    override).
+    chained classes (except an `app-` state class on `body`/`html`, a `__` context hook as
+    the ancestor condition, or a third-party override).
 11. Prefer element modifiers over root-modifier descendant selectors.
 12. Only own-state pseudo-classes (interaction, form/validation, `:empty`) and
-    pseudo-elements; `:where()` allowed as a zero-specificity wrapper; no
-    positional/structural pseudo-classes (`:nth-child()`, `:first-child`, …); `:has()`
-    allowed only for `:focus`/`:focus-visible`; `:not(…)` only with a non-structural argument.
+    pseudo-elements — on the target or on a `__` context hook's ancestor (rule 31);
+    `:where()` allowed as a zero-specificity wrapper; no positional/structural pseudo-classes
+    (`:nth-child()`, `:first-child`, …); `:has()` allowed only for `:focus`/`:focus-visible`;
+    `:not(…)` only with a non-structural argument.
 13. Util classes use the `u-` prefix, are self-describing, single-class, and use
     `!important`; `!important` appears nowhere else (except a third-party override).
 14. Flexbox uses a keyword `flex` value (`initial`/`auto`/`none`), not the multi-value
