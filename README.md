@@ -101,6 +101,15 @@
 - Classifies the intended change and treats each matched rule set as an up-front planning requirement, so plans anticipate the same expectations `matomo-review` checks later, and plans migrations with version markers, translation keys with reuse checks, test types with expected-file impact, privacy impact for new data, and archiving or `log_*` blast radius as part of the approach.
 - Consults `https://developer.matomo.org/guides/<slug>` when the checkout does not make the established pattern clear, preferring the checkout when they conflict.
 - Use before implementation starts. Use `matomo-review` for work already written and `matomo-debt-check` for in-development cleanup review of the working diff.
+21. `matomo-implementation`
+- Writes the code for a change that is already scoped, by an approved plan or a narrow request, keeping it minimal and following the patterns already in the touched files.
+- Treats the plan's file list and out-of-scope list as a binding contract; without a plan, requires the scope to be stated before the first edit so "no unrelated refactoring" has something to be measured against.
+- Owns the search traps that make a Matomo checkout return empty for reasons unrelated to the search: `plugins/` needs `--no-ignore` because separately distributed plugins are gitignored, a plugin's history lives in its own repository, fixed context counts truncate, and a name is not evidence of its value.
+- Starts new work on its own branch in each repository in scope, cut from the tracked target dev branch each one resolves to, rather than from a remote's recorded default, and requires asking before moving any repository off a branch that was not made for this change — including a clean one, since for a separately distributed plugin the branch lives in its own clone where the move is invisible from the parent.
+- Owns inline comment discipline, deferring PHPDoc rules to `matomo-documentation`.
+- Requires `Ran` and `Not run` to be reported separately, and verification from the state a fresh checkout or CI runner starts in rather than the current shell's.
+- Stops before committing so the developer reads the diff first; notes that a guaranteed gate belongs in the harness rather than in skill text.
+- Use when implementing. Use `matomo-implementation-planning` before any code exists.
 
 
 ## Install Skills with Claude Code
