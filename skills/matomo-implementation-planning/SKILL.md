@@ -164,8 +164,8 @@ Run these from the checkout root established in `## Checkout Resolution`. Derive
 - `grep -n 'const VERSION\|const MAJOR_VERSION' core/Version.php`
 
 7. A plugin's own declared requirements, substituting the plugin name. Read the whole `require` block rather than one key, because a plugin may declare a PHP floor, a Matomo range, and a dependency on another plugin:
-- `sed -n '/"require": {/,/}/p' plugins/<Plugin>/plugin.json`
-- the range form reads to the closing brace, so it cannot truncate. A fixed context count such as `grep -A5` silently drops requirements past the fifth line, which is the failure this check exists to avoid.
+- `python3 -c "import json;print(json.load(open('plugins/<Plugin>/plugin.json')).get('require'))"`
+- parse the file rather than slicing text. A fixed context count such as `grep -A5` drops requirements past the fifth line, and a range ending on the first `}` stops early as soon as any value nests — both silently, and both on the exact block this check exists to read.
 - a declared `matomo` range means the plugin is distributed separately and the approach has to hold across that whole range
 - a declared `php` requirement overrides the core floor for that plugin, and is usually higher. Confirm it before concluding anything about available syntax; some plugins already use language features the core floor forbids.
 - no `require` block, or no `plugin.json` at all, means the plugin declares no compatibility range of its own, so the core floors apply. Most bundled plugins fall here, so treat a missing range as the normal case rather than as missing information. This reading depends on the checkout root being confirmed first; from the wrong directory every plugin looks core-bound.
