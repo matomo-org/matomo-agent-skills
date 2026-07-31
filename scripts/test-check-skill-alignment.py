@@ -259,6 +259,59 @@ def main():
         code == 0, out))
     shutil.rmtree(root)
 
+    # --- coverage mode -----------------------------------------------------
+    # `--coverage` is advisory, so a regression in it never fails a run. Its own
+    # defects have twice printed a clean result while checking nothing.
+    COVERAGE_BODY = BODY + (
+        "- `git -C <repo> checkout -b <branch> <ref>`\n"
+        "- `python3 -c \"import json;print(json.load(open('x.json'))['k'])\"`\n"
+    )
+    root = fresh()
+    make_repo(root, ["t-partial", "t-bare", "t-null", "t-int"])
+    make_skill(root, "t-partial", body=COVERAGE_BODY, prompt=(
+        '"Use $t-partial. Run git -C <repo> fetch origin then '
+        'git -C <repo> status --short and git -C <repo> branch --list <branch>."'))
+    make_skill(root, "t-bare", body=COVERAGE_BODY,
+               prompt='"Use $t-bare. Follow the procedure."')
+    make_skill(root, "t-null", body=COVERAGE_BODY, prompt="null")
+    make_skill(root, "t-int", body=COVERAGE_BODY, prompt="7")
+    code, out = run(ALIGNMENT, root, "--coverage")
+    passed.append(case("coverage mode exits 0, being advisory", code == 0, out))
+    passed.append(case(
+        "a partial gap names the omitted command",
+        "t-partial" in out and "checkout -b" in out, out))
+    passed.append(case(
+        "commands the manifest does name are not reported",
+        "not named: git fetch origin" not in out, out))
+    passed.append(case(
+        "a python3 command is examined, not skipped",
+        "not named: python3 -c" in out, out))
+    passed.append(case(
+        "a section the manifest never restates is reported",
+        "t-bare" in out and "0/5" in out, out))
+    passed.append(case(
+        "the two kinds of gap are separated",
+        "does not restate in commands at all" in out
+        and out.index("t-partial") < out.index("t-bare"), out))
+    passed.append(case(
+        "a null default_prompt is diagnosed",
+        "t-null" in out and "NoneType" in out, out))
+    passed.append(case(
+        "a non-text default_prompt is diagnosed",
+        "t-int" in out and "int" in out, out))
+    passed.append(case(
+        "malformed manifests produce no traceback",
+        "Traceback" not in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(root, "t-skill", body="\n## Procedure\n\n1. Step:\n- `git status --short`\n")
+    code, out = run(ALIGNMENT, root, "--coverage")
+    passed.append(case(
+        "a section with too few commands to judge stays silent",
+        code == 0 and "no manifest command-coverage gaps" in out, out))
+    shutil.rmtree(root)
+
     # --- clean baseline ----------------------------------------------------
     root = fresh()
     make_skill(root, "t-skill")
