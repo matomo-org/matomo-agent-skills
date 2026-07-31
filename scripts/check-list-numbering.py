@@ -24,6 +24,7 @@ Exits 0 when clean, 1 when findings, 2 on a usage error.
 """
 
 import glob
+import pathlib
 import re
 import sys
 
@@ -40,8 +41,25 @@ def default_paths():
     )
 
 
+def within_repo(path):
+    """True when `path` resolves inside the repository root.
+
+    This script only ever reads files in the checkout, and paths can come from
+    argv. Resolving before the comparison also catches a symlink whose target
+    sits outside it.
+    """
+    try:
+        root = pathlib.Path.cwd().resolve()
+        return pathlib.Path(path).resolve().is_relative_to(root)
+    except OSError:
+        return False
+
+
 def check(path):
     """Return a list of (line_number, expected, found) for one file."""
+    if not within_repo(path):
+        print(f"{path}: refusing to read outside the repository", file=sys.stderr)
+        return None
     try:
         with open(path, encoding="utf-8") as handle:
             lines = handle.read().split("\n")

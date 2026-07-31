@@ -44,6 +44,7 @@ Exits 0 when clean, 1 when findings, 2 on a usage or environment error.
 
 import glob
 import os
+import pathlib
 import re
 import sys
 
@@ -99,7 +100,22 @@ def shell_stages(command):
     return [stage.strip() for stage in stages]
 
 
+def within_repo(path):
+    """True when `path` resolves inside the repository root.
+
+    These scripts only ever read files in the checkout. Resolving before the
+    comparison also catches a symlink whose target sits outside it.
+    """
+    try:
+        root = pathlib.Path.cwd().resolve()
+        return pathlib.Path(path).resolve().is_relative_to(root)
+    except OSError:
+        return False
+
+
 def read(path):
+    if not within_repo(path):
+        raise ValueError(f"refusing to read outside the repository: {path}")
     with open(path, encoding="utf-8") as handle:
         return handle.read()
 
