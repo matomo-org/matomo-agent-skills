@@ -105,11 +105,14 @@ def within_repo(path):
 
     These scripts only ever read files in the checkout. Resolving before the
     comparison also catches a symlink whose target sits outside it.
+
+    `commonpath` rather than `Path.is_relative_to`, which needs Python 3.9 and
+    would make these scripts fail on the 3.8 that older LTS releases still ship.
     """
     try:
-        root = pathlib.Path.cwd().resolve()
-        return pathlib.Path(path).resolve().is_relative_to(root)
-    except OSError:
+        root = str(pathlib.Path.cwd().resolve())
+        return os.path.commonpath([root, str(pathlib.Path(path).resolve())]) == root
+    except (OSError, ValueError):
         return False
 
 
