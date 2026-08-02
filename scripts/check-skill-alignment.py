@@ -373,6 +373,10 @@ def report_coverage(directories):
         try:
             manifest = yaml.safe_load(read(manifest_path))
             prompt = manifest["interface"]["default_prompt"]
+        except ValueError as error:
+            # a path escaping the checkout; advisory mode reports and carries on
+            print(f"{manifest_path}: {error}; not checked")
+            continue
         except (yaml.YAMLError, KeyError, TypeError) as error:
             print(f"{manifest_path}: cannot read default_prompt ({error}); not checked")
             continue
@@ -380,7 +384,12 @@ def report_coverage(directories):
             kind = type(prompt).__name__
             print(f"{manifest_path}: default_prompt is a {kind}, not text; not checked")
             continue
-        for heading, missing, covered, total in coverage_gaps(read(skill_path), prompt):
+        try:
+            skill_text = read(skill_path)
+        except ValueError as error:
+            print(f"{skill_path}: {error}; not checked")
+            continue
+        for heading, missing, covered, total in coverage_gaps(skill_text, prompt):
             entry = (manifest_path, heading, missing, covered, total)
             (partial if covered else unrestated).append(entry)
 

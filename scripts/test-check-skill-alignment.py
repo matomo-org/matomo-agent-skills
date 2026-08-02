@@ -312,6 +312,25 @@ def main():
         code == 0 and "no manifest command-coverage gaps" in out, out))
     shutil.rmtree(root)
 
+    # coverage mode reads the same files and must refuse an escape just as safely
+    root = fresh()
+    make_skill(root, "t-skill", body=COVERAGE_BODY)
+    outside = root.parent / f"outside-coverage-{root.name}.md"
+    outside.write_text("## Procedure\n\n- `git status --short`\n", encoding="utf-8")
+    try:
+        (root / "skills" / "t-skill" / "SKILL.md").unlink()
+        (root / "skills" / "t-skill" / "SKILL.md").symlink_to(outside)
+        code, out = run(ALIGNMENT, root, "--coverage")
+        passed.append(case(
+            "coverage mode refuses a SKILL.md escaping the repository",
+            "refusing to read outside" in out, out))
+        passed.append(case(
+            "coverage mode still exits 0 and does not traceback",
+            code == 0 and "Traceback" not in out, out))
+    finally:
+        outside.unlink(missing_ok=True)
+        shutil.rmtree(root)
+
     # --- clean baseline ----------------------------------------------------
     root = fresh()
     make_skill(root, "t-skill")
