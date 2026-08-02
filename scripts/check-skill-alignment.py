@@ -277,7 +277,13 @@ def main(argv):
         print("README.md not found; entry checks cannot run", file=sys.stderr)
         return 2
 
-    inventory = inventory_section(read("README.md"))
+    try:
+        readme = read("README.md")
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 2
+
+    inventory = inventory_section(readme)
     if inventory is None:
         print(
             "README.md has no `## Available Skills` heading; entry checks cannot run",
@@ -287,7 +293,13 @@ def main(argv):
 
     total = 0
     for directory in directories:
-        for finding in check_skill(directory, known, inventory):
+        try:
+            findings = check_skill(directory, known, inventory)
+        except ValueError as error:
+            # a path escaping the checkout, usually a symlink; report it as a
+            # finding rather than ending the run in a traceback
+            findings = [f"{directory}: {error}"]
+        for finding in findings:
             print(finding)
             total += 1
 

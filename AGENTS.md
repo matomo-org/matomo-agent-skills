@@ -20,7 +20,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 6. Trigger conditions are explicit enough that tooling can select the correct skill reliably.
 7. Skills that use dev-branch defaults or branch-based examples align on the shared `tracked target dev branch` wording and behavior, including fallback-to-ask-user guidance when the correct base cannot be inferred confidently.
 8. If a development or code-review-relevant skill adds or tightens review expectations, verify `matomo-review` routes to those expectations, maps their violations to the intended review severity, or document why the skill is intentionally excluded from review routing.
-9. Both validation scripts in `## Validation Scripts` pass. Run them from the repository root.
+9. All validation scripts in `## Validation Scripts` pass. Run them from the repository root.
 
 ## Workflow for New or Updated Skills
 
@@ -33,16 +33,18 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 - Update usage notes if behavior changed.
 6. If the skill uses dev-branch defaults, branch-diff examples, or branch-based immutability guidance, update every affected `README.md`, `SKILL.md`, `agents/openai.yaml`, and routed reference file in the same change so they all use the shared `tracked target dev branch` wording and behavior.
 7. If shell command examples changed, manually verify that literal commands are copy-pasteable, template commands clearly require substitution, `xargs` examples include an empty-input guard, environment-dependent commands state their prerequisites, and the changed examples are run against a suitable Matomo checkout or environment before marking the task done.
-8. Run both validation scripts from the repository root, as described in `## Validation Scripts`.
+8. Run all validation scripts from the repository root, as described in `## Validation Scripts`.
 9. Self-review against the required validation checklist before marking done.
 
 ## Validation Scripts
 
-Run both from the repository root. Each exits `0` when clean, `1` on findings, and `2` on a usage or environment error.
+Run all of them from the repository root. The two validators exit `0` when clean, `1` on findings, and `2` on a usage or environment error; the test script exits `0` or `1`.
 
 1. `scripts/check-list-numbering.py` checks that ordered-list numbering in `AGENTS.md` and skill markdown is sequential. Run it after editing any numbered rule list: inserting an item mid-list leaves a duplicate or skipped number that reads as a missing rule. Requires only Python 3.
 
 2. `scripts/check-skill-alignment.py` checks frontmatter validity, directory-to-name agreement, manifest structure, skill cross-references, README inventory coverage, and manifests that still name a command form the skill has since tightened. Run it after changing a `SKILL.md`, an `agents/openai.yaml`, or the `README.md` skill list.
+
+3. `scripts/test-check-skill-alignment.py` pins both validators against regression, building throwaway skills in a temporary directory and running each script over them. Run it after changing validation logic. These checks weaken silently — a check that stops matching prints the same clean result as one that found nothing wrong.
 
 Prerequisites for `check-skill-alignment.py`: Python 3 and PyYAML. Install it with `pip install pyyaml`, or from your distribution's package (`python3-yaml` on Debian and Ubuntu). Without it the script exits `2` reporting the missing module rather than skipping checks. The dependency is deliberate: real YAML parsing is what catches invalid frontmatter, such as an unquoted `: ` inside a description, and a hand-rolled parser reports that case as valid.
 
