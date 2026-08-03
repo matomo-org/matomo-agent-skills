@@ -312,6 +312,25 @@ def main():
         code == 0 and "no manifest command-coverage gaps" in out, out))
     shutil.rmtree(root)
 
+    # a placeholder can contain a space; splitting on whitespace once left the
+    # tail of one as the subcommand, so a named command read as unnamed
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body=("\n## Procedure\n\n1. Step:\n"
+              "- `git -C <repo> show <remote>/<target branch>:plugin.json`\n"
+              "- `git -C <repo> fetch <remote>`\n"
+              "- `git -C <repo> log <remote>/<target branch> -n 30 --oneline`\n"
+              "- `git -C <repo> status --short`\n"),
+        prompt=('"Use $t-skill. Run git -C <repo> show <remote>/<target branch>:plugin.json '
+                'then git -C <repo> log <remote>/<target branch> -n 30 --oneline, '
+                'git -C <repo> fetch <remote> and git -C <repo> status --short."'))
+    code, out = run(ALIGNMENT, root, "--coverage")
+    passed.append(case(
+        "a placeholder containing a space does not corrupt the command signature",
+        code == 0 and "no manifest command-coverage gaps" in out, out))
+    shutil.rmtree(root)
+
     # coverage mode reads the same files and must refuse an escape just as safely
     root = fresh()
     make_skill(root, "t-skill", body=COVERAGE_BODY)
