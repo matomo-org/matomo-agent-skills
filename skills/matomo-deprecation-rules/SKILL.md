@@ -9,6 +9,7 @@ description: Apply Matomo deprecation and compatibility-transition rules for pub
 
 Use this skill for lifecycle and compatibility-transition policy in Matomo.
 Use `matomo-migrations-workflow` for update execution mechanics and schema migration rules. Use `matomo-documentation` for the formatting and preservation of docblock metadata rather than the deprecation policy itself.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 

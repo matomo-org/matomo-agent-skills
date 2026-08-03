@@ -12,6 +12,7 @@ Select the correct git comparison first, run cheap repository-integrity checks, 
 For in-development cleanup review of the current working diff with a narrow technical-debt lens, prefer `matomo-debt-check`.
 For adversarial, exhaustive, super-senior, or "find every flaw" review requests, prefer `matomo-adversarial-review`.
 For full branch reviews, also include a compact debt check section so maintainability cleanup items are visible without replacing the main review.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 

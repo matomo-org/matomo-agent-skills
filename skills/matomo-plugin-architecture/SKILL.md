@@ -9,6 +9,7 @@ description: Apply Matomo plugin architecture rules for layer separation, event 
 
 Use this skill for broader Matomo plugin structure and convention questions.
 Use `matomo-api-development-rules` for API-layer contracts, `matomo-documentation` for PHPDoc rules, `matomo-security-rules` for security policy, and framework skills for sink-specific Twig or Vue behavior.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
 

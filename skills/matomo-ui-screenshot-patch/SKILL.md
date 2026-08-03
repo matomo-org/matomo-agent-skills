@@ -11,6 +11,7 @@ Use this skill to implement one plugin's approved screenshot audit without widen
 The audit decisions are inputs; this skill turns them into concrete test edits and runs the plugin's UI suite.
 For producing the audit itself, use `matomo-ui-screenshot-audit`.
 For broader UI/Vue/PHP test execution patterns, use `matomo-test-runner`.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Trigger Conditions
 

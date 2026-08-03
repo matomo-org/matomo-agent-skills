@@ -11,6 +11,7 @@ Use this skill for Matomo plugin API design and implementation rules in `plugins
 Use `matomo-security-rules` for access control, request trust boundaries, and token/security checks.
 Use `matomo-documentation` for detailed PHPDoc requirements.
 Use `matomo-plugin-architecture` for broader plugin structure, event registration, and cross-plugin boundary rules outside the API-layer contract itself.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Trigger Conditions
 
