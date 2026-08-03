@@ -274,10 +274,11 @@ def coverage_gaps(skill_text, prompt):
     # then collapse whitespace, or a placeholder sitting between a verb and its
     # flag hides a command the manifest does name.
     flattened = re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", " ", prompt)
-    flattened = re.sub(r"<[^>\n]*>", " ", flattened)
-    # `<remote>/<target branch>` leaves a bare separator behind once the
-    # placeholders go; a signature never contains one, so drop the leftovers
-    flattened = re.sub(r"(?<!\S)[^\w\s-]+(?!\S)", " ", flattened)
+    # take the punctuation joining placeholders with them: `<remote>/<target
+    # branch>:<path>` must not leave `/` or `:` behind between a verb and its
+    # flag. Narrow to punctuation adjacent to a placeholder, so a meaningful
+    # argument such as the `.` in `git add .` survives.
+    flattened = re.sub(r"(?:<[^>\n]*>[^\w\s<]*)+", " ", flattened)
     flattened = re.sub(r"\s+", " ", flattened)
 
     report = []

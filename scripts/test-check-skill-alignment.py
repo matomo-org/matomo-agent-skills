@@ -331,6 +331,23 @@ def main():
         code == 0 and "no manifest command-coverage gaps" in out, out))
     shutil.rmtree(root)
 
+    # `git add .` has a meaningful dot; stripping punctuation orphaned by a
+    # removed placeholder must not also eat a real argument
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body=("\n## Procedure\n\n1. Step:\n"
+              "- `git -C <repo> add .`\n"
+              "- `git -C <repo> fetch <remote>`\n"
+              "- `git -C <repo> status --short`\n"),
+        prompt=('"Use $t-skill. Run git -C <repo> add . then '
+                'git -C <repo> fetch <remote> and git -C <repo> status --short."'))
+    code, out = run(ALIGNMENT, root, "--coverage")
+    passed.append(case(
+        "a meaningful punctuation argument is not stripped as a leftover",
+        code == 0 and "no manifest command-coverage gaps" in out, out))
+    shutil.rmtree(root)
+
     # coverage mode reads the same files and must refuse an escape just as safely
     root = fresh()
     make_skill(root, "t-skill", body=COVERAGE_BODY)
