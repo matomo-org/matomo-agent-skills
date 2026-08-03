@@ -110,6 +110,13 @@
 - Requires `Ran` and `Not run` to be reported separately, and verification from the state a fresh checkout or CI runner starts in rather than the current shell's.
 - Stops before committing so the developer reads the diff first; notes that a guaranteed gate belongs in the harness rather than in skill text.
 - Use when implementing. Use `matomo-implementation-planning` before any code exists.
+22. `matomo-change-delivery`
+- Lands work that is already written and verified: the version marker, the changelog entry, the commit message, and the pull request body with its checklist.
+- Decides the bump per repository from the fetched target branch rather than the working tree, which may already hold the change's own bump, and recognises the case where a merged but unreleased pull request has already bumped, so the change extends that changelog entry instead of adding a second version to one release.
+- Treats release tags as evidence to sanity-check rather than trust: a vestigial tag stream answers nothing, no tags at all cannot establish that a bump is pending, and a prerelease marker such as core's `5.13.0-alpha` sits ahead of the newest stable tag throughout normal development without a bump being due.
+- Locates the pull request template wherever the repository keeps it, including the organisation default that `matomo/matomo` inherits, answers checklist items with the only values the gate accepts, and opens the pull request as a draft because the AI Checklist stays red until the author signs off the two attestation items themselves.
+- Splits delivery across repositories when a change touches a separately distributed plugin, putting its version bump and changelog line in the plugin's own commit.
+- Use after `matomo-implementation` hands the change over. Use `matomo-pr-autofix` once the pull request exists and its checks fail.
 
 
 ## Install Skills with Claude Code
