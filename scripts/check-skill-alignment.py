@@ -268,8 +268,16 @@ def command_signature(command):
     questions. Repository selection is dropped so the same command written
     against a plugin and against the checkout root compares equal.
     """
-    # a placeholder can contain spaces, as in `-C <missing path>`
-    tokens = re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", "", command).split()
+    # mask every placeholder before tokenising: one can contain spaces, as in
+    # `<target branch>`, and splitting on whitespace would leave `branch>` behind
+    # as though it were the subcommand
+    masked = re.sub(r"<[^>\n]*>", lambda m: "\0" * len(m.group()), command)
+    masked = re.sub(r"-C\s+\S+", lambda m: "\0" * len(m.group()), masked)
+    tokens = [
+        command[s:e] for s, e in
+        ((m.start(), m.end()) for m in re.finditer(r"\S+", masked))
+        if "\0" not in masked[s:e]
+    ]
     if not tokens:
         return None
 
@@ -327,9 +335,16 @@ def coverage_gaps(skill_text, prompt):
     Tuning a threshold until today's corpus passes would only bake in today's
     corpus. So this reports the gaps and leaves the judgement to a reader.
     """
-    # a manifest is prose, so its commands are bare rather than backticked, and
-    # removing `-C <repo>` leaves the double space that a naive match then misses
-    flattened = re.sub(r"\s+", " ", re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", " ", prompt))
+    # a manifest is prose, so its commands are bare rather than backticked.
+    # Drop the same spans a signature drops — `-C <repo>` and every placeholder —
+    # then collapse whitespace, or a placeholder sitting between a verb and its
+    # flag hides a command the manifest does name.
+    flattened = re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", " ", prompt)
+    flattened = re.sub(r"<[^>\n]*>", " ", flattened)
+    # `<remote>/<target branch>` leaves a bare separator behind once the
+    # placeholders go; a signature never contains one, so drop the leftovers
+    flattened = re.sub(r"(?<!\S)[^\w\s-]+(?!\S)", " ", flattened)
+    flattened = re.sub(r"\s+", " ", flattened)
 
     report = []
     for heading, body in sections(skill_text).items():
