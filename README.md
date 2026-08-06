@@ -118,6 +118,13 @@
 - Splits delivery across repositories when a change touches a separately distributed plugin, putting its version bump and changelog line in the plugin's own commit.
 - Use after `matomo-implementation` hands the change over. Use `matomo-pr-autofix` once the pull request exists and its checks fail.
 
+23. `matomo-6-plugin-preparation`
+- Prepares a separately distributed plugin's `6.x-dev` branch: the Matomo 6 prep commit (version marker `6.0.0-b1`, requirement range, changelog entry), update-file renaming for beta versions, CI workflow and static-analysis updates for the PHP 8.1 floor, and verification against a Matomo 6 core.
+- Intentionally major-specific: it encodes facts of the Matomo 5 → 6 transition, including PHPStan 2's hard failure on nonexistent `excludePaths` entries and the `matomo6_*` PHP aliases, and checks the current state of `matomo-org/github-action-tests` before editing workflows because the central CI pattern was in flux when the skill was written.
+- Knows what self-heals — the `minimum_required_matomo`/`maximum_supported_matomo` targets resolve from `plugin.json` at run time — and changes only the PHP pins that actually break.
+- Covers the mechanical half only: suite failures referencing removed or changed core APIs route to `matomo-implementation-planning`, and the skill gains the code half once the core breaking-changes catalogue exists.
+- Use `matomo-change-delivery` to land the result; `matomo-migrations-workflow` governs the version marker when a migration rides along.
+
 
 ## Install Skills with Claude Code
 
