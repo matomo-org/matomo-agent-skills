@@ -146,9 +146,14 @@ def inventory_section(readme):
 
     Scoped deliberately: a skill dropped from the inventory but still named in a
     later section, such as the ownership-split notes, must not count as listed.
+    The heading may carry a qualifier — AGENTS.md calls the section "Available
+    Skills (This Repository)" — so anything after the fixed prefix is accepted
+    rather than coupling the check to the README's current wording.
     """
     match = re.search(
-        r"^## Available Skills\s*$(.*?)(?=^## |\Z)", readme, re.MULTILINE | re.DOTALL
+        r"^## Available Skills\b[^\n]*$(.*?)(?=^## |\Z)",
+        readme,
+        re.MULTILINE | re.DOTALL,
     )
     return match.group(1) if match else None
 
@@ -165,14 +170,17 @@ def parse_frontmatter(text):
 
 
 def truncated_pipelines(skill_text, prompt):
-    """Pipeline heads the manifest presents unpiped that SKILL.md always pipes.
+    """Pipeline heads the manifest cuts short where SKILL.md pipes further.
 
     Checking for "some later stage appears in the prompt" does not work: a generic
     stage such as `head -1` occurs in unrelated commands and satisfies it while the
-    manifest is still stale. What distinguishes a stale head is that the manifest
-    terminates it, so look at what follows the head instead.
+    manifest is still stale. What distinguishes a stale form is where the manifest
+    stops piping, so walk the documented stages along each occurrence instead: a
+    bare head and a pipeline that stops partway are both reported, while a
+    continuation whose stages diverge from every documented tail is a paraphrase
+    that cannot be attributed, and is left alone.
     """
-    findings = []
+    tails_by_head = {}
     for command in candidate_commands(skill_text):
         stages = shell_stages(command)
         if len(stages) < 2:
@@ -182,15 +190,72 @@ def truncated_pipelines(skill_text, prompt):
         if len(head) < 12:
             # too generic to attribute; `git tag` alone would match everywhere
             continue
-        if f"`{head}`" in skill_text:
-            # SKILL.md documents the bare form too, so an unpiped mention is fine
-            continue
+        tokens = tuple(stage.split()[0] for stage in stages[1:] if stage.split())
+        if tokens:
+            tails_by_head.setdefault(head, set()).add(tokens)
+
+    findings = []
+    for head, tails in tails_by_head.items():
         occurrences = list(re.finditer(re.escape(head), prompt))
-        if occurrences and not any(
-            prompt[match.end():].lstrip().startswith("|") for match in occurrences
-        ):
+        if not occurrences:
+            continue
+        outcomes = {
+            classify_continuation(prompt, match.end(), tails) for match in occurrences
+        }
+        if "full" in outcomes:
+            # at least one occurrence carries the whole documented pipeline
+            continue
+        if "bare" in outcomes and f"`{head}`" in skill_text:
+            # SKILL.md documents the bare form too, so an unpiped mention is fine
+            outcomes.discard("bare")
+        if outcomes & {"bare", "truncated"}:
             findings.append(head)
     return sorted(set(findings))
+
+
+def classify_continuation(prompt, start, tails):
+    """One occurrence's piped continuation against the documented tails.
+
+    Walking stage tokens needs no guess at where a stage's arguments end: after a
+    matched token the next structural thing is either another pipe or a sentence
+    boundary, and a boundary before the documented tail runs out is the truncation
+    this exists to catch. A period counts as a boundary only when followed by
+    whitespace or the end of the text, so a dotted argument such as `8.1` does not
+    end the pipeline early.
+    """
+    best = "bare"
+    for tail in tails:
+        pos, matched, diverged = start, 0, False
+        for expected in tail:
+            pipe = next_pipe(prompt, pos)
+            if pipe is None:
+                break
+            token = re.match(r"\s*([^\s|]+)", prompt[pipe + 1:])
+            if not token or token.group(1) != expected:
+                diverged = True
+                break
+            matched += 1
+            pos = pipe + 1 + token.end()
+        if not diverged and matched == len(tail):
+            return "full"
+        if not diverged and matched > 0:
+            best = "truncated"
+        elif (diverged or matched > 0) and best == "bare":
+            best = "divergent"
+    return best
+
+
+def next_pipe(prompt, pos):
+    """Index of the next pipe before a sentence-ish boundary, else None."""
+    for index in range(pos, len(prompt)):
+        char = prompt[index]
+        if char == "|":
+            return index
+        if char == "\n":
+            return None
+        if char in '.;)"' and (index + 1 == len(prompt) or prompt[index + 1].isspace()):
+            return None
+    return None
 
 
 def command_signature(command):

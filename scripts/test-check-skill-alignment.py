@@ -204,6 +204,50 @@ def main():
         "further stages" not in out, out))
     shutil.rmtree(root)
 
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V | head -1`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E to find it."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a manifest stopping partway through a documented pipeline is reported",
+        code == 1 and "further stages" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | wc -l to count them."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a continuation diverging from every documented tail is not reported",
+        "further stages" not in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep 8.1 | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep 8.1 | sort -V today."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a dotted argument inside a full pipeline does not read as a boundary",
+        "further stages" not in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    (root / "README.md").write_text(
+        "# Temp\n\n## Available Skills (This Repository)\n\n1. `t-skill`\n",
+        encoding="utf-8")
+    make_skill(root, "t-skill")
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "the qualified inventory heading from AGENTS.md wording is accepted",
+        code == 0, out))
+    shutil.rmtree(root)
+
     # --- path containment --------------------------------------------------
     root = fresh()
     make_skill(root, "t-skill")
