@@ -21,7 +21,7 @@ Commands with angle-bracket placeholders are templates; replace them before runn
 
 1. An update file named for the stable version never runs when updating to a beta. `version_compare('6.0.0', '6.0.0-b1')` orders the stable above the beta, so `Updates/6.0.0.php` is skipped on an update to `6.0.0-b1`. Name the file for the exact version the marker declares, class name included: `Updates/6.0.0-b1.php` containing `class Updates_6_0_0_b1`.
 2. Matomo 6 core bundles PHPStan 2 where 5.x bundled 1.12, and PHPStan 2 fails hard on `excludePaths` entries absent from the current layout. The stock plugin `phpstan.neon` excludes `vendor/` and `github-action-tests/`, which exist only in CI — append the optional marker to each: `- vendor/ (?)`.
-3. Most of the CI plumbing self-heals; do not fix what is not broken. The `minimum_required_matomo` and `maximum_supported_matomo` test targets resolve from `plugin.json` at run time, falling back tag → stable → `6.x-dev`. Only the PHP version pins break.
+3. Most of the CI plumbing self-heals; do not fix what is not broken. The `minimum_required_matomo` and `maximum_supported_matomo` test targets resolve from `plugin.json` at run time, falling back tag → stable → `6.x-dev`; a terminal `5.x-dev` fallback exists only for the case that the core repository has no branch for the required major. Only the PHP version pins break — but verify the resolution from the job log per `## CI State Check` rather than trusting it, since a wrong-major fallback passes tests against the wrong core.
 4. The central CI pattern was in flux when this skill was written. Establish what `matomo-org/github-action-tests` provides today, per `## CI State Check`, rather than assuming this skill's snapshot.
 5. Core carries no `6.0.0*` tags until the first beta ships, so tag comparisons have no baseline for a plugin's first 6.x release. The prep commit's bump is part of the change, not something tags can confirm.
 6. UI screenshots differ against the Matomo 6 UI regardless of what the plugin changed. Plan to regenerate them from CI artifacts rather than chasing the diffs locally.
@@ -45,7 +45,7 @@ Redirect code-level breaking-change work to `matomo-implementation-planning` per
 2. Follow the previous major's prep-commit precedent rather than inventing the shape: `git log --oneline --all -i --grep='prepare release for matomo'` finds it, and it is read before writing the new one.
 3. Set the version marker to `6.0.0-b1` and the requirement to `">=6.0.0-b1,<7.0.0-b1"` — beta versions during the Matomo 6 beta phase, the plugins-team convention as of August 2026. Confirm the convention still holds before applying it to a new plugin.
 4. The changelog entry heading matches the version marker exactly, in the file's own format; the majors' precedent is a bare version heading with `- Compatibility with Matomo 6`.
-5. Rename any pending update file to the marker's exact version per gotcha 1, and keep install-time schema in sync with what the migrations create.
+5. Rename an update file only when this same unreleased change introduced it and the marker's version moved, per gotcha 1. Released update files are immutable; `matomo-migrations-workflow` owns that rule. Keep install-time schema in sync with what the migrations create.
 6. Run `## CI State Check` before touching workflows, and change only what it shows to be broken.
 7. Set `phpVersion: 80100` in the plugin's `phpstan.neon`, add the `(?)` markers, and run PHPStan against a Matomo 6 core before pushing.
 8. Verify per `## Verification`, and report what ran and what did not as separate lists.
@@ -54,11 +54,11 @@ Redirect code-level breaking-change work to `matomo-implementation-planning` per
 
 ## Preparation Flow
 
-1. Branch state: `git ls-remote --heads origin` from the plugin repository. Create `6.x-dev` from the `5.x-dev` tip when absent. When present, never assume it carries the prep commit — read the marker from the branch with `git show origin/6.x-dev:plugin.json` rather than trusting the branch's existence.
+1. Branch state: resolve the remote per `matomo-implementation`'s Branch Setup rather than assuming `origin`, fetch it, then `git ls-remote --heads <remote>` from the plugin repository. Create `6.x-dev` from the `5.x-dev` tip when absent. When present, never assume it carries the prep commit — fetch and read the marker from the ref with `git show <remote>/6.x-dev:plugin.json` rather than trusting the branch's existence.
 2. Prep commit, on a feature branch off `6.x-dev`:
 - `plugin.json`: `"version": "6.0.0-b1"` and `"require": { "matomo": ">=6.0.0-b1,<7.0.0-b1" }`
 - `CHANGELOG.md`: new heading matching the marker, with `- Compatibility with Matomo 6`, in the file's own format
-- rename pending `Updates/*` files to the marker version when any exist
+- rename an `Updates/*` file this change introduced when the marker version moved (gotcha 1); released update files are immutable
 3. CI updates, per `## CI State Check`.
 4. Static analysis: `phpstan.neon` gets `phpVersion: 80100` and the `(?)` markers on CI-only exclude paths.
 5. Verification, per `## Verification`.
@@ -67,12 +67,13 @@ Redirect code-level breaking-change work to `matomo-implementation-planning` per
 
 The plugin workflows call `matomo-org/github-action-tests`. Establish what it provides today before editing anything:
 
-1. `gh api repos/matomo-org/github-action-tests/contents/action.yml --jq .content | base64 -d | grep -c 'matomo6_min_php'` — non-zero means the `matomo6_min_php`/`matomo6_max_php` aliases exist, resolving to 8.1 and 8.5. This needs an authenticated `gh` client and network.
+1. Probe for the Matomo 6 aliases, separating a failed probe from a negative answer. `gh api repos/matomo-org/github-action-tests/contents/action.yml --jq .content > <tmpfile>` needs an authenticated `gh` client and network, and a nonzero exit means the probe failed rather than answered — stop there. Then `base64 -d < <tmpfile> | grep -cE 'matomo6_(min|max)_php'`: `2` or more means the `matomo6_min_php`/`matomo6_max_php` aliases exist (resolving to 8.1 and 8.5), `0` with grep exit `1` means they do not, and `1` is a partial state to inspect before proceeding.
 2. Check whether the repository has since gained reusable `workflow_call` workflows that replace per-plugin workflow bodies — they were being introduced for PHPStan, PHPCS, and the AI checklist when this skill was written, and the test matrix may follow. When a reusable workflow exists for a job, prefer converting the plugin's workflow to a thin caller over patching its body.
 3. With the aliases available and no reusable test workflow, edit three files:
 - `.github/workflows/matomo-tests.yml`: replace every `matomo5_min_php`/`matomo5_max_php` with the `matomo6_*` counterpart — the matrix values, the UI job's `php-version`, and the `upload-artifacts` condition string all carry one
 - `.github/workflows/phpstan.yml` and `.github/workflows/phpcs.yml`: bump the hardcoded `php-version` to `'8.1'`
-4. Leave the `minimum_required_matomo`/`maximum_supported_matomo` targets alone; they resolve from `plugin.json` at run time, per gotcha 3.
+4. With the aliases absent, either land them in the central action first — the Matomo 5 pair in its `Resolve PHP version` step is the precedent — or use literal versions `'8.1'`/`'8.5'` in the plugin workflow: values the resolver does not recognise pass through to setup-php unchanged, so literals work without any central change and can be swapped for aliases later.
+5. Leave the `minimum_required_matomo`/`maximum_supported_matomo` targets alone; they resolve from `plugin.json` at run time, per gotcha 3. Verify the resolution instead of trusting it: the test job's log prints `Testing against '<ref>'`, and a 6.x ref there confirms it, while `5.x-dev` means the core repository lacked the expected branch and the run proved nothing about Matomo 6.
 
 ## Verification
 
