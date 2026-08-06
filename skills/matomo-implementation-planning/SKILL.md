@@ -156,6 +156,8 @@ Run these from the checkout root established in `## Checkout Resolution`. Derive
 4. PHP versions actually tested:
 - core: `grep -n "php: '" .github/workflows/matomo-tests.yml`
 - a separately distributed plugin usually has its own CI matrix, which is the one that governs its code: `grep -rn "php:" plugins/<Plugin>/.github/workflows/matomo-tests.yml`. Around forty-six plugins ship one, and it can differ sharply from core's — `plugins/Cloud` tests a single version where core tests three. Report the plugin's range for plugin work and core's only as context.
+- either matrix may name centrally managed aliases such as `matomo5_min_php` and `matomo5_max_php` instead of concrete versions. Those resolve outside the checkout, in `matomo-org/github-action-tests`: `gh api repos/matomo-org/github-action-tests/contents/action.yml --jq .content | base64 -d | grep -A1 -E 'matomo[0-9]_(min|max)_php\)' | grep -oE 'RESOLVED_VERSION="[0-9.]+"'` reads each alias's value, and needs an authenticated `gh` client and network.
+- when the aliases cannot be resolved, report the tested range as unresolved rather than guessing. The governing floor still applies — the plugin's declared `php` requirement from item 7 when it has one, the core floors from items 1 and 2 otherwise — so the plan proceeds against that; what is lost is the corroboration that the approach holds at the top of the tested range, and that goes into the plan's risks as unverified rather than into `Version constraints` as fact.
 
 5. Announced next minimum, when one is set:
 - `grep -n 'NEXT_REQUIRED_MINIMUM_PHP' core/Plugin/ControllerAdmin.php`
