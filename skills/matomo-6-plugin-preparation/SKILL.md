@@ -80,7 +80,7 @@ Run against a Matomo 6 environment: a checkout whose `core/Version.php` reports 
 
 1. `ddev matomo:console tests:run plugins/<Plugin>/tests/Integration`, and the `tests/System` suite when the plugin has one — requires the environment's test database configured, and the config's `[tests] http_host` pointing at this environment rather than at whichever host a copied config file names.
 2. Update path: `echo N | ddev matomo:console core:update` previews pending migrations without executing them — there is no `--dry-run` flag — and `core:update --yes` executes. Re-testing after a run needs the reset from gotcha 7.
-3. `ddev exec ./vendor/bin/phpstan analyse -c plugins/<Plugin>/phpstan.neon --no-progress` — passes without the CI-only directories once the `(?)` markers are in.
+3. `ddev composer phpstan -- --configuration plugins/<Plugin>/phpstan.neon` — the command form `matomo-code-quality` mandates; passes without the CI-only directories once the `(?)` markers are in.
 4. `ddev exec ./vendor/bin/phpcs -q -s --standard=plugins/<Plugin>/phpcs.xml <changed paths>`.
 5. Expect the suites to pass unchanged when the plugin needs no code migration. Failures referencing removed or changed core APIs are the signal that code compatibility work exists, which this skill does not cover.
 
