@@ -207,6 +207,39 @@ def main():
     root = fresh()
     make_skill(
         root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Fall back to git tag --contains <sha> | grep -E when unsure."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a truncated occurrence beside a full one is still reported",
+        code == 1 and "further stages" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Start from git tag --contains <sha> to see them."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a bare occurrence beside a full one is still reported",
+        code == 1 and "further stages" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha>`\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Start from git tag --contains <sha> to see them."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a bare occurrence documented in SKILL.md stays excused beside a full one",
+        "further stages" not in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
         body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V | head -1`\n",
         prompt='"Use $t-skill and run git tag --contains <sha> | grep -E to find it."')
     code, out = run(ALIGNMENT, root)
@@ -285,6 +318,14 @@ def main():
         outside.unlink(missing_ok=True)
         shutil.rmtree(root)
 
+    root = fresh()
+    make_skill(root, "t-skill", prompt="123")
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a non-string default_prompt is a finding, not a crash",
+        code == 1 and "expected a string" in out and "Traceback" not in out, out))
+    shutil.rmtree(root)
+
     # --- numbering ---------------------------------------------------------
     root = fresh()
     make_skill(root, "t-skill", body="\n## Rules\n\n1. One\n2. Two\n2. Two again\n")
@@ -300,6 +341,33 @@ def main():
     code, out = run(NUMBERING, root)
     passed.append(case(
         "numbers inside a fenced block are not treated as a list",
+        code == 0, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(root, "t-skill",
+               body="\n## Rules\n\n1. One\n2. Two\n1. Dup\n")
+    code, out = run(NUMBERING, root)
+    passed.append(case(
+        "a duplicate 1. inside a list is reported, not read as a new list",
+        code == 1 and "expected 3, got 1" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(root, "t-skill",
+               body="\n## Rules\n\n1. One\n2. Two\n\nAnother list:\n\n1. New\n2. Second\n")
+    code, out = run(NUMBERING, root)
+    passed.append(case(
+        "a list restarting at 1. after a prose boundary is clean",
+        code == 0, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(root, "t-skill",
+               body="\n## A\n\n1. One\n2. Two\n\n## B\n\n3. Three\n")
+    code, out = run(NUMBERING, root)
+    passed.append(case(
+        "numbering continuing across a heading stays clean",
         code == 0, out))
     shutil.rmtree(root)
 

@@ -179,6 +179,10 @@ def truncated_pipelines(skill_text, prompt):
     bare head and a pipeline that stops partway are both reported, while a
     continuation whose stages diverge from every documented tail is a paraphrase
     that cannot be attributed, and is left alone.
+
+    Each occurrence is judged on its own: a full pipeline elsewhere in the same
+    prompt does not excuse a stale one, since a full-and-truncated mix is exactly
+    what a missed update leaves behind.
     """
     tails_by_head = {}
     for command in candidate_commands(skill_text):
@@ -202,9 +206,6 @@ def truncated_pipelines(skill_text, prompt):
         outcomes = {
             classify_continuation(prompt, match.end(), tails) for match in occurrences
         }
-        if "full" in outcomes:
-            # at least one occurrence carries the whole documented pipeline
-            continue
         if "bare" in outcomes and f"`{head}`" in skill_text:
             # SKILL.md documents the bare form too, so an unpiped mention is fine
             outcomes.discard("bare")
@@ -401,10 +402,18 @@ def check_skill(directory, known, inventory):
         return findings + [f"{manifest_path}: missing `interface` mapping"]
 
     for key in ("display_name", "short_description", "default_prompt"):
-        if not interface.get(key):
+        value = interface.get(key)
+        if not value:
             findings.append(f"{manifest_path}: missing interface.{key}")
+        elif not isinstance(value, str):
+            findings.append(
+                f"{manifest_path}: interface.{key} is a "
+                f"{type(value).__name__}, expected a string"
+            )
 
-    prompt = interface.get("default_prompt") or ""
+    prompt = interface.get("default_prompt")
+    if not isinstance(prompt, str):
+        prompt = ""
     if f"${name}" not in prompt:
         findings.append(f"{manifest_path}: default_prompt does not reference ${name}")
 
