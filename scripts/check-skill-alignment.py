@@ -295,10 +295,18 @@ def check_skill(directory, known, inventory):
         return findings + [f"{manifest_path}: missing `interface` mapping"]
 
     for key in ("display_name", "short_description", "default_prompt"):
-        if not interface.get(key):
+        value = interface.get(key)
+        if not value:
             findings.append(f"{manifest_path}: missing interface.{key}")
+        elif not isinstance(value, str):
+            findings.append(
+                f"{manifest_path}: interface.{key} is a "
+                f"{type(value).__name__}, expected a string"
+            )
 
-    prompt = interface.get("default_prompt") or ""
+    prompt = interface.get("default_prompt")
+    if not isinstance(prompt, str):
+        prompt = ""
     if f"${name}" not in prompt:
         findings.append(f"{manifest_path}: default_prompt does not reference ${name}")
 

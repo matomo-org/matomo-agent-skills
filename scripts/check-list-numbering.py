@@ -6,9 +6,13 @@ Editing a numbered rule list in the middle is the common way to leave a duplicat
 or skipped number behind, which renumbers nothing but reads as a missing rule.
 
 A list item is accepted when its number continues the previous one, or when it is
-`1.` and so starts a fresh list. Numbering that continues across headings is
-intentional in some skills (matomo-css-development-rules numbers its rules
-globally across its lettered sections), so headings are not treated as a reset.
+`1.` starting a fresh list after a boundary. A boundary is a column-0 prose or
+heading line; blank, indented, and bullet lines continue the current list, so a
+duplicate `1.` inside one is reported rather than read as a new list. Numbering
+that continues across headings is intentional in some skills
+(matomo-css-development-rules numbers its rules globally across its lettered
+sections), so a heading is a boundary for restarting at `1.` but never forces
+a reset.
 
 Content inside fenced code blocks is skipped: those are output templates and
 examples, not rules.
@@ -73,6 +77,7 @@ def check(path):
     findings = []
     expected = 1
     in_fence = False
+    in_list = False
 
     for line_number, line in enumerate(lines, 1):
         if line.startswith("```"):
@@ -83,12 +88,19 @@ def check(path):
 
         match = ITEM.match(line)
         if not match:
+            # blank, indented, and bullet lines continue an item's content;
+            # any other column-0 line is the boundary that lets a list restart
+            if line.strip() and not line.startswith((" ", "\t", "- ")):
+                in_list = False
             continue
 
         found = int(match.group(1))
-        if found != expected and found != 1:
-            findings.append((line_number, expected, found))
+        if found == 1 and not in_list:
+            pass  # a fresh list after a boundary
+        elif found != expected:
+            findings.append((line_number, expected, found, in_list))
         expected = found + 1
+        in_list = True
 
     return findings
 
@@ -107,8 +119,9 @@ def main(argv):
         if findings is None:
             unreadable = True
             continue
-        for line_number, expected, found in findings:
-            print(f"{path}:{line_number}: expected {expected} or 1, got {found}")
+        for line_number, expected, found, in_list in findings:
+            allowed = f"{expected}" if in_list else f"{expected} or 1"
+            print(f"{path}:{line_number}: expected {allowed}, got {found}")
             total += 1
 
     if unreadable:
