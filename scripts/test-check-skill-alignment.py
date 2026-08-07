@@ -207,6 +207,39 @@ def main():
     root = fresh()
     make_skill(
         root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Fall back to git tag --contains <sha> | grep -E when unsure."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a truncated occurrence beside a full one is still reported",
+        code == 1 and "further stages" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Start from git tag --contains <sha> to see them."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a bare occurrence beside a full one is still reported",
+        code == 1 and "further stages" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
+        body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha>`\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V`\n",
+        prompt='"Use $t-skill and run git tag --contains <sha> | grep -E | sort -V. Start from git tag --contains <sha> to see them."')
+    code, out = run(ALIGNMENT, root)
+    passed.append(case(
+        "a bare occurrence documented in SKILL.md stays excused beside a full one",
+        "further stages" not in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
+    make_skill(
+        root, "t-skill",
         body="\n## Procedure\n\n1. Step:\n- `git tag --contains <sha> | grep -E '^[0-9]' | sort -V | head -1`\n",
         prompt='"Use $t-skill and run git tag --contains <sha> | grep -E to find it."')
     code, out = run(ALIGNMENT, root)
