@@ -14,6 +14,11 @@ It owns the mechanical half of a plugin's Matomo 6 migration. Code-level compati
 
 For writing the code of any change, use `matomo-implementation`. For landing the prepared branch's commits and pull request, use `matomo-change-delivery`. For migrations riding along, `matomo-migrations-workflow` governs the version marker.
 
+The `matomo-implementation`, `matomo-implementation-planning`, and `matomo-change-delivery`
+skills this command hands off to are part of this repository's inventory, arriving via #27,
+#28, and #30 at the time of writing. Where they are not installed, treat each hand-off as a
+manual step rather than a skill invocation.
+
 Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Gotchas
