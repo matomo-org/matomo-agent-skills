@@ -38,13 +38,13 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 
 ## Validation Scripts
 
-Run all of them from the repository root. The two validators exit `0` when clean, `1` on findings, and `2` on a usage or environment error; the test script exits `0` or `1`.
+Run all of them from the repository root. The two validators exit `0` when clean, `1` on findings, and `2` on a usage or environment error; the test script exits `0` or `1` only, and `--coverage` always exits `0` because it is advisory.
 
 1. `scripts/check-list-numbering.py` checks that ordered-list numbering in `AGENTS.md` and skill markdown is sequential. Run it after editing any numbered rule list: inserting an item mid-list leaves a duplicate or skipped number that reads as a missing rule. Requires only Python 3.
 
-2. `scripts/check-skill-alignment.py` checks frontmatter validity, directory-to-name agreement, manifest structure, skill cross-references, README inventory coverage, and manifests that still name a command form the skill has since tightened. Run it after changing a `SKILL.md`, an `agents/openai.yaml`, or the `README.md` skill list.
+2. `scripts/check-skill-alignment.py` checks frontmatter validity, directory-to-name agreement, manifest structure, skill cross-references, README inventory coverage, and manifests that still name a command form the skill has since tightened. Run it after changing a `SKILL.md`, an `agents/openai.yaml`, or the `README.md` skill list. Its `--coverage` mode additionally lists, per section, commands a `SKILL.md` documents that its manifest never names; that mode is advisory and always exits `0`, because a manifest legitimately omits a fallback or a derivation aid, so read the list rather than treating every entry as drift.
 
-3. `scripts/test-check-skill-alignment.py` pins both validators against regression, building throwaway skills in a temporary directory and running each script over them. Run it after changing validation logic. These checks weaken silently — a check that stops matching prints the same clean result as one that found nothing wrong.
+3. `scripts/test-check-skill-alignment.py` pins both validators and the `--coverage` mode against regression, building throwaway skills in a temporary directory and running each script over them. Run it after changing validation logic. It is the only test script here, and it earns that: these checks weaken silently, since one that stops matching prints the same clean result as one that found nothing wrong.
 
 Prerequisites for `check-skill-alignment.py`: Python 3 and PyYAML. Install it with `pip install pyyaml`, or from your distribution's package (`python3-yaml` on Debian and Ubuntu). Without it the script exits `2` reporting the missing module rather than skipping checks. The dependency is deliberate: real YAML parsing is what catches invalid frontmatter, such as an unquoted `: ` inside a description, and a hand-rolled parser reports that case as valid.
 

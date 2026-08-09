@@ -27,6 +27,20 @@ Limitation worth knowing: prose-level divergence this cannot see. A manifest tha
 simply omits a requirement, or describes it inaccurately in words rather than in a
 command, still needs a human read. This narrows the gap; it does not close it.
 
+`--coverage` narrows it a little further, listing per section the commands SKILL.md
+documents and the manifest never names. It reports rather than fails, because the
+two possible causes are indistinguishable syntactically: a dropped step, and a
+fallback or derivation aid the condensed manifest left out on purpose. On the
+current corpus a gate would fail on `git remote show`, an explicitly documented
+fallback. Threshold-tuning until today's files pass would encode today's files,
+so the judgement stays with the reader.
+
+Output separates two kinds of gap. A partially covered section — the manifest
+names most of its commands and drops one — is where drift shows up; that is the
+shape of the three omissions found by hand. A section with nothing named is
+usually intentional, since a manifest often carries a procedure in prose and
+names a flag rather than a whole command, so those are listed compactly.
+
 Requires Python 3 and PyYAML (`pip install pyyaml`, or `python3-yaml` on Debian and
 Ubuntu). The dependency is deliberate rather than incidental: real YAML parsing is what
 catches invalid frontmatter such as an unquoted `: ` inside a description, which a
@@ -35,6 +49,10 @@ split-on-first-colon parser reports as valid.
 Usage:
     scripts/check-skill-alignment.py                # every skill
     scripts/check-skill-alignment.py <skill-name>   # one skill by directory name
+    scripts/check-skill-alignment.py --coverage     # advisory listing, always exits 0
+
+Coverage sees only the executables in COMMAND_WORDS. A skill that documents some
+other binary is not checked for it, silently.
 
 `<skill-name>` is a placeholder; replace it with a real skill directory name such as
 matomo-review. Passed literally it exits 2 reporting an unknown skill.
@@ -58,7 +76,7 @@ FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 SKILL_REF = re.compile(r"`(matomo-[a-z0-9-]+)`")
 DOLLAR_REF = re.compile(r"\$(matomo-[a-z0-9-]+)")
 
-COMMAND_WORDS = ("git", "ddev", "gh", "rg", "grep", "find", "test", "curl")
+COMMAND_WORDS = ("git", "ddev", "gh", "rg", "grep", "find", "test", "curl", "python3")
 INLINE = re.compile(r"`([^`\n]+)`")
 FENCE = re.compile(r"^```[a-z]*\n(.*?)^```", re.MULTILINE | re.DOTALL)
 
@@ -241,6 +259,95 @@ def next_pipe(prompt, pos):
     return None
 
 
+def command_signature(command):
+    """`git -C <repo> rev-parse --abbrev-ref HEAD` -> `git rev-parse --abbrev-ref`.
+
+    Two commands are the same procedure when the binary, the subcommand and the
+    first flag agree. The flag has to be part of it: `rev-parse --show-toplevel`
+    and `rev-parse --abbrev-ref` share a subcommand and answer different
+    questions. Repository selection is dropped so the same command written
+    against a plugin and against the checkout root compares equal.
+    """
+    # a placeholder can contain spaces, as in `-C <missing path>`
+    tokens = re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", "", command).split()
+    if not tokens:
+        return None
+
+    signature, words = [tokens[0]], 0
+    for token in tokens[1:]:
+        if token.startswith("-"):
+            signature.append(token)
+            break
+        if token == "--" or "<" in token:
+            continue
+        if words == 2:
+            # `git remote set-head` needs two; a third is an argument, not the verb
+            break
+        signature.append(token)
+        words += 1
+    return " ".join(signature) if len(signature) > 1 else None
+
+
+def collapse_prefixes(signatures):
+    """Drop a signature that is a prefix of a longer one in the same set.
+
+    Prose naturally mentions both a bare and a fuller form of one command — a
+    sentence about what `git status` reports alongside the `git status --short`
+    that is actually run. Counting those as two procedures inflates the
+    denominator and pushes a section under the coverage threshold.
+    """
+    ordered = sorted(signatures, key=len, reverse=True)
+    kept = []
+    for signature in ordered:
+        if not any(longer.startswith(signature + " ") for longer in kept):
+            kept.append(signature)
+    return set(kept)
+
+
+def sections(text):
+    """`## Heading` -> body, for the numbered procedure sections."""
+    found = {}
+    for match in re.finditer(
+        r"^## (.+?)$\n(.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL
+    ):
+        found[match.group(1).strip()] = match.group(2)
+    return found
+
+
+def coverage_gaps(skill_text, prompt):
+    """Per-section commands SKILL.md documents that the manifest never names.
+
+    Advisory, not a finding, and deliberately so. Manifest drift is real — three
+    separate omissions were caught this way by hand — but "SKILL.md names a
+    command the manifest does not" is not the same claim as "the manifest is
+    wrong. A manifest is a condensed prompt: it restates the procedure and leaves
+    fallbacks and derivation aids to the skill body, and no syntactic rule
+    separates a dropped step from a deliberately unstated option.
+
+    Tuning a threshold until today's corpus passes would only bake in today's
+    corpus. So this reports the gaps and leaves the judgement to a reader.
+    """
+    # a manifest is prose, so its commands are bare rather than backticked, and
+    # removing `-C <repo>` leaves the double space that a naive match then misses
+    flattened = re.sub(r"\s+", " ", re.sub(r"-C\s+(?:<[^>\n]*>|\S+)", " ", prompt))
+
+    report = []
+    for heading, body in sections(skill_text).items():
+        wanted = set()
+        for command in candidate_commands(body):
+            signature = command_signature(shell_stages(command)[0])
+            if signature:
+                wanted.add(signature)
+        wanted = collapse_prefixes(wanted)
+        if len(wanted) < 3:
+            # too small a sample to tell an import from a passing mention
+            continue
+        missing = sorted(s for s in wanted if s not in flattened)
+        if missing:
+            report.append((heading, missing, len(wanted) - len(missing), len(wanted)))
+    return report
+
+
 def check_skill(directory, known, inventory):
     name = os.path.basename(directory)
     findings = []
@@ -329,10 +436,71 @@ def check_skill(directory, known, inventory):
     return findings
 
 
+def report_coverage(directories):
+    """Print manifest command-coverage gaps for a human to judge. Never fails."""
+    partial, unrestated = [], []
+    for directory in directories:
+        skill_path = os.path.join(directory, "SKILL.md")
+        manifest_path = os.path.join(directory, "agents", "openai.yaml")
+        if not (os.path.isfile(skill_path) and os.path.isfile(manifest_path)):
+            continue
+        try:
+            manifest = yaml.safe_load(read(manifest_path))
+            prompt = manifest["interface"]["default_prompt"]
+        except ValueError as error:
+            # a path escaping the checkout; advisory mode reports and carries on
+            print(f"{manifest_path}: {error}; not checked")
+            continue
+        except (yaml.YAMLError, KeyError, TypeError) as error:
+            print(f"{manifest_path}: cannot read default_prompt ({error}); not checked")
+            continue
+        if not isinstance(prompt, str):
+            kind = type(prompt).__name__
+            print(f"{manifest_path}: default_prompt is a {kind}, not text; not checked")
+            continue
+        try:
+            skill_text = read(skill_path)
+        except ValueError as error:
+            print(f"{skill_path}: {error}; not checked")
+            continue
+        for heading, missing, covered, total in coverage_gaps(skill_text, prompt):
+            entry = (manifest_path, heading, missing, covered, total)
+            (partial if covered else unrestated).append(entry)
+
+    for manifest_path, heading, missing, covered, total in partial:
+        print(f"{manifest_path}: `## {heading}` {covered}/{total} commands named")
+        for signature in missing:
+            print(f"    not named: {signature}")
+
+    if unrestated:
+        print("\nSections the manifest does not restate in commands at all:")
+        for manifest_path, heading, _, _, total in unrestated:
+            print(f"    {manifest_path}: `## {heading}` 0/{total}")
+        print(
+            "    Usually intentional — a manifest often carries a procedure in prose,"
+            "\n    naming a flag or a fragment rather than a whole command. Worth a look"
+            "\n    only when the section is one the manifest was meant to walk."
+        )
+
+    if not (partial or unrestated):
+        print("no manifest command-coverage gaps")
+    else:
+        print(
+            "\nAdvisory only. A manifest may omit a fallback or a derivation aid "
+            "on purpose; check whether an omission is a dropped step."
+        )
+    return 0
+
+
 def main(argv):
     if not os.path.isdir("skills"):
         print("run from the repository root", file=sys.stderr)
         return 2
+
+    argv = list(argv)
+    coverage = "--coverage" in argv
+    if coverage:
+        argv.remove("--coverage")
 
     directories = sorted(
         d for d in glob.glob("skills/*") if os.path.isdir(d)
@@ -346,6 +514,9 @@ def main(argv):
             print(f"unknown skill(s): {', '.join(sorted(unknown))}", file=sys.stderr)
             return 2
         directories = [d for d in directories if os.path.basename(d) in wanted]
+
+    if coverage:
+        return report_coverage(directories)
 
     if not os.path.isfile("README.md"):
         print("README.md not found; entry checks cannot run", file=sys.stderr)
