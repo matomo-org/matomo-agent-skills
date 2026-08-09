@@ -345,6 +345,16 @@ def main():
     shutil.rmtree(root)
 
     root = fresh()
+    (root / "commands").mkdir()
+    (root / "commands" / "t-command.md").write_text(
+        "# Temp Command\n\n## Steps\n\n1. One\n2. Two\n2. Two again\n", encoding="utf-8")
+    code, out = run(NUMBERING, root)
+    passed.append(case(
+        "a duplicated number in a command file is reported",
+        code == 1 and "t-command" in out, out))
+    shutil.rmtree(root)
+
+    root = fresh()
     make_skill(root, "t-skill",
                body="\n## Rules\n\n1. One\n2. Two\n1. Dup\n")
     code, out = run(NUMBERING, root)
