@@ -1,6 +1,6 @@
 ---
 name: matomo-frontend-direction
-description: Apply Matomo's frontend direction when adding, changing, or reviewing UI: incremental jQuery and jQuery UI reduction, Vue-first for new and touched UI, the long-term single-page-application trajectory, and Vue component-test adoption. Use this skill to decide UI direction and policy, not framework mechanics; defer Vue source, build, and sink details to matomo-vue-development-rules and test commands and coverage to matomo-test-runner.
+description: "Apply Matomo's frontend direction when adding, changing, or reviewing UI: incremental jQuery and jQuery UI reduction, Vue-first for new and touched UI, the long-term single-page-application trajectory, and Vue component-test adoption. Use this skill to decide UI direction and policy, not framework mechanics; defer Vue source, build, and sink details to matomo-vue-development-rules and test commands and coverage to matomo-test-runner."
 ---
 
 # Matomo Frontend Direction

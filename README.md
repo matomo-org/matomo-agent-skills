@@ -91,9 +91,53 @@
 - Applies Matomo BEM CSS/Less conventions for Vue component styling.
 - Covers file placement, block/element/modifier naming, nest elements, namespacing prefixes, selector complexity limits, cross-block styling (nested, context hooks, external & legacy DOM), util classes, flexbox conventions, desktop-first media queries, and Less pitfalls.
 - Use when authoring or reviewing `.less`/`.css` files next to Vue components, naming CSS classes in `.vue` templates, or deciding whether a Vue SFC may contain a `<style>` block.
+20. `matomo-implementation-planning`
+- Produces a Matomo implementation plan before any code is written, from a context intake covering module, current behavior, expected behavior, relevant files, and constraints.
+- Resolves and records the Matomo checkout root before deriving anything, asking which to use when a machine holds more than one, so a plan states the tree its values came from.
+- Requires the exact sections `Context`, `Files likely to change`, `Existing patterns to look for`, `Proposed approach`, `Edge cases`, `Tests to add or update`, `Risks or assumptions`, `Review Readiness`, and `Verification`, including a mandatory out-of-scope statement.
+- Derives the version envelope from the checkout on every run (PHP floor, enforced PHPStan `phpVersion`, tested PHP range, Matomo version, and a plugin's supported Matomo range) instead of assuming it, and plans to the floor rather than the local PHP version. Reports the envelope in full only when the change actually depends on it.
+- Marks steps that happen outside the codebase as out-of-band, and requires an explicit prerequisites list with the failure mode for each, so a change cannot ship inert because something was never switched on in the target system.
+- Dates any core helper the plugin does not own against the plugin's declared Matomo floor before planning the call, and lists tracked generated files such as a committed Vue `dist/` bundle so the rebuild lands in the same commit as its source.
+- Classifies the intended change and treats each matched rule set as an up-front planning requirement, so plans anticipate the same expectations `matomo-review` checks later, and plans migrations with version markers, translation keys with reuse checks, test types with expected-file impact, privacy impact for new data, and archiving or `log_*` blast radius as part of the approach.
+- Consults `https://developer.matomo.org/guides/<slug>` when the checkout does not make the established pattern clear, preferring the checkout when they conflict.
+- Use before implementation starts. Use `matomo-review` for work already written and `matomo-debt-check` for in-development cleanup review of the working diff.
 
+
+## Install Skills with Claude Code
+
+The commands below are templates: replace `<skill-name>` and `<path-to-this-repo>` with real values
+before running them. Both create the destination directory and are safe to re-run to upgrade an
+installed skill.
+
+Install a skill for your own use across all projects (user scope), from this repository's root:
+
+```bash
+mkdir -p ~/.claude/skills/<skill-name>
+cp -R skills/<skill-name>/. ~/.claude/skills/<skill-name>/
+```
+
+Install a skill for everyone working in one repository (project scope), from that repository's root:
+
+```bash
+mkdir -p .claude/skills/<skill-name>
+cp -R <path-to-this-repo>/skills/<skill-name>/. .claude/skills/<skill-name>/
+```
+
+The trailing `/.` copies the directory contents rather than the directory itself. Without it, copying
+onto an existing install nests a second copy inside the first and leaves the installed skill stale.
+Re-running overwrites files in place; delete the destination directory first if you need to drop a
+file that the skill no longer ships.
+
+Restart Claude Code, or start a new session, after installing new skills.
+
+Skills in this repository are harness-neutral: `SKILL.md` files name no harness-specific tools and
+express guidance as shell commands, so the same directory works in both Claude Code and Codex.
+`agents/openai.yaml` is read by Codex only and is ignored by Claude Code.
 
 ## Install Skills with Codex CLI
+
+The commands below are templates: replace `<organization>`, `<repository>`, and `<skill-name>` with
+real values before running them.
 
 Install skills into `$CODEX_HOME/skills` (defaults to `~/.codex/skills`).
 
