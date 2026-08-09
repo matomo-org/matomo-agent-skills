@@ -58,6 +58,7 @@ Neither script can see prose-level divergence between a `SKILL.md` and its manif
 4. Keep skill instructions focused on operational use, not process history.
 5. Align all docs with actual scripts and command behavior; do not document unsupported flows.
 6. For shell examples, prefer the simplest command form that preserves intent and avoids parser-specific regex features when a basic `rg`/shell form is sufficient.
+7. Keep skills harness-neutral: no agent-harness tool names, no `.claude/` paths, and no assumption about which agent runs the skill. This is about the harness, not about command-line tools — `git`, `gh`, `ddev`, `rg` and the like are the vocabulary these skills are written in, and `matomo-pr-autofix` and `matomo-change-delivery` both use `gh` for GitHub work. State the prerequisites of any command that needs network, authentication, or a pushed branch.
 
 ## Skill Ownership Split
 
