@@ -158,6 +158,22 @@ Restart Codex after installing new skills.
 Reference for public skill examples and format:
 `https://github.com/openai/skills`
 
+## Commands
+
+The `commands/` directory holds on-demand procedures. Unlike skills, whose descriptions load into
+every session so an agent can route to them proactively, a command loads only when invoked — the
+right shape for a procedure with no trigger ambiguity, such as a time-bounded migration the user
+always knows they are running.
+
+1. `matomo-6-plugin-preparation`
+- Prepares a separately distributed plugin's `6.x-dev` branch for Matomo 6: the prep commit
+  (version marker, requirement range, changelog), CI and static-analysis updates for the PHP 8.1
+  floor and PHPStan 2, the Vite rebuild of `vue/dist`, UI screenshot syncing, and verification
+  against a Matomo 6 environment.
+
+For Claude Code, copy the file into `~/.claude/commands/` (or a project's `.claude/commands/`)
+and invoke it as `/matomo-6-plugin-preparation`.
+
 ## Repository Conventions
 
 Quality and maintenance rules for contributors and AI tooling are defined in `AGENTS.md`.

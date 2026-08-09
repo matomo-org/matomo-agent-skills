@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Check that ordered-list numbering is sequential in AGENTS.md and skill markdown.
+"""Check that ordered-list numbering is sequential in AGENTS.md, skill markdown, and command markdown.
 
 Editing a numbered rule list in the middle is the common way to leave a duplicate
 or skipped number behind, which renumbers nothing but reads as a missing rule.
@@ -18,7 +18,7 @@ Content inside fenced code blocks is skipped: those are output templates and
 examples, not rules.
 
 Usage:
-    scripts/check-list-numbering.py                # AGENTS.md and every skill file
+    scripts/check-list-numbering.py                # AGENTS.md, every skill and command file
     scripts/check-list-numbering.py <path> ...     # only the given files
 
 `<path>` is a placeholder; replace it with a real file path. Passed literally it exits 2
@@ -43,6 +43,7 @@ def default_paths():
         sorted(glob.glob("AGENTS.md"))
         + sorted(glob.glob("skills/*/SKILL.md"))
         + sorted(glob.glob("skills/*/references/*.md"))
+        + sorted(glob.glob("commands/*.md"))
     )
 
 

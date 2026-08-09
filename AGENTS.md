@@ -40,7 +40,7 @@ These rules apply to any task that adds, removes, or updates skills under `skill
 
 Run all of them from the repository root. The two validators exit `0` when clean, `1` on findings, and `2` on a usage or environment error; the test script exits `0` or `1`.
 
-1. `scripts/check-list-numbering.py` checks that ordered-list numbering in `AGENTS.md` and skill markdown is sequential. Run it after editing any numbered rule list: inserting an item mid-list leaves a duplicate or skipped number that reads as a missing rule. Requires only Python 3.
+1. `scripts/check-list-numbering.py` checks that ordered-list numbering in `AGENTS.md`, skill markdown, and `commands/*.md` is sequential. Run it after editing any numbered rule list: inserting an item mid-list leaves a duplicate or skipped number that reads as a missing rule. Requires only Python 3.
 
 2. `scripts/check-skill-alignment.py` checks frontmatter validity, directory-to-name agreement, manifest structure, skill cross-references, README inventory coverage, and manifests that still name a command form the skill has since tightened. Run it after changing a `SKILL.md`, an `agents/openai.yaml`, or the `README.md` skill list.
 
