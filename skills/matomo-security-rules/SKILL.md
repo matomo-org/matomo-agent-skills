@@ -9,6 +9,7 @@ description: Apply Matomo security guardrails for access control, CSRF protectio
 
 Use this skill for cross-cutting Matomo security requirements.
 Keep framework-specific sink handling in the matching framework skill.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Trigger Conditions
 

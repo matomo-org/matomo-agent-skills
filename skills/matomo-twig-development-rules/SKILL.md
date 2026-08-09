@@ -10,6 +10,7 @@ description: Apply Matomo Twig template guardrails for safe raw-output handling,
 Use this skill for Matomo Twig template changes.
 Own the concrete Twig sink rules here, especially `|raw`.
 Use `matomo-security-rules` for the cross-cutting output-safety requirement.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Trigger Conditions
 

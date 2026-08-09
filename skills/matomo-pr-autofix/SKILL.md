@@ -23,7 +23,7 @@ The commands below assume:
 4. You have push access to the PR branch.
 5. Network access to GitHub and `https://builds-artifacts.matomo.org/` is available.
 
-Commands with angle-bracket placeholders are templates; replace every placeholder before running.
+Commands with angle-bracket placeholders are templates; replace them before running.
 
 ## Trigger Conditions
 
