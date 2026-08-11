@@ -436,7 +436,8 @@ OK — override scoped to the component block, with comments:
     mode, so most components need no dark-mode code. Use the `.inDarkMode({ … })` mixin
     (Morpheus base mixins, `plugins/Morpheus/stylesheets/base/mixins.less`) — which also
     covers OS-`auto` mode — only when the design itself differs between light and dark, not
-    for a plain color swap.
+    for a plain color swap. In a plugin, first check rule 41: `.inDarkMode` only exists from
+    Matomo 5.11.0.
 
 NOT OK — a color change belongs in a theme variable, not the mixin:
 ```less
@@ -457,6 +458,24 @@ OK — the design differs (filled in light mode, bordered in dark mode):
   });
 }
 ```
+
+41. In a plugin, a core Less mixin or variable is only available from the Matomo version
+    that introduced it, and plugin `.less` is compiled at runtime on every page. Using one
+    that is newer than the plugin's `require.matomo` minimum takes the whole UI down for
+    users on an older Matomo — not just the component — with
+    `StylesheetLessCompileException: .<mixin> is undefined in anonymous-file-0.less`.
+    `.inDarkMode` was added in Matomo 5.11.0; most plugins still declare `>=5.0.0`.
+
+Find the version that introduced a symbol, then compare it against the plugin's minimum:
+```bash
+git log --oneline -S'.inDarkMode(@rules)' -- plugins/Morpheus/stylesheets/base/mixins.less
+git tag --contains <sha> | grep -E '^5\.[0-9]+\.[0-9]+$' | sort -V | head -1
+rg '"matomo"' plugins/<Plugin>/plugin.json
+```
+
+Only two resolutions are valid: style it without the newer symbol, or raise `require.matomo`
+in `plugin.json` to the version that introduced it and note it in the changelog. Depending on
+it silently is the defect.
 
 ## Review Checklist
 
@@ -503,3 +522,6 @@ OK — the design differs (filled in light mode, bordered in dark mode):
     `992px` allowed); no `min-width`/`min-height`; `max-height` forbidden.
 16. Less `calc()` is escaped (`~"calc(...)"`); component variables are block-scoped and
     underscore-prefixed; class names are written in full (no `&` concatenation).
+17. In a plugin, every core Less mixin or variable used is available in the Matomo version
+    the plugin's `require.matomo` declares as its minimum, or that minimum was raised to
+    match (`.inDarkMode` is 5.11.0+).

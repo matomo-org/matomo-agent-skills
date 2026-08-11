@@ -45,6 +45,11 @@ Use this skill when the task involves one or more of:
 - Links built from dynamic URLs should avoid raw insertion into `href`.
 - Prefer `safelink` plus attribute escaping for URLs coming from data or configuration.
 
+7. Core Twig functions, filters and tags in plugin templates:
+- A core Twig helper is only available from the Matomo version that introduced it. In a plugin template, using one that is newer than the plugin's `require.matomo` minimum fails at compile time on older installs with `Twig\Error\SyntaxError: Unknown "<name>" function.`, breaking every page that renders the template.
+- Before using a helper that is not already used elsewhere in the plugin, confirm it exists in the declared minimum: `git log --oneline -S'<name>' -- core/Twig.php`, then `git tag --contains <sha> | grep -E '^5\.[0-9]+\.[0-9]+$' | sort -V | head -1`, and compare against `rg '"matomo"' plugins/<Plugin>/plugin.json`.
+- Only two resolutions are valid: write the template without the newer helper, or raise `require.matomo` in `plugin.json` to the version that introduced it and note it in the changelog.
+
 ## Command Selection
 
 ### Raw Output and Escaping
@@ -68,6 +73,7 @@ Use this skill when the task involves one or more of:
 2. If the diff adds or changes `|raw`, always inspect whether the value is a controlled safe-markup pattern or an unsafe raw sink.
 3. If a diff adds dynamic URLs or HTML attributes, inspect escaping and helper usage.
 4. If a diff changes nonce-bearing forms or links, inspect whether the server-provided nonce is preserved.
+5. If a diff adds a core Twig function, filter or tag to a plugin template, inspect whether it exists in the Matomo version that plugin's `require.matomo` declares as its minimum (rule 7).
 
 ## Examples
 

@@ -180,6 +180,8 @@ Apply these constraints when drafting the approach:
 3. Some newer library functions are reachable through vendor polyfills while the matching syntax is not. Confirm a specific function is polyfilled with `ls -d vendor/symfony/polyfill-*` and `rg -l 'function <name>' vendor/symfony/polyfill-*` before relying on it, and never assume syntax support from the presence of a function.
 4. The approach has to hold at both ends of the tested PHP range, not only at the floor.
 5. For a separately distributed plugin, the approach has to hold across the whole declared Matomo range. Calling a core API newer than the range floor is a compatibility break unless the call is guarded or the floor is raised. A bundled core plugin has no such range, so it may use any API present in the checkout.
+- "Core API" here is not only PHP. A core Less mixin or variable, a core Twig function or filter, and a core Vue component are each versioned the same way, and the first two fail harder than a PHP call: plugin `.less` and `.twig` are compiled at runtime, so one symbol missing from the older Matomo takes down every page rather than one code path. PG-5029 shipped `.inDarkMode` (Matomo 5.11.0+) in a plugin declaring `>=5.0.0-rc5` and broke the whole UI on 5.0 through 5.10.
+- A PHP call at least fails only when reached, which is why an untested path can hide it. Treat "the tests pass against the minimum" as weaker evidence for PHP than for assets.
 6. Raising a PHP floor or a plugin's Matomo floor is a deliberate decision that belongs in the plan and its risks, not an incidental consequence of the approach.
 7. When a constraint rules out the otherwise-obvious approach, state that in the plan rather than silently planning around it.
 
