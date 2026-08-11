@@ -189,7 +189,8 @@ Apply these routing rules after inspecting changed paths and diff content:
 6. Twig / template signals:
 - `*.twig`
 - `|raw`, `rawSafeDecoded`, `safelink`, `externallink`, or dynamic attribute escaping changes
-- Apply `matomo-twig-development-rules`.
+- a core Twig function, filter or tag newly used in a plugin template
+- Apply `matomo-twig-development-rules`. A core helper newer than the plugin's `require.matomo` minimum (rule 7) is blocking, for the same reason as the Less case in signal 10: the template fails to compile on older installs rather than degrading.
 
 7. Migration / update signals:
 - `core/Updates/*.php`
@@ -217,6 +218,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 - `.less` or `.css` files, especially next to a Vue component under `plugins/<Plugin>/vue/src/**`
 - CSS class names in `.vue` templates, or a `<style>` block added to a Vue SFC
 - Apply `matomo-css-development-rules` (BEM naming, nest elements, namespacing prefixes, selector-complexity limits, cross-block styling (nested, context hooks, external & legacy DOM), util classes, flexbox conventions, desktop-first media queries, Less pitfalls). Report CSS-convention violations as `Medium`/style findings by default, not blocking, unless they combine with functional risk.
+- One exception, because it is not a convention finding: in a separately distributed plugin, a core Less mixin or variable newer than the plugin's `require.matomo` minimum (`matomo-css-development-rules` rule 41) is blocking. Plugin `.less` compiles at runtime, so every page fails for every user on an older Matomo, not just the styled component.
 
 11. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`
