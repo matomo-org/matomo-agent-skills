@@ -43,7 +43,7 @@ Every item here is a channel by which the finder's framing reaches the verifier 
 1. Which lens produced it, and whether the review was adversarial. Severity does not depend on either.
 2. How the finding was reached, how long it took, how deep the trace went, or how confident the finder felt. Depth of investigation does not change severity, so it is not an input.
 3. Any other finding, and the number of findings in the run. A verifier that knows six findings claim `Blocking` starts calibrating against a distribution instead of applying the test.
-4. The run's `Verdict`, `Merge readiness`, or anything about shipping pressure. Whether the answer blocks a merge is not a term in the derivation.
+4. The run's `Verdict`, `Release readiness`, or anything about shipping pressure. Whether the answer holds the release is not a term in the derivation.
 5. Adjectives arguing for the conclusion. State the claim and quote the evidence; the packet is not advocacy.
 
 ## Verifier Instructions
@@ -87,7 +87,7 @@ Rules:
 - Do not look for other defects. If you notice one while reading, name it in one
   line at the end and do not investigate it — searching is not your job and it is
   what makes this pass expensive.
-- Do not consider whether your answer blocks the merge. You do not know what else
+- Do not consider whether your answer holds the release. You do not know what else
   the review found, and that is deliberate.
 - Do not soften. `unproven` is a real verdict and is more useful than an agreeable
   `holds` on evidence that does not carry the claim.

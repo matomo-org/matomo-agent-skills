@@ -1,6 +1,6 @@
 ---
 name: matomo-review
-description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations when the diff indicates they apply. Reports only what has to be acted on before shipping; for the full record, including observations that do not gate the merge and the per-path coverage ledger, use matomo-adversarial-review.
+description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations when the diff indicates they apply. Reports only what has to be acted on before the change reaches users; for the full record, including observations that do not gate the release and the per-path coverage ledger, use matomo-adversarial-review.
 ---
 
 # Matomo Review
@@ -19,11 +19,13 @@ For adversarial, exhaustive, or "find every flaw" requests, and for reviewing a 
 
 Matomo ships software to be used. A change should reach users quickly at good quality rather than wait for perfect engineering, because feedback from shipped code is worth more than polish that delays it. Perfectly engineered code that has not shipped helps nobody.
 
+Matomo releases every merge, so the review answers one question: is this change safe in a customer's hands exactly as it stands. Merging it is releasing it.
+
 1. Be exhaustive in coverage and selective in what counts as a reported finding. Only issues with a plausible consequence for users, operators, security, data, or upgrades are reported at all, as `Blocking` or `Medium`.
 2. A reported finding must name that consequence. If the worst realistic outcome is that a future reader would have preferred a different shape, it is not reported here.
 3. Ask for the smallest fix that makes the change safe to ship. Do not require refactors, new abstractions, added generality, or completeness beyond the change's stated purpose.
 4. Shipping speed lowers no floor. Data integrity and upgrade correctness stay at the severity their impact warrants regardless of delivery pressure.
-5. When a defect is real but its impact is bounded and recoverable in a follow-up, say so and keep it out of `Blocking`. Prefer a shipped change plus a named follow-up over a held change.
+5. Score every defect on what it does once released, never on how easily it could be fixed afterwards. A follow-up lands on code users already have, so it keeps the defect away from nobody and is not a mitigation the derivation can credit. Keeping a real defect out of `Blocking` is therefore a decision to release it, and is correct only when the consequence is one a customer can carry.
 
 ### Output Discipline
 
@@ -44,12 +46,16 @@ Security is the first priority of every Matomo review and the one bar that never
 3. When a security-relevant value cannot be resolved, report the ambiguity and the evidence that would settle it rather than assuming the safe reading.
 4. The bar is identical in this skill and in `matomo-adversarial-review`. A security issue only an adversarial pass would catch means the security coverage here is too weak, so fix it here rather than treating adversarial review as the place security-sensitive changes get their real check.
 
-### This Skill Is The Shipping Gate
+### The Gate Is The Release
 
-`matomo-review` decides whether a change is safe to ship. Its `Verdict` and `Merge readiness` are the authoritative answer, and no other skill raises or lowers that bar.
+`matomo-review` decides whether a change is safe in a customer's hands. Its `Verdict` and `Release readiness` are the authoritative answer, and no other skill raises or lowers that bar.
 
-1. A change this skill passes is shippable. Depth added elsewhere may find more, but it does not re-decide merge readiness.
-2. If a defect that should have blocked a merge is found outside this skill, the gap is in this skill or in the rule set it routes to, and belongs in the review skills rather than in a stricter parallel review.
+Merging and releasing are one event, so the review has one gate. There is no window between them for a follow-up to land in, no "good enough to merge, fix it before the release", and no finding whose consequence arrives only at some later gate. Reviewing against the merge instead of the release is what produces a branch that merges cleanly and breaks a customer, which is the failure this skill exists to prevent.
+
+1. A change this skill passes can go to customers as it stands. Depth added elsewhere may find more, but it does not re-decide release readiness.
+2. If a defect that should have held the release is found outside this skill, the gap is in this skill or in the rule set it routes to, and belongs in the review skills rather than in a stricter parallel review.
+3. Never sort findings into merge-relevant and release-relevant. That split invents a second, lower bar the skill does not define, and everything sorted beneath it reaches customers unfixed regardless. `Blocking` holds the release; `Medium` goes out with the change when the author does not fix it first. Both are work on this change, and neither is deferrable to a gate that does not exist.
+4. This governs everything said about the review, not only the written output. Asked which findings matter for the release, the answer is all of them, with `Release readiness` naming the ones that hold it — never a re-sort that reclassifies most of the list as pre-merge cleanup.
 
 ## Trigger Conditions
 
@@ -65,7 +71,7 @@ Redirect narrow debt or cleanup-before-commit requests to `matomo-debt-check` in
 2. Assume CI is green. Vue builds, PHP and Vue test suites, UI tests, lint, and static analysis are the responsibility of implementation and CI, so do not run them, recommend them as review verification, or discount confidence because they were not run. Read-only inspection with `git` and `rg` is the review's own evidence and is always in scope.
 3. Call out ambiguity instead of guessing, both for whether a rule applies and for what the branch intended.
 4. Report each issue once, in the dimension where it is primary. Keep the strongest framing.
-5. Review defects and merge readiness only. Maintainability cleanup that carries no defect, security, compatibility, or operability risk does not become a finding and is not reported; route explicit cleanup requests to `matomo-debt-check`, and adversarial or learning requests to `matomo-adversarial-review`.
+5. Review defects and release readiness only. Maintainability cleanup that carries no defect, security, compatibility, or operability risk does not become a finding and is not reported; route explicit cleanup requests to `matomo-debt-check`, and adversarial or learning requests to `matomo-adversarial-review`.
 6. Use the required output sections exactly. Do not rename, merge, or omit a required section or label, and do not add one.
 7. A review is complete when every changed path carries a verdict in the internal coverage ledger and every applicable rule set and dimension has been applied. Running out of findings is not a completion criterion, and neither is running out of things worth writing down.
 8. Reach every clean verdict from a specific claim about what was checked, and hold that claim in the internal ledger rather than in the output. A path called sound on nothing but the absence of an alarm is an unchecked path. Not writing the basis down is a concession to the reader, so the review must still be able to state it on request.
@@ -175,7 +181,7 @@ This exists because the adjudication layer is the one place a review is decidabl
 3. `unproven`: the finding is not reported as stated. Either obtain the named evidence and re-verify, or restate it as the ambiguity it is and report that at the severity which applies if it holds, with the evidence that would settle it. Never quietly convert `unproven` into a drop; that is how a real defect disappears behind a verification pass.
 4. `false`, and any demotion of a floor-adjacent claim out of `Blocking`, is a destructive verdict and does not stand on one cheap verifier. Corroborate it per `references/finding-verification.md`, then withdraw or demote, and re-examine any other finding that leaned on the same evidence. Where corroboration disagrees, the finding stands at the corroborating step: a factual dispute between two contexts is a reason to keep a finding, not to delete it.
 5. A drop the verifier scores at step 1 through 4 stops being a drop: it enters `Findings` at the step's severity and gets a number like any other finding. The Output Discipline keeps out observations with no consequence, and a verifier that found one has established that this is not such an observation.
-6. A candidate the verifier raises into `Blocking` changes `Merge readiness`, which is derived from the verified bucket. That is the pass working, not a conflict to reconcile.
+6. A candidate the verifier raises into `Blocking` changes `Release readiness`, which is derived from the verified bucket. That is the pass working, not a conflict to reconcile.
 
 ### Running it
 
@@ -393,7 +399,7 @@ For every observation, in this order:
 1. A routed skill rule literally prohibits or requires it — `Blocking`. Quote the rule verbatim from the loaded `SKILL.md`, in its own words rather than paraphrased into a requirement. A rule reaches this step only when its text is binding: `do not`, `must`, `never`, `always`, `remove`. Advisory text — `should`, `prefer`, `consider`, `where practical`, or a rule scoped to a case the diff does not contain — does not reach this step, and the observation continues to step 4 to be scored on its consequence like any other. Summarizing an expectation as "the repository requires X" is the failure this step guards against, because it manufactures a binding rule the routed skill does not contain.
 2. It matches a Severity Floor — `Blocking`. State why the floor's own qualifier holds: for silent data loss, why the caller has no way to observe the drop; for a silent contract failure, which declared contract and where it is declared. Behavior the code documents as deliberate can still match a floor, but the documentation is evidence about the qualifier and has to be answered rather than passed over.
 3. The `security & trust` lens produced it — the severity its impact warrants, with no downgrade for looking bounded or recoverable.
-4. It names a plausible consequence for users, operators, security, data, or upgrades, and that consequence is bounded and recoverable in a follow-up — `Medium`.
+4. It names a plausible consequence for users, operators, security, data, or upgrades, and that consequence is one a customer can carry: bounded, observable to whoever hits it, and recoverable by them or by a later release — `Medium`. Judge it on what the released code does to that customer. That the fix is small, or that an issue could be opened for it, is not what puts an observation here, because both happen after the code is out.
 5. It was observed but no consequence was found, or the consequence is that a future reader would have preferred a different shape — **not reported**. Drop it from the output entirely rather than finding a place to put it. `matomo-adversarial-review` is the skill that records and explains observations of this kind.
 
 Rules for applying it:
@@ -402,7 +408,8 @@ Rules for applying it:
 2. Step 5 is for observations without a consequence, not for findings that are small, awkward to phrase, or unwelcome. An observation that reaches step 4 is reported however cheap its fix, and an observation that reaches steps 1 through 3 is reported however minor it looks.
 3. `Blocking` is every observation that reaches steps 1 through 3, not the single most significant issue the run found. A run that scores one blocking finding while several other observations matched a floor has applied the stance where the floors govern.
 4. Depth of investigation does not raise severity. A defect found by measurement or by tracing into core scores the same as one visible in the diff, and the reverse.
-5. When applicability is uncertain, report the ambiguity as a finding at the severity that applies if it holds, and state the evidence that would confirm or eliminate it. Uncertainty is a reason to report, never a reason to drop.
+5. Fixability is not a term in the derivation. How small the fix is, whether a follow-up issue could carry it, and whether the author intends to do it next change nothing, because the release happens at merge and every one of those lands behind it.
+6. When applicability is uncertain, report the ambiguity as a finding at the severity that applies if it holds, and state the evidence that would confirm or eliminate it. Uncertainty is a reason to report, never a reason to drop.
 
 For routed Matomo skills, refining step 1 of the derivation:
 
@@ -528,14 +535,15 @@ The only additions permitted are `Prior Findings` as described above, and sectio
 3. Each finding should include a concise impact statement, its stable anchor as concrete evidence, and the routed rule source when it is a routed-skill violation. State the impact in one clause; the reader needs to know what breaks, not to be walked through how the review got there.
 4. Number findings sequentially across both buckets, not per bucket, so `Next Steps` can reference them unambiguously within the run.
 5. Within a bucket, order findings by the weight of the consequence they name, heaviest first, and number them in that order. A bucket holds observations that reached the same step, not observations of the same size: a routed-rule docblock violation and a client-reachable exhaustion both reach `Blocking`, and the order is the only thing left that separates them. Never order by lens, by discovery, or by how the derivation reached the step.
-6. Nothing else goes in `Findings`. An observation the Severity Derivation dropped is absent from the review, not softened, parenthesised, appended to a neighbouring finding, or mentioned in passing in `Overall Assessment`.
+6. Both buckets are work on this change, and they differ only in whether the release waits. `Blocking` holds it; a `Medium` left unfixed reaches customers with the merge. Neither bucket is a staging area for work a later gate picks up, and the review never presents one as the release's concern and the other as the merge's.
+7. Nothing else goes in `Findings`. An observation the Severity Derivation dropped is absent from the review, not softened, parenthesised, appended to a neighbouring finding, or mentioned in passing in `Overall Assessment`.
 
 ### Assessment Requirements
 
-1. `Overall Assessment` must include `Verdict: Yes | No | Partially` and `Merge readiness: Ready | Not ready (#<n>, #<n>)`.
+1. `Overall Assessment` must include `Verdict: Yes | No | Partially` and `Release readiness: Ready | Not ready (#<n>, #<n>)`.
 2. The two lines answer different questions and are derived independently. Answering the same question twice wastes one of them.
    - `Verdict` answers **does the change do what it set out to do**, judged against the intent inferred under `Problem Addressed`. `Yes` when the inferred problem is solved, `Partially` when part of it is solved or part of the intent is unimplemented, `No` when it is not solved. Findings do not lower it: a change that fully solves its problem and violates a routed rule is `Yes`, and the violation is what makes it `Not ready`.
-   - `Merge readiness` answers **is it safe to ship as it stands**. It is `Not ready` whenever the review reports at least one `Blocking` finding, and `Ready` otherwise. This one is mechanical: derive it from the verified `Blocking` bucket, do not judge it, and never from the provisional severities that went into `Finding Verification`. Name the findings it rests on — `Not ready (#1, #4)` — so the line says what a reader would otherwise have to reconstruct: whether the gate is held by something dangerous or by a one-space indent. The numbers are not a second severity judgment; they are the `Blocking` bucket, listed.
+   - `Release readiness` answers **can this go to customers exactly as it stands**. Merging releases it, so this is also the merge answer, asked the way that shows what is at stake; never split it into two. It is `Not ready` whenever the review reports at least one `Blocking` finding, and `Ready` otherwise. This one is mechanical: derive it from the verified `Blocking` bucket, do not judge it, and never from the provisional severities that went into `Finding Verification`. Name the findings it rests on — `Not ready (#1, #4)` — so the line says what a reader would otherwise have to reconstruct: whether the gate is held by something dangerous or by a one-space indent. The numbers are not a second severity judgment; they are the `Blocking` bucket, listed.
 3. The assessment paragraph must state whether the change solves the inferred problem and why.
 4. Mention test coverage and gaps if they affect confidence, and say so explicitly if branch intent is unclear.
 5. Do not narrate what the review did or list what came back clean. The paragraph carries the verdict's reasoning and its confidence limits, nothing else.
@@ -557,8 +565,8 @@ The only additions permitted are `Prior Findings` as described above, and sectio
 `Next Steps` is the ordered work, and its order is the last severity signal the review emits.
 
 1. Order the steps by the weight of the consequence each one removes, heaviest first, referencing findings by number. Presentation order is the only ranking `Next Steps` carries, so a step that adds a missing space standing above a step that bounds a client-reachable loop tells the reader the opposite of what the review found.
-2. It carries work, never a shipping verdict. `Merge readiness` is the one line that says whether the change can ship, so no step may state that the branch becomes mergeable once it is done. A run that writes that has answered `Merge readiness` a second time, in a place the reader acts on, using a rule the skill does not define.
-3. Mechanical pre-merge work with no defect behind it — commit-history shape, squashes, rebases — goes last and is named as such.
+2. It carries work, never a shipping verdict. `Release readiness` is the one line that says whether the change can go to customers, so no step may state that the branch becomes mergeable or releasable once it is done. A run that writes that has answered `Release readiness` a second time, in a place the reader acts on, using a rule the skill does not define.
+3. Mechanical pre-merge work with no defect behind it — commit-history shape, squashes, rebases — goes last and is named as such. It is the one kind of step that is genuinely about the merge rather than the release, which is why it is also the only one allowed to be described that way.
 
 ### Internal Coverage Ledger
 

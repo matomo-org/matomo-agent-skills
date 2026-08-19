@@ -1,6 +1,6 @@
 # Review Template
 
-Use this structure exactly for the final review output. It is a work list: everything in it is something someone has to act on before the change ships.
+Use this structure exactly for the final review output. It is a work list: everything in it is something someone has to act on before the change reaches customers. Merging releases it, so both buckets are work on this change and neither is a merge-only concern.
 
 The section list is closed. Do not add an appendix for observations the Severity Derivation dropped, and do not emit the coverage ledger — those were removed on purpose, because nothing acts on them. A section is legal when a skill defines it — `Prior Findings` here, or the groups `matomo-adversarial-review` adds back when it wraps this review — never when a run decides it needs somewhere to put something.
 
@@ -19,6 +19,7 @@ None.
 Medium
 2. `<path>:<approximate line> — <rule or contract at issue>` — <impact and evidence>
 None.
+(does not hold the release; reaches customers with the merge if it is not fixed first)
 
 Prior Findings
 (only when earlier findings were supplied; match by anchor, not by number)
@@ -31,9 +32,9 @@ Problem Addressed
 
 Overall Assessment
 Verdict: Yes | No | Partially
-Merge readiness: Ready | Not ready (#<n>, #<n>)
+Release readiness: Ready | Not ready (#<n>, #<n>)
 <1 short paragraph: whether the change solves the inferred problem and why, plus test-coverage or ambiguity limits where they affect confidence, plus one clause for each degradation that occurred — verification self-administered or not run, fan-out run sequentially rather than dispatched — and nothing about either when it ran normally>
-<`Verdict` answers whether the change does what it set out to do; `Merge readiness` is `Not ready` whenever a `Blocking` finding exists, and names the findings it rests on. Do not lower `Verdict` because findings exist, and do not narrate what the review did.>
+<`Verdict` answers whether the change does what it set out to do; `Release readiness` answers whether it can go to customers as it stands, and is `Not ready` whenever a `Blocking` finding exists, naming the findings it rests on. Do not lower `Verdict` because findings exist, do not narrate what the review did, and do not add a second, weaker readiness line for the merge.>
 
 Matomo-Specific Checks
 Mechanical: 12/12 ran. #<n> → finding #<n>. #12: <n> judged, <m> failing. | 12/12 ran, nothing to report. #12: <n> judged, 0 failing.
@@ -42,7 +43,7 @@ Probes: precedent, untrusted-input, scope attribution — all run, nothing furth
 Not verified: `<path>` — <reason> | None.
 
 Next Steps
-1. ... (heaviest consequence first; no step states that the branch becomes mergeable)
+1. ... (heaviest consequence first; no step states that the branch becomes mergeable or releasable)
 ```
 
 ## Example Output
@@ -67,7 +68,7 @@ The branch appears intended to update the Example plugin GDPR copy and associate
 
 Overall Assessment
 Verdict: Partially
-Merge readiness: Not ready (#1)
+Release readiness: Not ready (#1)
 `Partially` because the header copy is updated but the consent-dialog strings named in the branch description are untouched. Independently of that, finding #1 is `Blocking`, so the branch is `Not ready`. Confidence is high; the copy change needs no new test coverage.
 
 Matomo-Specific Checks
