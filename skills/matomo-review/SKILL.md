@@ -61,7 +61,7 @@ Redirect narrow debt or cleanup-before-commit requests to `matomo-debt-check` in
 
 ## Rules
 
-1. Use routed Matomo skills as the source of truth for Matomo-specific criteria. Do not restate or reinterpret their rules here. Load the `SKILL.md` of every rule set the classification matched before judging the diff against it, and quote or cite the specific rule when reporting a violation. A routed rule applied from recall is not evidence: if the skill was not read, the rule set is `unverified — not loaded`, never `clean`.
+1. Use routed Matomo skills as the source of truth for Matomo-specific criteria. Do not restate or reinterpret their rules here. Load the `SKILL.md` of every rule set the classification matched before judging the diff against it, and quote or cite the specific rule when reporting a violation. A routed rule applied from recall is not evidence: if the skill was not read, the rule set is `unverified — not loaded`, never `clean`. The context that applies a rule set is the one that has to read it, so the `Rule sets` receipt is built from what the dispatched contexts report reading, not from the orchestrator having read it as well.
 2. Assume CI is green. Vue builds, PHP and Vue test suites, UI tests, lint, and static analysis are the responsibility of implementation and CI, so do not run them, recommend them as review verification, or discount confidence because they were not run. Read-only inspection with `git` and `rg` is the review's own evidence and is always in scope.
 3. Call out ambiguity instead of guessing, both for whether a rule applies and for what the branch intended.
 4. Report each issue once, in the dimension where it is primary. Keep the strongest framing.
@@ -69,14 +69,16 @@ Redirect narrow debt or cleanup-before-commit requests to `matomo-debt-check` in
 6. Use the required output sections exactly. Do not rename, merge, or omit a required section or label, and do not add one.
 7. A review is complete when every changed path carries a verdict in the internal coverage ledger and every applicable rule set and dimension has been applied. Running out of findings is not a completion criterion, and neither is running out of things worth writing down.
 8. Reach every clean verdict from a specific claim about what was checked, and hold that claim in the internal ledger rather than in the output. A path called sound on nothing but the absence of an alarm is an unchecked path. Not writing the basis down is a concession to the reader, so the review must still be able to state it on request.
+9. Whatever a dispatched context can read, it reads. The orchestrating context holds the review's structure — the target, the classification, the ledger, the severities, the output — and not the raw material a dispatched context reads to produce its report. The orchestrator's context is resent on every request it makes and is the largest in the run, so a diff hunk, a routed `SKILL.md`, or a check's output that lands in it is paid for again at every later step, while the same read inside a lens is paid for once and discarded with that lens.
+10. Dispatch and then wait. Never poll a running context for progress or re-list the dispatched agents: a poll returns nothing the review can use and costs a full request against that same largest context. Completion arrives on its own.
 
 ## Review Flow
 
 1. Select and pin the review target.
-2. Collect `git diff --stat`, the full diff, the commit list, and the changed-file list.
+2. Collect `git diff --stat`, the commit list, and the changed-file list, and read hunks only where a later step needs a specific one.
 3. Classify the diff by changed area and changed behavior.
-4. Load the `SKILL.md` of every routed rule set the classification matched.
-5. Run the mechanical checks.
+4. Route every matched rule set to the lenses that will apply it.
+5. Dispatch the mechanical checks and take back their results.
 6. Fan the first pass out into the review lenses, or record why a single pass is sufficient.
 7. Run the required evidence probes.
 8. Apply the routed Matomo rule sets and the relevant review dimensions inside each lens.
@@ -101,6 +103,8 @@ Run the mechanical layer to completion before the search layer, and the adjudica
 Run every check below on every review, in this order, whether or not the diff looks like it needs them. Each is a single read-only command with one answer; commands are in `references/review-checks.md`.
 
 Running all twelve is not negotiable; writing all twelve out is. Report by number only the checks that produced something the author has to act on, and cover the rest with the roll-up line the output format defines. Check 12 is the single exception and reports its counts either way, for the reason given under it. Skipping a check and rolling it up as clean is the failure this split invites, so the roll-up is a claim about work actually done, not a formality.
+
+Run the twelve in one dispatched context, before the fan-out, and take back its report rather than its command output. They are commands with one answer, so a separate context cannot change what they return, and together they are the largest block of raw material the run produces for the smallest amount of judgment — exactly the material Rule 9 keeps out of the orchestrator. That context reads `references/review-checks.md`, runs all twelve, adjudicates check 12 against `matomo-documentation`, and returns the enumerated results, the roll-up, and the commands it ran, the last of these so a wrapping skill can render an `Inspected` list it did not watch being built. Where the environment cannot dispatch, run them in place: the mechanical layer is decidable, so running it in the orchestrator weakens nothing and is not a degradation to report.
 
 1. **Routed doc-tag rules** — the tags the routed skills prohibit or require in changed PHPDoc, checked by grep over the changed files rather than by reading for them.
 2. **Repository hygiene** — conflict markers, `*.orig` / `*.rej` leftovers, line-ending drift, mode-only changes, expected-screenshot PNGs outside Git LFS.
@@ -141,9 +145,10 @@ Each lens reads the whole diff and reports only inside its own mandate:
 ### Dispatch
 
 1. When the environment supports running independent agents in parallel, dispatch one per lens concurrently. Otherwise run them as separate sequential passes, restating the mandate at the start of each and not carrying the previous mandate into the next, and say in the `Overall Assessment` confidence statement that the fan-out ran sequentially.
-2. Give every lens the full diff. Overlapping reads are intended; the union of the lenses is the coverage.
-3. A lens must not skip part of its mandate on the assumption that another lens covers it.
-4. Each lens returns its findings with evidence, the coverage rows for the paths it applies to, and the basis for anything it calls sound. The rows and bases feed the internal ledger and the merge; they are not review output.
+2. Give every lens the full diff — the pinned range to read for itself, not hunks pasted into its prompt. Overlapping reads are intended; the union of the lenses is the coverage, and each lens pays for its own reading once.
+3. Name in each lens's mandate the routed rule sets it applies, and let the lens load them. A rule set that two lenses apply is read in both, which is cheaper than reading it once in the context that then carries it for the rest of the run.
+4. A lens must not skip part of its mandate on the assumption that another lens covers it.
+5. Each lens returns its findings with evidence, the routed rule sets it read, the coverage rows for the paths it applies to, and the basis for anything it calls sound. Everything but the findings feeds the internal ledger, the merge, and the receipt; none of it is review output.
 
 ### Merge
 
@@ -494,8 +499,8 @@ Prefer the exact comparison the user provides over any default.
 
 ## Inspection Commands
 
-1. Always collect the diff, commit list, and changed-file list.
-2. Read `references/review-checks.md` when choosing exact git, structural-integrity, or evidence-probe commands, and `references/finding-verification.md` when building the packets for the adjudication pass. The Review Target Selection commands above are authoritative for git range forms.
+1. Always collect the diff, commit list, and changed-file list. The orchestrator collects the stat, the commit list, and `--name-only`; the hunks are read by the contexts that judge them, and by the orchestrator only where a merge decision or a verification packet needs a specific one.
+2. `references/review-checks.md` is read by the context running the checks or the probe that needs a command form, not by the orchestrator on their behalf. Read `references/finding-verification.md` when building the packets for the adjudication pass. The Review Target Selection commands above are authoritative for git range forms.
 3. Apply the routed skills for their rules and expectations. Their build, test, and analysis command forms belong to implementation and CI, not to this review.
 
 ## Output Format
