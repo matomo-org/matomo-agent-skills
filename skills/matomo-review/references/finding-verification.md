@@ -91,6 +91,16 @@ Rules:
   the review found, and that is deliberate.
 - Do not soften. `unproven` is a real verdict and is more useful than an agreeable
   `holds` on evidence that does not carry the claim.
+- Return the verdict and stop. The verdict line and the quote its step requires
+  are the record; reasoning past them runs to at most two sentences, and on a
+  `holds` that agrees with the packet it is usually none. What you write is paid
+  for twice, once when you write it and again when the reviewer reads it.
+- Where the verdict does work, carry what that work needs and do not count it
+  against those two sentences: the consequence when you raise a claim into a floor
+  or into `Blocking`, the fact or command when you return `unproven`, the code's
+  actual behaviour when you return `false`. A raise is often the only account of
+  that finding anyone has written, and a verdict the reviewer cannot act on has
+  saved nothing.
 - Return `false` only when you read the code and it does something other than the
   claim says. When you are not sure you read it correctly, that is `unproven` with
   the fact that would settle it. `false` deletes a defect from the review;
@@ -119,9 +129,9 @@ The three verdicts do not carry equal consequence. A wrong `holds` costs little:
 
 ## Cost
 
-The pass is cheap because its input is a packet and a file, not a diff and a mandate. It reads the code at one anchor, and at most one routed `SKILL.md`.
+The pass is cheaper per context than a lens because its input is a packet and a file, not a diff and a mandate. It reads the code at one anchor, and at most one routed `SKILL.md`. It is not cheap in total: on a review with a normal number of candidates the pass costs about half of what the fan-out costs, and most of that is what the verifiers write rather than what they read.
 
 1. Dispatch one small clean context per candidate, concurrently, at the tier the candidate's surface calls for. A verifier applies a written procedure to a stated claim; it does not search.
-2. Cost scales with the number of candidates, which is a handful, not with the size of the diff. The lens fan-out is the expensive part of a review and this is not a second one.
+2. Cost scales with the number of candidates, not with the size of the diff — but the number of candidates is what a thorough fan-out makes large, so treat the count as a real cost and not a handful.
 3. Never hand a verifier the full diff, the lens mandates, or the other packets. That would restore the cost and the contamination in one move.
-4. Do not economize by cheapening the review tier or by skipping corroboration. The saving is a rounding error against the fan-out, and both spend the pass's only product, which is a severity you can trust across runs.
+4. Do not economize by cheapening the review tier, by skipping corroboration, or by grouping several packets into one context. The first two spend the pass's only product, which is a severity you can trust across runs; the third trades the isolation the pass exists for against a saving the verdict form already gives you. Economize on what the verifier writes instead.
