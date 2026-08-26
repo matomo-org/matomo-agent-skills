@@ -71,3 +71,15 @@ Use this split when multiple skills could plausibly cover the same review area:
 - Vue `v-html` belongs in `matomo-vue-development-rules`.
 - API access control and CSRF policy belong in `matomo-security-rules`.
 5. If a review-relevant change touches both a cross-cutting security invariant and a framework-specific sink, verify `matomo-review` routes to both the framework skill and the relevant security checks without duplicating the same finding twice.
+
+### Which skill enforces a rule class
+
+A rule class is enforced in exactly one place, chosen by two properties of the class and not by how much it matters:
+
+1. **Decidable by a command, no judgment per instance** — a linter or CI owns it. `phpcs`, `phpstan`, `eslint`, or a CI script catches every instance and never varies, which no review pass can promise. The review skills may name it once so an implementation avoids a round trip; they do not check it.
+2. **Needs judgment, and its population is unbounded in a diff but bounded in what the change writes** — implementation owns it, as an obligation applied before the code exists. Prose that claims something about core, the strength of a new test's assertions, and the naming of a new artifact are all of this kind: searching a diff for violations is sampling an open space, while applying the rule to the file you are writing is a finite job. A review can only sample these, so it does not report them.
+3. **Needs judgment, and its population is bounded in the diff** — `matomo-review` gates it. A public method's contract, a schema, a segment name, an event signature: there is one of each per changed surface, so every run finds it and two runs agree.
+
+The edge that keeps this honest: only a class whose failure has **no release consequence** may move to implementation alone, because an implementation obligation is unenforced — nothing checks afterwards that it was met. A class whose failure reaches a customer stays enforced, by CI where it is decidable and by `matomo-review` where it is not. Moving such a class out deletes the standard rather than relocating it.
+
+A class moving out of `matomo-review` is not a lowered bar. The bar moves earlier, where the population is bounded and the fix is free, and the diff then carries fewer instances for anyone to sample.

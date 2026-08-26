@@ -6,58 +6,70 @@ For git range forms and baseline resolution, use the Review Target Selection sec
 
 ## Mechanical Checks
 
-One command per check, in the order `SKILL.md` lists them. Run all twelve on every review; report by number only the ones that produced something to act on, per the Output Discipline in `SKILL.md`. `<range>` is the pinned `<base>..<head>`; `$CHANGED` is `git diff --name-only <range>`.
+One command per check, in the order `SKILL.md` lists them. Run all nine on every review; report by number only the ones that produced something to act on, per the Output Discipline in `SKILL.md`. `<range>` is the pinned `<base>..<head>`; `$CHANGED` is `git diff --name-only <range>`.
 
 1. **Routed doc-tag rules** — `git diff --name-only <range> -- '*.php' | xargs grep -n '@throws\|@deprecated\|@internal\|@unsanitized'`. Judge each hit against the loaded routed skill, not against general PHPDoc habit. `matomo-documentation` prohibits `@throws` unconditionally, which is decidable by this grep and is exactly the kind of rule a review misses when it reads for quality instead of grepping for the tag.
-2. **Repository hygiene** — `git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- $CHANGED` for conflict markers with false-positive discipline; `git ls-files | grep -E '\.(orig|rej)$'`; `git ls-files --eol -- $CHANGED`; `git diff --summary <range>` for mode-only changes; `git lfs ls-files` against any changed path under `tests/UI/expected-screenshots/`.
+2. **Repository hygiene** — `git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- $CHANGED` for conflict markers with false-positive discipline; `git diff --name-only --diff-filter=A <range> | grep -E '\.(orig|rej)$'` for leftovers this change added, since a repo-wide scan reports files the diff is not answerable for; `git diff --summary <range>` for mode-only changes.
 3. **Submodule pointers** — `git diff --submodule=short <range>`.
 4. **Dependency lockstep** — `git diff --name-only <range> | grep -E 'composer\.(json|lock)$'`, then compare the two results.
 5. **Version and migration pairing** — `git diff --name-only <range> | grep -E '(Updates/.*\.php|plugin\.json|core/Version\.php)$'`, then compare against the `matomo-migrations-workflow` expectation in both directions.
 6. **Suppressions** — `git diff <range> | grep -n '^+.*\(phpcs:ignore\|phpcs:disable\|@phpstan-ignore\|@psalm-suppress\)'` plus any change to a PHPStan baseline file.
 7. **Deprecation surface** — `git diff <range> | grep -nE '^[-+].*@deprecated'` and `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) function'`. Exclude test paths: a deleted test method is a `tests` lens concern, and leaving it in floods this check with hits that are never deprecation events.
-8. **Framework sinks** — `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`; `git diff <range> -- '*.vue' | grep -n '^+.*v-html'`; read the block order of every changed SFC.
-9. **Translation files** — `git diff --name-only <range> | grep -E 'lang/.*\.json$'`, separating `en.json` from other locales.
-10. **Leftovers in added lines** — `git diff <range> | grep -nE '^\+.*(var_dump|print_r|console\.log|die\(|TODO|FIXME|XXX|/home/|/Users/)'`.
-11. **Docblock continuation alignment** — write the script below to a temp file and run it over every changed PHP file. It prints one line per continuation line that does not sit under its tag's description column, with both columns, and it reports nothing when the docblocks are aligned. Filter its output to lines the diff added, so an untouched docblock elsewhere in a changed file is not reported — `matomo-documentation` forbids mass-reformatting unrelated docblocks, so only added lines are in scope.
-
-    ```awk
-    match($0, /^[ \t]*\*[ ]@(param|return|var)[ ]/) {
-      star = index($0, "*"); body = substr($0, star + 2)
-      pre = (body ~ /^@param /) ? "^@param +[^ ]+ +[^ ]+ +" : "^@(return|var) +[^ ]+ +"
-      desc = match(body, pre) ? star + 1 + RLENGTH : 0
-      next
-    }
-    desc && match($0, /^[ \t]*\*[ ]+[^ ]/) {
-      c = index($0, "*") + 1; while (substr($0, c + 1, 1) == " ") c++
-      if (c != desc) printf "%s:%d: continuation col %d, description col %d\n", FILENAME, FNR, c, desc
-      next
-    }
-    { desc = 0 }
-    ```
-
-    A multi-line `@return array{...}` shape whose description follows the closing brace is not a continuation of the tag line and is correctly not reported; do not report one by eye either.
-12. **Added docblocks in internal mode** — run the script below over every changed PHP file except `API.php`, filtering to docblocks the diff added. It prints `file:start-end function` for each prose-only docblock (one carrying no `@param`, `@return`, or `@var`) directly above a method. A prose-only block adds no type information, so `matomo-documentation`'s "native types are missing or too broad" exception cannot apply to it — each candidate is either covered by an explicit request for internal documentation, or kept under the internal-mode summary rule because it conveys something the name and signature do not. Adjudicate every row on that test and report the count judged and the ones that fail.
-
-    ```awk
-    /^[ \t]*\/\*\*/ { start = FNR; inblock = 1; tagged = 0; next }
-    inblock {
-      if ($0 ~ /@(param|return|var|phpstan-|psalm-)/) tagged = 1
-      if ($0 ~ /\*\//) { end = FNR; inblock = 0; pending = 1 }
-      next
-    }
-    pending {
-      if ($0 ~ /^[ \t]*$/) next
-      if (!tagged && match($0, /function[ ]+[A-Za-z_][A-Za-z0-9_]*/))
-        printf "%s:%d-%d %s\n", FILENAME, start, end, substr($0, RSTART, RLENGTH)
-      pending = 0
-    }
-    ```
-
-    A candidate fails when its prose only restates the method name, its parameters, or its return type, or when it repeats a statement already made in the class docblock or in another docblock in the same file. It passes when the run can name the specific fact the prose conveys.
-
-    Test methods are `internal mode` like any other non-`API.php` method, so do not exempt `tests/` from this check. Report the result as `#12: <n> judged, <m> failing` plus the failing anchors, rather than the whole list, which can run to dozens of rows on a large diff. This check reports its counts even when nothing failed: its verdict is a judgment, so the count is the only thing that makes two runs comparable on it.
+8. **Framework sinks** — `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`; `git diff <range> -- '*.vue' | grep -n '^+.*v-html'`.
+9. **Leftovers in added lines** — `git diff <range> | grep -nE '^\+.*(var_dump|print_r|console\.log|die\(|TODO|FIXME|XXX|/home/|/Users/)'`.
 
 Angle-bracket and `$CHANGED` placeholders are templates; substitute the pinned range before running. A check whose grep matches no file kind present in the diff is reported `n/a`, not omitted.
+
+Some things are deliberately absent here, each because something else in the repository already answers it: line-ending drift and expected-screenshot LFS storage, both settled by `.gitattributes` at check-in; SFC block order, reported by `.eslintrc.js` during `vue:build`; `lang/**` edits, which the changed-file list already carries into Diff Classification; and PHPDoc continuation alignment with prose-only method docblocks, which `phpcs` decides and `phpcbf` fixes the first of. They are `matomo-code-quality` or CI work under the CI assumption in `SKILL.md`, not review commands.
+
+## Shared Diff
+
+Run these in the check context, after the checks, and return the directory. It is what every lens reads instead of resolving the range again. Substitute the pinned `<range>` and `<head>` before running.
+
+```sh
+D=$(mktemp -d)
+git diff <range> > "$D/diff.patch"
+git diff --name-only <range> > "$D/changed-files.txt"
+git diff --name-only --diff-filter=d <range> | while IFS= read -r f; do
+  printf '\n===== %s =====\n' "$f"
+  git show "<head>:$f"
+done > "$D/changed-files-at-head.txt"
+echo "$D"
+```
+
+The same directory is where each lens later writes its own record as `lens-<name>.md`, so the coverage bases stay on disk instead of in the orchestrator's context.
+
+`changed-files.txt` is the full path list the coverage ledger enumerates. The body bundle filters deleted paths out with `--diff-filter=d`, since they have no text at head. The separator's leading newline is load-bearing: a file whose last line has no newline otherwise swallows the next path's separator, and the bundle then silently holds fewer files than the list — verified on a Matomo diff where 12 of 34 paths disappeared that way. Binary paths land in the bundle as whatever `git show` prints for them, so a lens takes their names from the path list and does not read their contents. On a diff large enough that the bundle is unwieldy, return the directory anyway and let each lens read only the paths its mandate names: the point is that the material is on disk once, not that a lens reads all of it.
+
+## Surface Inventory
+
+Run these in the check context after the shared diff, and write the rows to `$D/surfaces.md`. The classes and the questions each row carries are in `references/surface-obligations.md`. Substitute the pinned `<range>` first.
+
+Every form filters comment lines, because a docblock naming `createTable()` or a removed segment is not a surface. Line numbers are diff positions, as in the mechanical checks; resolve each row to `<path>:<line>` at head when writing it.
+
+```sh
+# 1. stored state — schema the change adds or alters, plus the code that creates it
+git diff <range> -- '*/Dao/*.php' '*/Tracker/LogTable/*.php' 'core/Db/Schema/*.php' \
+  | grep -E '^\+' | grep -vE '^\+\s*(\*|//|#)' \
+  | grep -nE '(CREATE TABLE|ALTER TABLE|ADD COLUMN|createTable|addColumn)'
+git diff <range> | grep -nE '^\+.*function (install|uninstall)\('
+
+# 2. client-supplied parameter — request values the change newly reads
+git diff <range> -- '*.php' | grep -E '^\+' | grep -vE '^\+\s*(\*|//|#)' \
+  | grep -nE '(getParam|getStringParameter|getIntegerParameter|getFloatParameter|Common::getRequestVar)\('
+
+# 3. public API method
+git diff <range> -- '*/API.php' | grep -nE '^\+.*public function '
+
+# 4. named public artifact — both sides of a rename, so this form reads -/+
+git diff <range> -- '*/Columns/*.php' '*/RecordBuilders/*.php' '*/Dimension*.php' \
+  | grep -E '^[-+]' | grep -vE '^[-+]\s*(\*|//|#)' \
+  | grep -nE "(segmentName|setSegment|setName|acceptedValues|const [A-Z_]+ *=)"
+git diff <range> | grep -E '^[-+]' | grep -vE '^[-+]\s*(\*|//|#)' \
+  | grep -nE '(postEvent|getFromGlobalConfig|Config::getInstance)'
+```
+
+Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tables, three tracking parameters, one API method, and five named artifacts including the two removed segment names, eleven rows in total. Without the comment filter the first form also returns the docblock that mentions `DbHelper::createTable()`, which is the noise these forms exist to keep out of a row list that has to match across runs.
 
 ## Inspection Commands
 
@@ -78,11 +90,8 @@ Angle-bracket and `$CHANGED` placeholders are templates; substitute the pinned r
 
 ### Structural-integrity inspection commands
 
-- `git ls-files`
 - `git grep` for unresolved conflict-marker patterns with false-positive discipline
-- `git ls-files --eol`
-- `git lfs ls-files`
-- inspect `.gitattributes` and `.editorconfig` when EOL or LFS policy matters
+- `git diff --name-only --diff-filter=A <range>` to attribute added leftover files to this change
 
 ## Required Evidence Probes
 
