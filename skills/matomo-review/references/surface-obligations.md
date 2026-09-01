@@ -4,6 +4,8 @@ The classes the `Surface Inventory` in `SKILL.md` enumerates, and what each row 
 
 A row is answered `met` with the code that meets it, `unmet` as a finding, or `unreviewed` with the reason. `met` on a floor-carrying class is a stated negative, so it reaches the step-5 audit through the merge.
 
+The questions below are conjunctive, so the row takes one verdict: a row `met` on one of its questions and `unmet` on another is `unmet`. A split verdict is what makes one run's `unmet` count mean something different from another's. The ledger a lens returns carries exactly the rows it owns — no fewer, and none of its own. A surface the lens found that the enumeration did not carry is a finding or a coverage row, recorded apart from this ledger, because a ledger that grows rows cannot be compared against another run's.
+
 ## 1. Stored state — owning lens: `contracts & compatibility`
 
 A table or column the change adds or alters, wherever its DDL lives.
@@ -26,7 +28,7 @@ A method the change adds or alters in `plugins/*/API.php`.
 
 1. Is the documented return shape true for every arm the parameters allow? A multi-site or multi-period argument that returns a `DataTable\Map` where the docblock promises rows is Severity Floor 2, and `matomo-documentation` binds the fix.
 2. Are fixed-value parameters validated against the set the docblock declares? `matomo-api-development-rules` binds this.
-3. Is there an access check, and does a test fail without it? Coverage is a `matomo-test-runner` question; the check's absence is a security finding.
+3. Is there an access check? The check's absence is a security finding. A test that fails without it is the probe that shows the check is load-bearing rather than incidental, so use it as evidence; its absence is a `tests` lens concern and not itself a security finding.
 
 ## 4. Named public artifact — owning lens: `conventions & precedent`
 

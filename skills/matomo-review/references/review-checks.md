@@ -14,7 +14,7 @@ One command per check, in the order `SKILL.md` lists them. Run all nine on every
 4. **Dependency lockstep** — `git diff --name-only <range> | grep -E 'composer\.(json|lock)$'`, then compare the two results.
 5. **Version and migration pairing** — `git diff --name-only <range> | grep -E '(Updates/.*\.php|plugin\.json|core/Version\.php)$'`, then compare against the `matomo-migrations-workflow` expectation in both directions.
 6. **Suppressions** — `git diff <range> | grep -n '^+.*\(phpcs:ignore\|phpcs:disable\|@phpstan-ignore\|@psalm-suppress\)'` plus any change to a PHPStan baseline file.
-7. **Deprecation surface** — `git diff <range> | grep -nE '^[-+].*@deprecated'` and `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) function'`. Exclude test paths: a deleted test method is a `tests` lens concern, and leaving it in floods this check with hits that are never deprecation events.
+7. **Deprecation surface** — `git diff <range> | grep -nE '^[-+].*@deprecated'` and `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) function'`. Exclude test paths: a deleted test method is not a deprecation event, and leaving it in floods this check with hits that never are. Paths under `tests/` belong to the `tests` lens.
 8. **Framework sinks** — `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`; `git diff <range> -- '*.vue' | grep -n '^+.*v-html'`.
 9. **Leftovers in added lines** — `git diff <range> | grep -nE '^\+.*(var_dump|print_r|console\.log|die\(|TODO|FIXME|XXX|/home/|/Users/)'`.
 
@@ -69,7 +69,9 @@ git diff <range> | grep -E '^[-+]' | grep -vE '^[-+]\s*(\*|//|#)' \
   | grep -nE '(postEvent|getFromGlobalConfig|Config::getInstance)'
 ```
 
-Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tables, three tracking parameters, one API method, and five named artifacts including the two removed segment names, eleven rows in total. Without the comment filter the first form also returns the docblock that mentions `DbHelper::createTable()`, which is the noise these forms exist to keep out of a row list that has to match across runs.
+Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tables, three tracking parameters, one API method, and five named artifacts including the two removed segment names, eleven rows in total.
+
+Without the comment filter the first form also returns the docblock that mentions `DbHelper::createTable()`, which is the noise these forms exist to keep out of a row list that has to match across runs.
 
 ## Inspection Commands
 
@@ -106,8 +108,8 @@ Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tab
 Search the surrounding code before judging a new name or structure. Use the artifact type to pick the surface:
 
 - CSS class or selector: `rg '<selector-stem>' plugins/<Plugin> --glob '*.less' --glob '*.css' --glob '*.vue'`
-- translation key: `rg '"<BareKeyName>"' plugins/<Plugin>/lang/en.json` and read the surrounding keys for grouping and order. Keys are nested under the plugin name and stored without the `<Plugin>_` prefix, so probe usages separately with `rg '<Plugin>_<BareKeyName>' plugins/ core/`
-- public method, prop, or event name: `rg '<name>' plugins/ core/ --glob '*.php' --glob '*.vue'`
+- translation key: `rg '"<BareKeyName>"' plugins/<Plugin>/lang/en.json` and read the surrounding keys for grouping and order. Keys are nested under the plugin name and stored without the `<Plugin>_` prefix, so probe usages separately with `rg '<Plugin>_<BareKeyName>' plugins/ core/`. The usage search is the load-bearing half: a key defined and never registered, or registered and never defined, is what shows the user raw key text
+- public method, prop, or event name: `rg '<name>' plugins/ core/ --glob '*.php' --glob '*.vue'` — for a removed or renamed name run it on the **old** name, since what still refers to it is what decides whether a resolving path is missing
 - config or option key: `rg '<key>' config/ core/ plugins/`
 - new file in an established directory: `ls` the sibling files and read the closest existing one
 
