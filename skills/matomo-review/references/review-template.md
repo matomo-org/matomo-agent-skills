@@ -33,7 +33,7 @@ Problem Addressed
 Overall Assessment
 Verdict: Yes | No | Partially
 Release readiness: Ready | Not ready (#<n>, #<n>)
-<1 short paragraph: whether the change solves the inferred problem and why, plus test-coverage or ambiguity limits where they affect confidence, plus one clause for each degradation that occurred — verification self-administered or not run, fan-out run sequentially rather than dispatched, a destructive verdict applied without corroboration and the finding it lowered — and nothing about any of them when they ran normally>
+<1 short paragraph: whether the change solves the inferred problem and why, plus ambiguity limits where they affect confidence — never test coverage, which is out of scope rather than unverified — plus one clause for each degradation that occurred — verification self-administered or not run, fan-out run sequentially rather than dispatched, a destructive verdict applied without corroboration and the finding it lowered — and nothing about any of them when they ran normally>
 <`Verdict` answers whether the change does what it set out to do; `Release readiness` answers whether it can go to customers as it stands, and is `Not ready` whenever a `Blocking` finding exists, naming the findings it rests on. Do not lower `Verdict` because findings exist, do not narrate what the review did, and do not add a second, weaker readiness line for the merge.>
 
 Matomo-Specific Checks
@@ -69,11 +69,11 @@ The branch appears intended to update the Example plugin GDPR copy and associate
 Overall Assessment
 Verdict: Partially
 Release readiness: Not ready (#1)
-`Partially` because the header copy is updated but the consent-dialog strings named in the branch description are untouched. Independently of that, finding #1 is `Blocking`, so the branch is `Not ready`. Confidence is high; the copy change needs no new test coverage.
+`Partially` because the header copy is updated but the consent-dialog strings named in the branch description are untouched. Independently of that, finding #1 is `Blocking`, so the branch is `Not ready`. Confidence is high.
 
 Matomo-Specific Checks
 Mechanical: 9/9 ran. #3 → finding #2.
-Rule sets: `matomo-i18n-development-rules`, `matomo-vue-development-rules`, `matomo-test-runner` (all loaded).
+Rule sets: `matomo-i18n-development-rules`, `matomo-vue-development-rules` (all loaded, applied to changed surfaces).
 Probes: precedent, untrusted-input, scope attribution — all run, nothing further.
 Not verified: None.
 

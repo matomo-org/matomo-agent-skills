@@ -83,3 +83,10 @@ A rule class is enforced in exactly one place, chosen by two properties of the c
 The edge that keeps this honest: only a class whose failure has **no release consequence** may move to implementation alone, because an implementation obligation is unenforced — nothing checks afterwards that it was met. A class whose failure reaches a customer stays enforced, by CI where it is decidable and by `matomo-review` where it is not. Moving such a class out deletes the standard rather than relocating it.
 
 A class moving out of `matomo-review` is not a lowered bar. The bar moves earlier, where the population is bounded and the fix is free, and the diff then carries fewer instances for anyone to sample.
+
+Two classes have been resolved this way. Recording them here is what stops them being re-added to the review by reflex:
+
+1. **Coverage adequacy** — category 2. Implementation chooses the test type per behavior and states what breaks each test, loading `matomo-test-runner` itself both when it writes the code and when it checks what it wrote. `matomo-review` reports none of it and does not load that skill; `matomo-adversarial-review` restores it as a non-scoring `Noted` item. The release-consequential residue is not coverage at all: a changed expected-output or screenshot file is evidence of a behavior change, and a test that fails without an access check is the probe behind a security finding.
+2. **Naming, idiom, and layer precedent** — category 2, so `matomo-review` routes neither `matomo-css-development-rules` nor `matomo-frontend-direction`. A removed or renamed public name and a translation key stay in the review, because a caller or a user meets them; that makes them compatibility and i18n questions rather than convention ones.
+
+Both satisfy the edge above: a missing test and an off-convention class name have no release consequence, so placing them earlier relocates the standard rather than deleting it. For the three skills this leaves unrouted, this record is the documented exclusion that item 8 of `## Required Validation Checklist` asks for.

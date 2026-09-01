@@ -14,7 +14,7 @@ One command per check, in the order `SKILL.md` lists them. Run all nine on every
 4. **Dependency lockstep** — `git diff --name-only <range> | grep -E 'composer\.(json|lock)$'`, then compare the two results.
 5. **Version and migration pairing** — `git diff --name-only <range> | grep -E '(Updates/.*\.php|plugin\.json|core/Version\.php)$'`, then compare against the `matomo-migrations-workflow` expectation in both directions.
 6. **Suppressions** — `git diff <range> | grep -n '^+.*\(phpcs:ignore\|phpcs:disable\|@phpstan-ignore\|@psalm-suppress\)'` plus any change to a PHPStan baseline file.
-7. **Deprecation surface** — `git diff <range> | grep -nE '^[-+].*@deprecated'` and `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) function'`. Exclude test paths: a deleted test method is not a deprecation event, and leaving it in floods this check with hits that never are. Paths under `tests/` belong to the `tests` lens.
+7. **Deprecation surface** — `git diff <range> | grep -nE '^[-+].*@deprecated'` and `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) function'`. Exclude test paths: a deleted test method is not a deprecation event, and leaving it in floods this check with hits that never are. Paths under `tests/` belong to the `scope & repository hygiene` lens.
 8. **Framework sinks** — `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`; `git diff <range> -- '*.vue' | grep -n '^+.*v-html'`.
 9. **Leftovers in added lines** — `git diff <range> | grep -nE '^\+.*(var_dump|print_r|console\.log|die\(|TODO|FIXME|XXX|/home/|/Users/)'`.
 
@@ -61,7 +61,9 @@ git diff <range> -- '*.php' | grep -E '^\+' | grep -vE '^\+\s*(\*|//|#)' \
 # 3. public API method
 git diff <range> -- '*/API.php' | grep -nE '^\+.*public function '
 
-# 4. named public artifact — both sides of a rename, so this form reads -/+
+# 4. named public artifact — reads -/+ to tell a rename from an unrelated add and remove.
+#    Write a row only for a name the diff removes or renames; a purely added name is not a
+#    surface here, per references/surface-obligations.md §4.
 git diff <range> -- '*/Columns/*.php' '*/RecordBuilders/*.php' '*/Dimension*.php' \
   | grep -E '^[-+]' | grep -vE '^[-+]\s*(\*|//|#)' \
   | grep -nE "(segmentName|setSegment|setName|acceptedValues|const [A-Z_]+ *=)"
@@ -69,7 +71,7 @@ git diff <range> | grep -E '^[-+]' | grep -vE '^[-+]\s*(\*|//|#)' \
   | grep -nE '(postEvent|getFromGlobalConfig|Config::getInstance)'
 ```
 
-Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tables, three tracking parameters, one API method, and five named artifacts including the two removed segment names, eleven rows in total.
+Verified against `plugins/ExampleLogTables` at `d74df8706b..982a546438`: two tables, three tracking parameters, one API method, and five named artifacts including the two removed segment names, eleven rows in total. That run predates the added-name filter above. Its recorded breakdown gives the new count without re-running it: the named-artifact class contributes the two removed segment names rather than all five, so the same range now yields eight rows. Re-verify against a checkout before relying on the figure for anything but this arithmetic.
 
 Without the comment filter the first form also returns the docblock that mentions `DbHelper::createTable()`, which is the noise these forms exist to keep out of a row list that has to match across runs.
 
@@ -105,13 +107,11 @@ Without the comment filter the first form also returns the docblock that mention
 
 ### Precedent probe commands
 
-Search the surrounding code before judging a new name or structure. Use the artifact type to pick the surface:
+The probe runs on two surfaces only, per `SKILL.md`: a public name the change removes or renames, and a translation key it adds or changes. It is `n/a` otherwise — CSS selectors and new-file placement are implementation work, not review commands.
 
-- CSS class or selector: `rg '<selector-stem>' plugins/<Plugin> --glob '*.less' --glob '*.css' --glob '*.vue'`
 - translation key: `rg '"<BareKeyName>"' plugins/<Plugin>/lang/en.json` and read the surrounding keys for grouping and order. Keys are nested under the plugin name and stored without the `<Plugin>_` prefix, so probe usages separately with `rg '<Plugin>_<BareKeyName>' plugins/ core/`. The usage search is the load-bearing half: a key defined and never registered, or registered and never defined, is what shows the user raw key text
-- public method, prop, or event name: `rg '<name>' plugins/ core/ --glob '*.php' --glob '*.vue'` — for a removed or renamed name run it on the **old** name, since what still refers to it is what decides whether a resolving path is missing
-- config or option key: `rg '<key>' config/ core/ plugins/`
-- new file in an established directory: `ls` the sibling files and read the closest existing one
+- removed or renamed public method, prop, or event name: `rg '<name>' plugins/ core/ --glob '*.php' --glob '*.vue'` — run it on the **old** name, since what still refers to it is what decides whether a resolving path is missing
+- removed or renamed config or option key: `rg '<key>' config/ core/ plugins/`
 
 Angle-bracket placeholders are templates; replace them before running.
 
@@ -128,7 +128,6 @@ Apply the routed skills for their rules, not their commands:
 
 - `matomo-code-quality` for style and static-analysis expectations, including which new suppressions and baseline additions are acceptable in the diff
 - `matomo-migrations-workflow` for update placement, version-marker bumps, immutability, and install schema synchronization; inspect `core/Db/Schema/Mysql.php` when core table definitions change
-- `matomo-vue-development-rules` for SFC and build-artifact expectations
-- `matomo-test-runner` for the coverage a change is expected to carry
+- `matomo-vue-development-rules` for sink and build-artifact expectations
 
-A green suite is assumed. Missing coverage is still a finding: judge it by reading the tests the diff adds against the behavior it changes.
+`matomo-test-runner`, `matomo-css-development-rules`, and `matomo-frontend-direction` are deliberately absent: a green suite is assumed, and coverage adequacy, CSS convention, and frontend direction are owned earlier in the lifecycle per `What no lens carries` in `SKILL.md`. A feature arriving without tests is not a finding here. What a changed test file is read for is the behavior its expected output encodes, which needs no rule set.

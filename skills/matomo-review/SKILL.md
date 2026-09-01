@@ -1,6 +1,6 @@
 ---
 name: matomo-review
-description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, plugin architecture, Twig, code quality, migrations, deprecation rules, Vue, documentation, and test expectations when the diff indicates they apply. Reports only what has to be acted on before the change reaches users; for the full record, including observations that do not gate the release and the per-path coverage ledger, use matomo-adversarial-review.
+description: Review Matomo git changes for branches, PRs, or arbitrary git ranges. Use this skill when asked to review the current branch before pushing, review a PR as a third party, or assess a specific Matomo git comparison against a baseline or explicit revspec. Route the assessment through Matomo-specific review rules such as i18n, security, API development, contracts, Twig, code quality, migrations, deprecation rules, Vue sinks, and documentation when the diff indicates they apply. Assesses release consequence only, so coverage adequacy and naming or convention judgment are not assessed here; implementation owns them earlier in the lifecycle, and matomo-adversarial-review restores them as non-scoring observations. Reports only what has to be acted on before the change reaches users; for the full record, including observations that do not gate the release and the per-path coverage ledger, use matomo-adversarial-review.
 ---
 
 # Matomo Review
@@ -154,10 +154,9 @@ A single pass spreads one attention budget across every rule set and dimension, 
 Fan-out width follows the target, from `git diff --shortstat <range>`:
 
 - 3 or fewer changed files and 150 or fewer changed lines: one pass over the remaining mandates, alongside the `security & trust` lens, which is dispatched on its own at every width.
-- 500 or fewer changed lines: three lenses, grouped as below.
-- more than that: six lenses, one per mandate.
+- more than that: four lenses, one per mandate.
 
-Width scales with the diff because a lens costs what its turns cost, and its turns scale with how much there is to read. Six lenses over a few hundred lines pay six context set-ups and six overlapping readings for a candidate space one lens covers; the same six over several thousand lines are what stop the domains competing. Which width applied is not review output: it follows from the target, so two runs over the same range make the same choice and the reader learns nothing from being told.
+Width scales with the diff because a lens costs what its turns cost, and its turns scale with how much there is to read. Four lenses over a hundred lines pay four context set-ups and four overlapping readings for a candidate space one lens covers; the same four over several thousand lines are what stop the domains competing. There is no intermediate grouping tier: with four mandates it would save one context set-up and pay for it with a grouped lens spending one attention budget across two mandates, which is the competition the fan-out exists to remove. Which width applied is not review output: it follows from the target, so two runs over the same range make the same choice and the reader learns nothing from being told.
 
 How the fan-out then ran is different. Independent contexts and sequential passes are not equivalent instruments — a sequential pass carries the previous mandate's framing and spends one attention budget across every mandate at once — so a run that could not dispatch is a run whose search was weaker, and that is a confidence limit like any other. Report it as one, per the `Overall Assessment` requirements.
 
@@ -166,13 +165,20 @@ How the fan-out then ran is different. Independent contexts and sequential passe
 Each lens reads the whole diff and reports only inside its own mandate:
 
 1. `security & trust`: the untrusted-input inventory, access control, sinks, secrets, and anything a hostile client could reach.
-2. `contracts & compatibility`: public APIs, posted events, exported component props, config keys, schema, and upgrade or rollback behavior.
-3. `correctness & data integrity`: changed behavior and state, error and recovery paths, and anything that can drop or corrupt data.
-4. `conventions & precedent`: the precedent probe, translation-key governance, framework idioms, and plugin layer separation.
-5. `tests`: whether the changed behavior carries the coverage `matomo-test-runner` expects.
-6. `scope & repository hygiene`: scope attribution and structural integrity, including submodule pointers and generated assets.
+2. `contracts & compatibility`: public APIs, posted events, exported component props, config keys, schema, upgrade or rollback behavior, and a public name the change removes or renames with no resolving path.
+3. `correctness & data integrity`: changed behavior and state, error and recovery paths, anything that can drop or corrupt data, translation-key governance, and a changed expected-output or screenshot file read as evidence of a behavior change.
+4. `scope & repository hygiene`: scope attribution and structural integrity, including submodule pointers, generated assets, and every path under `tests/`.
 
-At three-lens width the mandates group as `security & trust`; `correctness & data integrity` with `contracts & compatibility`; and `conventions & precedent` with `tests` and `scope & repository hygiene`. Security stays alone at every width, per `Security Is The Fixed Bar`. A grouped lens carries both mandates in full and reports under each of them separately, so neither the merge nor the ledger changes with the width.
+Security stays alone at every width, per `Security Is The Fixed Bar`.
+
+### What no lens carries
+
+Two mandates a release review might be expected to fan out are absent, because their failure has no release consequence and `AGENTS.md`'s `Which skill enforces a rule class` therefore places them earlier, where the population is what the change writes rather than what a diff happens to contain.
+
+1. **Coverage adequacy.** Whether changed behavior carries the coverage `matomo-test-runner` expects is settled during implementation, which loads that skill itself — when it decides what to write, and again when it checks what it wrote. A missing test has no anchor a customer reaches and no consequence the merge's packet gate could state, so it is not an observation this skill can score; whether the tests that exist pass is CI's answer, per the CI assumption in `Rules`. Two release-consequential pieces stay, and neither is about coverage: a changed expected-output or screenshot file, which is how a behavior regression gets normalised into a green suite and which `correctness & data integrity` reads as evidence of the behavior change; and question 3 of `references/surface-obligations.md` §3, where the access check's absence is the finding and a test that fails without it is only the probe for it.
+2. **Naming, idiom, and layer precedent.** Implementation decides file placement, private naming, test naming, and BEM class names from precedent, loading `matomo-css-development-rules` and `matomo-frontend-direction` where they apply. A review can only sample that class, so it reports none of it, and neither `matomo-css-development-rules` nor `matomo-frontend-direction` is routed here. What stays is the part a caller or a user meets: a removed or renamed public name, which is compatibility and sits with `contracts & compatibility`, and a translation key, which reaches the user as raw key text and sits with `correctness & data integrity`.
+
+Neither class returns as a confidence limit. A review that does not assess coverage does not report coverage as unverified, because out of scope and unassessed are different claims and only the second belongs in `Not verified`. Both classes are restored in full by `matomo-adversarial-review`, which is where they are recorded for learning — including on a third-party PR, where the earlier lifecycle stages never ran and nothing else will report them.
 
 ### Dispatch
 
@@ -193,7 +199,7 @@ At three-lens width the mandates group as `security & trust`; `correctness & dat
 3. Build the internal ledger from the returned counts and `unreviewed` rows, and resolve any path no lens claimed — reading a lens record file only where a count does not reconcile with the changed-path list. Only the rows that came back `unreviewed` reach the output.
 4. A step-4 candidate earns a packet only when the merge can write its consequence as the packet's own falsifiable proposition: the value, the path a customer reaches it by, and what they then see. Drop a candidate whose consequence cannot be stated that way at step 5 here, rather than sending it to a verifier to discover the same thing. The verifier would read the code at one anchor to answer a question the merge already had the lens's evidence to answer, and a candidate disposed of after verification costs what a confirmed one costs.
 5. Settle the step here. The merge assigns exactly one, and a packet that asks the verifier to choose between steps is malformed, per `references/finding-verification.md`. Forwarding the choice looks cheap and is not: the verifier holds the packet where the merge holds the lens's evidence, so it decides the same question on less, and it decides it downward.
-6. For a candidate whose route to step 1 is a routed rule, name which entry of step 1's surface list the rule's subject matched. Matching none is a decision, not a gap — the observation is not reported here, and belongs to implementation instead. Recording the matched entry is what keeps that from becoming the open question every packet asks.
+6. For a candidate whose route to step 1 is a routed rule, name which entry of step 1's surface list the rule's subject matched. Matching none is a decision, not a gap — the observation is not reported, and it is an obligation on the implementation instead. Recording the matched entry is what keeps that from becoming the open question every packet asks.
 7. Where a lens states a negative on one of the floor-carrying surfaces `What gets verified` item 2 names, the merge enters it as a candidate dropped at step 5, not as prose it read past. The audit in `What gets verified` is stationed at step 5 because that is where disposals were expected to happen; a lens that disposes upstream of it puts the only check on a lost blocker below the hole. Entering the negative as a step-5 drop is what returns it to the audit's reach, and costs a packet only for the classes that carry floors.
 8. Enter every `unmet` obligation from the inventory as a candidate. A `met` verdict on a floor-carrying class is the stated negative rule 7 already routes to the step-5 audit, and a row returned `unreviewed` is a ledger row rather than a dropped candidate.
 
@@ -268,7 +274,8 @@ Apply a dimension only when the diff makes it relevant:
 - `compatibility`: migrations, public APIs, plugin hooks, config, schema, CLI, or upgrade-sensitive changes
 - `operability`: jobs, retries, failures, state transitions, or operationally important workflows
 - `documentation`: behavior, config, migration, CLI, API, rollout, or public PHPDoc contract changes
-- `test quality`: whenever behavior changes or review findings surface important uncovered scenarios
+
+There is no `maintainability` or `test quality` dimension. Both scored classes whose failure reaches no customer, which `What no lens carries` places earlier in the lifecycle; the one live signal that sat under `maintainability` was removal risk and is now a `compatibility` signal.
 
 Judge each dimension on the merits of this diff. The Matomo-specific signals below are the ones worth calling out explicitly because they are not general review knowledge.
 
@@ -301,20 +308,18 @@ The first three are mechanical checks 2 and 3 and are answered by their commands
 - `composer.json` changes without the matching `composer.lock` update when lockstep changes are expected
 - newly introduced or expanded use of already-deprecated methods or APIs. Report it as a finding at the severity its removal risk warrants and refer replacement handling to `matomo-deprecation-rules` rather than applying deprecation policy here.
 
-
-### Test quality
-
-Apply the coverage expectations in `matomo-test-runner` rather than a separate list here.
-
 ## Required Evidence Probes
 
-These three probes replace recall with lookup. Run them before judging the diff. Commands are in `references/review-checks.md`.
+These probes replace recall with lookup. Run them before judging the diff. Commands are in `references/review-checks.md`. The untrusted-input inventory and scope attribution run on every review; the precedent probe runs only on the two surfaces below and is reported `n/a` otherwise.
 
 ### Precedent probe
 
-For every named artifact the diff introduces — CSS class or selector, translation key, public method, prop, event, config or option key, or a new file in a directory with an established layout — search for how the surrounding code already names and structures the same concept.
+This skill reports no naming or idiom judgment, so the probe is not run over every named artifact the diff introduces. Run it on exactly the two surfaces where the lookup answers a release question rather than a convention one:
 
-Record the precedent as a file and example, or record that none exists. A convention judgment made without this lookup is neither a usable finding nor a basis for a `sound` verdict, because it cannot distinguish a real divergence from an unfamiliar-looking convention.
+1. A public name the change removes or renames — to find what still refers to it, which is what decides whether a resolving path is missing.
+2. A translation key the change adds or changes — to find whether an equivalent key already exists and whether the usage side is registered, which is what decides whether a user sees a string or a raw key.
+
+Record the precedent as a file and example, or record that none exists. Outside those two surfaces the probe is `n/a`, because the judgment it used to support belongs to implementation, which runs the same probe before the code exists — where it chooses the code rather than condemning it.
 
 ### Untrusted-input inventory
 
@@ -366,8 +371,7 @@ Apply these routing rules after inspecting changed paths and diff content:
 5. Plugin architecture signals:
 - plugin bootstrap or `registerEvents()` changes
 - new or changed `Archiver`, `Model`, `Reports/*`, `Columns/*`, or Settings classes
-- cross-plugin imports or structural refactors across plugin layers
-- Apply `matomo-plugin-architecture`.
+- Apply `matomo-plugin-architecture` for registration and contract aspects. Layer separation and the shape of a structural refactor belong to implementation per `What no lens carries`; a cross-plugin import is reported here only where it changes a declared contract or a data path.
 
 6. Twig / template signals:
 - `*.twig`
@@ -389,30 +393,23 @@ Apply these routing rules after inspecting changed paths and diff content:
 - `composer.json` dependency changes
 - Apply `matomo-deprecation-rules`.
 
-9. Vue / frontend direction and build signals:
+9. Vue sink and build signals:
 - `plugins/<Plugin>/vue/src/**`
 - `plugins/CoreVue/polyfills/**`
-- new UI features, new or expanded jQuery / jQuery UI usage, or touched legacy UI where Vue was practical
-- Apply `matomo-vue-development-rules` for Vue source, build, and sink mechanics.
-- Apply `matomo-frontend-direction` for UI direction and policy (jQuery reduction, Vue-first, long-term SPA, Vue component-test adoption). Report direction-only concerns (for example new jQuery where Vue was practical) as `Medium` findings by default, not blocking violations, and keep mechanics findings under `matomo-vue-development-rules` so the same issue is not reported twice.
+- Apply `matomo-vue-development-rules` for sink and build-artifact mechanics: the `v-html` sanitization requirement, and a committed `dist/` bundle that changed without its source or the reverse.
+- `matomo-frontend-direction` is not routed here, and neither is `matomo-css-development-rules`. jQuery reduction, Vue-first, SPA trajectory, and BEM naming are direction and convention rather than release consequence, so they are decided when the approach is chosen, per `What no lens carries`. A `.less` or `.css` change is reported here only where it breaks another block's rendering, which is a `correctness` finding and not a convention one.
 
-10. Component CSS / Less signals:
-- `.less` or `.css` files, especially next to a Vue component under `plugins/<Plugin>/vue/src/**`
-- CSS class names in `.vue` templates, or a `<style>` block added to a Vue SFC
-- Apply `matomo-css-development-rules` (BEM naming, nest elements, namespacing prefixes, selector-complexity limits, cross-block styling (nested, context hooks, external & legacy DOM), util classes, flexbox conventions, desktop-first media queries, Less pitfalls). Report CSS-convention violations as `Medium`/style findings by default, not blocking, unless they combine with functional risk.
-
-11. Documentation signals:
+10. Documentation signals:
 - public method changes in `plugins/<Plugin>/API.php`
 - new or modified `@param` or `@return` tags
 - PHPDoc changes that affect public API contracts
 - new or modified `Piwik::postEvent()` calls
 - Apply `matomo-documentation`.
 
-12. Test expectation signals:
-- any change under `tests/`
-- feature or bug-fix changes without corresponding tests
-- UI, Vue, or plugin behavior changes that should have automated coverage
-- Apply `matomo-test-runner` expectations.
+11. Expected-output and screenshot signals:
+- changed files under `tests/` that encode expected behavior: system-test expected output, UI screenshots
+- Read them as evidence of the behavior the code change produces, per the `correctness & data integrity` mandate. An expectation the diff rewrites with no corresponding code change, or one that normalises a regression into a green suite, is a finding at the severity the behavior change warrants.
+- Coverage adequacy is not routed here and `matomo-test-runner` is not loaded by this skill, per `What no lens carries`. A feature or bug fix arriving without tests is not a finding.
 
 Multiple rule sets may apply to the same review.
 Prefer specific Matomo rules over generic review heuristics when they conflict.
@@ -590,7 +587,7 @@ This section list is closed: everything reported goes in `Findings`, and an appe
    - `Verdict` answers **does the change do what it set out to do**, judged against the intent inferred under `Problem Addressed`. `Yes` when the inferred problem is solved, `Partially` when part of it is solved or part of the intent is unimplemented, `No` when it is not solved. Findings do not lower it: a change that fully solves its problem and violates a routed rule is `Yes`, and the violation is what makes it `Not ready`. That holds for a defect that makes the change fail on a population of installations too — a defect already reported in `Blocking` is not also a reason to lower `Verdict`, which asks whether the intent was implemented and not whether the implementation is defect-free. `Partially` is for intent the diff leaves unimplemented.
    - `Release readiness` answers **can this go to customers exactly as it stands**, which is also the merge answer; never split it into two. It is mechanical: `Not ready` whenever the verified `Blocking` bucket is non-empty, `Ready` otherwise, never derived from the provisional severities that went into `Finding Verification`. Name the findings it rests on — `Not ready (#1, #4)` — so a reader can see whether the gate is held by something dangerous or by a one-space indent.
 3. The assessment paragraph must state whether the change solves the inferred problem and why.
-4. Mention test coverage and gaps if they affect confidence, and say so explicitly if branch intent is unclear.
+4. Say so explicitly if branch intent is unclear. Do not mention test coverage: it is out of scope per `What no lens carries`, and naming an unassessed class as a confidence limit reports it as though the review had tried and failed to assess it.
 5. Do not narrate what the review did or list what came back clean. The paragraph carries the verdict's reasoning and its confidence limits, nothing else.
 6. Report each degradation of the run's own machinery, in one clause each, and only when it happened: verification that was self-administered or could not run, a surface inventory the check context could not build, naming the classes left unenumerated, a lens fan-out that ran sequentially rather than dispatched, and a destructive verdict applied without corroboration, naming the finding it lowered. Say nothing about any of them when they ran normally — machinery that worked is not news. They are the same kind of limit over the layers a reader would otherwise have no way to discount: degraded verification limits every severity in the review, a missing inventory limits which classes were answered at all, degraded fan-out limits its coverage, an uncorroborated demotion limits the `Blocking` bucket and therefore `Release readiness`, and a run reporting none of them is claiming all four ran.
 

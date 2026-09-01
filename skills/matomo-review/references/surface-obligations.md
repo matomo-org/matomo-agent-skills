@@ -28,14 +28,17 @@ A method the change adds or alters in `plugins/*/API.php`.
 
 1. Is the documented return shape true for every arm the parameters allow? A multi-site or multi-period argument that returns a `DataTable\Map` where the docblock promises rows is Severity Floor 2, and `matomo-documentation` binds the fix.
 2. Are fixed-value parameters validated against the set the docblock declares? `matomo-api-development-rules` binds this.
-3. Is there an access check? The check's absence is a security finding. A test that fails without it is the probe that shows the check is load-bearing rather than incidental, so use it as evidence; its absence is a `tests` lens concern and not itself a security finding.
+3. Is there an access check? The check's absence is a security finding. A test that fails without it is the probe that shows the check is load-bearing rather than incidental, so use it as evidence; its absence is not itself a finding, since coverage adequacy is out of scope per `What no lens carries` in `SKILL.md`.
 
-## 4. Named public artifact — owning lens: `conventions & precedent`
+## 4. Named public artifact — owning lens: `contracts & compatibility`
 
-A segment, metric, dimension, event, config or option key, or exported prop the change adds, removes, or renames. Both sides of a rename are rows.
+A segment, metric, dimension, event, config or option key, or exported prop the change **removes or renames**. Both sides of a rename are rows.
 
-1. For a removed or renamed name, what resolves the old one, and for how long? `matomo-deprecation-rules` binds the transition; a rename with no resolving path is the same removal.
-2. For an added name, what does the precedent probe return for its shape and placement?
+1. What resolves the old name, and for how long? `matomo-deprecation-rules` binds the transition; a rename with no resolving path is the same removal.
+
+A purely added name is not a row. Its only question was the shape and placement the precedent probe answers, which is convention rather than release consequence and belongs to implementation. The enumeration form still reads both sides of the diff, because that is how a rename is told from an unrelated addition and removal; the row is written for the removed and renamed names it finds, not for the added ones.
+
+Translation keys are not enumerated here either. They reach `correctness & data integrity` through Diff Classification signal 1 and `matomo-i18n-development-rules`, which is where an unregistered or duplicated key — one that shows the user raw key text, or gives translators a parallel string to maintain — is reported.
 
 ## What is not a class here
 
