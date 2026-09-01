@@ -132,7 +132,7 @@ Rules:
 
 Tier by the surface the claim sits on, not by the step it claims. Every verifier re-runs the derivation from step 1, so every verifier has to evaluate the Severity Floors whatever the packet claimed, and a candidate can arrive claiming step 1 and turn out to be a floor case.
 
-1. **Cheap tier** — the claim is a routed-rule text match and the anchor's surface carries no floor risk. A translation key reused against the i18n rules, SFC block order, a prohibited docblock tag: the test is textual, the model has the rule quoted in front of it, and the worst error is bounded.
+1. **Cheap tier** — the claim is a routed-rule text match and the anchor's surface carries no floor risk. A translation key reused against the i18n rules, a prohibited docblock tag: the test is textual, the model has the rule quoted in front of it, and the worst error is bounded.
 2. **Review tier**, the same model the review itself runs on — everything else. Any anchor on a floor-adjacent surface: security, access control, data or state handling, a declared contract, or upgrade and migration behavior. Also any claim whose test is semantic rather than textual, which is steps 2, 3, and 4, and every step-5 drop, since the only drops verified are floor-adjacent ones and asking whether a consequence is genuinely absent there is the floor question in different words.
 3. Deciding the tier is the reviewer's job when it builds the packet, and it follows the anchor rather than a judgment about difficulty. It is written into the packet's `Tier` field, not decided at dispatch. When the surface is unclear, use the review tier: guessing wrong downward is what this split exists to prevent.
 

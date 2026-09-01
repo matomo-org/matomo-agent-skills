@@ -263,7 +263,6 @@ Apply a dimension only when the diff makes it relevant:
 - `structural integrity`: always, it is cheap
 - `scope`: always, every changed path must be attributable to the inferred intent
 - `correctness`: behavior, state, date/time, or dependency-handling changes
-- `maintainability`: non-trivial logic or structural refactors
 - `security`: request handling, auth, permissions, tokens, rendering, SQL, file access, redirects, or sensitive data paths
 - `performance`: query, loop, caching, archive, reporting, batch, or large-result-set changes
 - `compatibility`: migrations, public APIs, plugin hooks, config, schema, CLI, or upgrade-sensitive changes
@@ -476,14 +475,13 @@ The change disclosing the gap itself does not clear a floor. A comment, a class 
 
 These prevent specific recurring misjudgments:
 
-1. Migrations:
+Migrations:
 - a matching required version-marker bump for a newly added update file is expected execution wiring, not a defect by itself
 - escalate missing, mismatched, or extra unrelated release-coupled version changes instead
 - if no new update file is added, do not require a version-marker bump, and treat a standalone bump as blocking when no other explicit release-policy reason is present
 - non-semantic maintenance edits to pre-existing update files are not defects by themselves; semantic changes to them are blocking unless the diff clearly shows a branch-local file or explicit maintainer instruction exception
 
-2. Vue:
-- script-before-template SFC block ordering is a maintainability/style issue by default, not blocking, unless it combines with functional risk
+SFC block order is not among them, because there is no severity left for an exception to lower. The routed rule is advisory — `should` — so it cannot reach step 1, and it names no consequence a customer can carry, so it is dropped at step 5. `.eslintrc.js` reports it during `vue:build`, which is also why no mechanical check covers it.
 
 ## Review Target Selection
 
