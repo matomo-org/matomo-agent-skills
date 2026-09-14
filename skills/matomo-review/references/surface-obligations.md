@@ -27,7 +27,7 @@ A request, tracking, header, or cookie value the change newly reads. These rows 
 A method the change adds or alters in `plugins/*/API.php`.
 
 1. Is the documented return shape true for every arm the parameters allow? A multi-site or multi-period argument that returns a `DataTable\Map` where the docblock promises rows is Severity Floor 2, and `matomo-documentation` binds the fix.
-2. Are fixed-value parameters validated against the set the docblock declares? `matomo-api-development-rules` binds this.
+2. Are fixed-value parameters validated against the set the docblock declares, in this method, before the value is forwarded? A value this method forwards and a downstream factory rejects is `unmet`: the routed rule prohibits forwarding an unchecked string, not merely reaching an exception eventually, and the caller meets an internal error naming an internal class rather than a parameter error. `matomo-api-development-rules` binds this.
 3. Is there an access check? The check's absence is a security finding. A test that fails without it is the probe that shows the check is load-bearing rather than incidental, so use it as evidence; its absence is not itself a finding, since coverage adequacy is out of scope per `What no lens carries` in `SKILL.md`.
 
 ## 4. Named public artifact — owning lens: `contracts & compatibility`
