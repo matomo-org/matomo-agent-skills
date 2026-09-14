@@ -37,7 +37,7 @@ Release readiness: Ready | Not ready (#<n>, #<n>)
 <`Verdict` answers whether the change does what it set out to do; `Release readiness` answers whether it can go to customers as it stands, and is `Not ready` whenever a `Blocking` finding exists, naming the findings it rests on. Do not lower `Verdict` because findings exist, do not narrate what the review did, and do not add a second, weaker readiness line for the merge.>
 
 Matomo-Specific Checks
-Mechanical: 9/9 ran, <n> surfaces, <m> unmet → #<n>, #<n>; <k> dropped — <identifier>: <reason>. #<n> → finding #<n>. | 9/9 ran, <n> surfaces, none unmet, nothing to report. | 9/9 ran, 0 surfaces, nothing to report.
+Mechanical: 9/9 ran, <n> surfaces, <m> unmet: <identifier> → #<n>, #<n>; <identifier> → dropped, <reason>. #<n> → finding #<n>. | 9/9 ran, <n> surfaces, none unmet, nothing to report. | 9/9 ran, 0 surfaces, nothing to report.
 Rule sets: `<skill>`, `<skill>` (all loaded). | `<skill>` unverified — not loaded.
 Probes: precedent, untrusted-input, scope attribution — all run, nothing further. | <probe> n/a.
 Not verified: `<path>` — <reason> | None.
