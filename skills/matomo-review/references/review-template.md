@@ -37,7 +37,7 @@ Release readiness: Ready | Not ready (#<n>, #<n>)
 <`Verdict` answers whether the change does what it set out to do; `Release readiness` answers whether it can go to customers as it stands, and is `Not ready` whenever a `Blocking` finding exists, naming the findings it rests on. Do not lower `Verdict` because findings exist, do not narrate what the review did, and do not add a second, weaker readiness line for the merge.>
 
 Matomo-Specific Checks
-Mechanical: 9/9 ran. #<n> → finding #<n>. | 9/9 ran, nothing to report.
+Mechanical: 9/9 ran, <n> surfaces, <m> unmet → #<n>, #<n>; <k> dropped — <identifier>: <reason>. #<n> → finding #<n>. | 9/9 ran, <n> surfaces, none unmet, nothing to report. | 9/9 ran, 0 surfaces, nothing to report.
 Rule sets: `<skill>`, `<skill>` (all loaded). | `<skill>` unverified — not loaded.
 Probes: precedent, untrusted-input, scope attribution — all run, nothing further. | <probe> n/a.
 Not verified: `<path>` — <reason> | None.
@@ -72,7 +72,7 @@ Release readiness: Not ready (#1)
 `Partially` because the header copy is updated but the consent-dialog strings named in the branch description are untouched. Independently of that, finding #1 is `Blocking`, so the branch is `Not ready`. Confidence is high.
 
 Matomo-Specific Checks
-Mechanical: 9/9 ran. #3 → finding #2.
+Mechanical: 9/9 ran, 0 surfaces. #3 → finding #2.
 Rule sets: `matomo-i18n-development-rules`, `matomo-vue-development-rules` (all loaded, applied to changed surfaces).
 Probes: precedent, untrusted-input, scope attribution — all run, nothing further.
 Not verified: None.
@@ -87,5 +87,6 @@ Next Steps
 Each of these was produced by the review and is absent from the output on purpose. Reinstating any of them is a template violation.
 
 - The `Noted` bucket. The run also saw a local date helper in `View.vue` duplicating the shared one, with no behavioural difference. It has no shipping consequence, so it is not written down anywhere. `matomo-adversarial-review` is where an observation like that belongs.
+- The inventory's own rows. `Mechanical` accounts for them by count and by where each unmet one went; the rows themselves stay in `surfaces.md`, because a reader needs to know every enumerated surface was answered, not to read the questions back. The count is `0 surfaces` above because a copy change adds no stored state, no client parameter, no API method, and removes no public name.
 - The coverage ledger. All five changed paths carried a verdict internally, including the regenerated `vue/dist` bundle; only the two that became findings appear above, and an `unreviewed` path would have appeared under `Not verified`.
 - The eight clean or `n/a` mechanical checks, the per-rule-set clean bases, the applied review dimensions, the lens fan-out — which is absent here because it was dispatched, and would have cost one clause in `Overall Assessment` had it run sequentially — the untrusted-input inventory rows, and the list of read-only commands the review ran.

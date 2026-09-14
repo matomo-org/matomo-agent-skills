@@ -12,7 +12,7 @@ A table or column the change adds or alters, wherever its DDL lives.
 
 1. Does an installation that already recorded this component as installed get the schema? Name the vehicle. Activation-only creation is Severity Floor 4 on that population, and which vehicle is available is a `matomo-migrations-workflow` question, not a free choice.
 2. What scopes a read or a write to one site? An `idsite` column, or enforced code on every path that touches the table. A limit that holds only by caller convention is Severity Floor 3.
-3. Where the table holds data about a subject, do erasure, retention, and deleted-site cleanup reach it? Name the path each one takes.
+3. Where the table holds data about a subject, do erasure, retention, and deleted-site cleanup reach it? Name the path each one takes, and say whether each row those paths delete belongs to one subject. A row shared between subjects answers the first half `met` and is still `unmet`: erasing one subject then removes state the others are resolved through, and a row keyed on anything but the subject or its visit is where that happens.
 
 ## 2. Client-supplied parameter — owning lens: `security & trust`
 
@@ -20,7 +20,7 @@ A request, tracking, header, or cookie value the change newly reads. These rows 
 
 1. What authorises the write this value reaches, and is that authority as wide as the state it changes? A gate on one parameter does not cover a second parameter that selects which state the first one writes.
 2. What happens to a value outside the accepted set — rejected, or accepted as something else? A value folded into a sentinel that means "absent" is Severity Floor 1 when nothing tells the sender, and Severity Floor 2 when a documented contract said it would be honoured.
-3. What size bound applies before the value is processed, and which code enforces it? This is the inventory's existing column; `none` is answered with the cost of the added work as a complexity class.
+3. What size bound applies before the value is processed, and which code enforces it? This is the inventory's existing column; `none` is answered with the cost of the added work as a complexity class. Where the bound is a clamp rather than a rejection, say what the clamped value is then used as: a clamp on a value stored as a primary key, a join column, or any other identity collapses two distinct inputs onto one row, so the bound that answers this question is the defect the next one hides behind. A clamp the sender is not told about answers question 2 as well.
 
 ## 3. Public API method — owning lens: `contracts & compatibility`
 
