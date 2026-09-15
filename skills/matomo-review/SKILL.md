@@ -241,10 +241,10 @@ This exists because the finder scoring its own finding has the lens's framing an
 
 Every run must stand alone. Runs happen in separate sessions, in parallel, and on CI, so a run cannot see what an earlier run reported and must not assume one happened.
 
-1. Never infer that a prior review took place. Treat earlier findings as available only when this session or the user actually supplies them.
+1. Never infer that a prior review took place. A run has no memory of any earlier run and no mechanism to acquire one: it cannot report that a previous finding was fixed, and "nothing left to fix" is not a verdict a single run can produce. Say what this run found, never what an earlier one is presumed to have found.
 2. Review the complete target diff every time, never a delta against a previous run. Fixes the author already applied are part of the current diff and get reviewed as ordinary changed code, which is what catches defects a fix introduced.
 3. Never suppress a finding because it looks previously known, already discussed, or too obvious to repeat. The reporting bar is the Review Stance and the Severity Floors, nothing else.
-4. Give every finding a stable anchor of `<path>:<approximate line> — <rule or contract at issue>`. The anchor is what identifies a finding across runs. The `#<n>` numbering is presentation order inside one run and carries no meaning between runs.
+4. Give every finding an anchor of `<path>:<approximate line> — <rule or contract at issue>`, so a reader can navigate from the finding to the code. The `#<n>` numbering is presentation order inside one run and carries no meaning between runs, and neither does the anchor: ten runs over one range anchored one shared-row erasure defect in two different directories and at six different lines, so an anchor identifies a place in this run's reading and not a finding across runs. What a reader compares between two runs is `Release readiness` and the `Surface Inventory` row accounting, both of which are owed. Were a correspondence between runs ever wanted, the row identifier is the key that would carry it — those were identical across six consecutive runs while the anchors moved.
 
 ### What must and must not be reproducible
 
@@ -259,15 +259,6 @@ Runs are compared against different expectations per layer. Claiming more than t
     What is owed regardless: the observation is reported, under its row where it came from one, at a severity no lower than the derivation supports on the evidence the lens returned. `Release readiness` is the stable quantity — it held identically across all ten of those runs — because it asks whether any blocking defect exists rather than which band each one sits in. A reader comparing two runs should compare readiness and the row accounting, and read per-finding severity as this run's reading.
 4. **Will differ**: which deep defects the search layer reaches outside the inventory. Two runs spend a finite budget in different places, so the search layer produces a sample of that remainder, never the whole of it. Reproducibility is owed by the mechanical and enumeration layers and coverage honesty by the search layer, so never narrow the search to make two runs agree — move a class that has to agree into the inventory, where agreeing is what it costs.
 5. Enumerate in a fixed order anyway — paths in `git diff --name-only` order, lenses in the order listed above — and apply the same bar to every candidate rather than reporting whichever issue surfaced first. Fixed order does not make the search reproducible, but it stops presentation order from adding variance of its own.
-
-### When earlier findings are supplied
-
-Only when the session or the user provides them:
-
-1. Add a `Prior Findings` section immediately after `Findings`, accounting for each earlier finding as `resolved` with the evidence, `unresolved` with what the fix missed, or `withdrawn` with the reason.
-2. Match earlier findings by anchor, not by number.
-3. A defect that survives a partial fix is the same finding restated. Report it as `unresolved`, not as a new finding, so iteration on one issue is not mistaken for a new problem appearing.
-4. Still produce the complete review. `Prior Findings` is an addition to it, never a replacement for it.
 
 ## Review Dimensions
 
@@ -564,7 +555,7 @@ Prefer the exact comparison the user provides over any default.
 
 ## Output Format
 
-Respond with these exact top-level sections in this exact order, inserting `Prior Findings` after `Findings` only when earlier findings were supplied:
+Respond with these exact top-level sections in this exact order:
 
 1. `Findings`
 2. `Problem Addressed`

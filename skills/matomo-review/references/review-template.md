@@ -21,11 +21,6 @@ Medium
 None.
 (does not hold the release; reaches customers with the merge if it is not fixed first)
 
-Prior Findings
-(only when earlier findings were supplied; match by anchor, not by number)
-- <anchor> — resolved: <evidence>
-- <anchor> — unresolved: <what the fix missed>
-- <anchor> — withdrawn: <reason>
 
 Problem Addressed
 <1 short paragraph>
