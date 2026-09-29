@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Rules"
+  short_description: "Matomo rule library and per-plugin profiles shared by the develop and review skills"
+  default_prompt: "Use $matomo-rules to find which Matomo rules apply to these paths or this plugin, resolving the plugin profile with scripts/resolve_profile.py."

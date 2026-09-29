@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Dev Review"
+  short_description: "Full Matomo review: the CI release checks plus engineering quality and verification of the development guardrails"
+  default_prompt: "Use $matomo-dev-review to review this Matomo branch, PR or range: run the shared release review, then the quality pass and the development-guardrail pass, and report findings grouped by Release, Quality and Guardrails."

@@ -1,0 +1,10 @@
+{
+  "name": "matomo",
+  "description": "Matomo development and review skills: local development cycle, CI release review, and developer review, backed by a shared rule library with per-plugin profiles.",
+  "version": "1.0.0",
+  "author": { "name": "Matomo", "url": "https://matomo.org" },
+  "homepage": "https://github.com/matomo-org/matomo-agent-skills",
+  "repository": "https://github.com/matomo-org/matomo-agent-skills",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["matomo", "php", "vue", "code-review"]
+}

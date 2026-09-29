@@ -1,0 +1,11 @@
+{
+  "name": "matomo-agent-skills",
+  "owner": { "name": "Matomo", "url": "https://matomo.org" },
+  "plugins": [
+    {
+      "name": "matomo",
+      "source": "./",
+      "description": "Matomo development and review skills with a shared rule library and per-plugin profiles."
+    }
+  ]
+}

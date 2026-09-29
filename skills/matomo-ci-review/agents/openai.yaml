@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo CI Review"
+  short_description: "Read-only release gate for a Matomo PR: fails only on customer-breaking defects and any security finding; never runs tests"
+  default_prompt: "Use $matomo-ci-review to review the pull request between the given base and head SHAs with release-tier Matomo rules only, without running tests or builds; report only blocking findings, every locked (security) rule finding and every floor-carrying check left open (result incomplete), and write the fixed-format report with its result marker."

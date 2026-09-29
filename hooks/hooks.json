@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/skills/matomo-develop/hooks/exit-plan.sh" }]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/skills/matomo-develop/hooks/pre-edit.sh" }]
+      }
+    ]
+  }
+}

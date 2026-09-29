@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matomo Develop"
+  short_description: "Make the smallest idiomatic, secure Matomo change that works, then self-review and run the relevant checks and tests"
+  default_prompt: "Use $matomo-develop to implement this Matomo change: scope it to the minimal change, resolve the owning component's profile with matomo-rules, apply release, quality and process rules, self-review the diff with the same release-review procedure and quality and guardrail passes the dev review uses until it finds nothing, and run the relevant ddev checks and tests serially."
