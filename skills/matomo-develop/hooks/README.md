@@ -5,7 +5,7 @@ enforce that `matomo-develop` planned the change; they cannot plan, ask the user
 
 | Hook | Matched to | Denies |
 | --- | --- | --- |
-| `pre-edit.sh` | `Edit`, `Write`, `MultiEdit`, `NotebookEdit` | an edit to a committable file while no plan record exists for the repository and branch |
+| `pre-edit.sh` | `Edit`, `Write`, `MultiEdit`, `NotebookEdit` | an edit to a committable file while no plan record exists for the repository, branch and session |
 | `exit-plan.sh` | `ExitPlanMode` | presenting a plan without the `<!-- matomo-develop: planned -->` marker |
 
 Both take no decision:
@@ -16,7 +16,10 @@ Both take no decision:
 - when `MATOMO_DEVELOP_GATE=off`, which the CI review workflow sets.
 
 The edited path decides, not the cwd. Inside a submodule plugin the record is keyed on the checkout
-that contains it, not on the plugin's own repository. `lib.sh` holds the root and record-path logic,
+that contains it, not on the plugin's own repository. The record is also keyed on the session:
+the hook reads `session_id` from its payload and the skill reads `CLAUDE_CODE_SESSION_ID`, so two
+sessions on one checkout and branch (core and a submodule plugin, say) neither overwrite each
+other's record nor edit on each other's plan. `lib.sh` holds the root and record-path logic,
 and the skill's "Plan record" step calls it too, so the hook and the skill cannot disagree on the
 path.
 
@@ -25,14 +28,16 @@ path.
 - The hook checks that a record exists, not that it describes the current task. Planning each task
   anew is the skill's rule.
 - The record lives under `${TMPDIR:-/tmp}/matomo-develop/` and does not survive a temp clear; the
-  result is a re-plan, the safe direction.
-- Codex has no equivalent interception; there the plan rests on the skill alone.
+  result is a re-plan, the safe direction. So is a session whose id changes (a forked session) or a
+  subagent whose hook payload carries a different id than its shell.
+- Codex has no equivalent interception; there the plan rests on the skill alone, and with no
+  session id the record is per branch.
 
 ## Try it
 
 ```sh
 cd /path/to/matomo
-echo '{"tool_name":"Edit","tool_input":{"file_path":"core/Version.php"}}' \
+echo '{"session_id":"try","tool_name":"Edit","tool_input":{"file_path":"core/Version.php"}}' \
   | /path/to/matomo-agent-skills/skills/matomo-develop/hooks/pre-edit.sh
 ```
 

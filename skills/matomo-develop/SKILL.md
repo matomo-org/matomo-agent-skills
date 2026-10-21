@@ -52,14 +52,15 @@ When the plan is complete and no user question is open, end it with the line
 `<!-- matomo-develop: planned -->` and write it to the plan record, overwriting any earlier one:
 
 ```sh
-. <this-skill-dir>/hooks/lib.sh; rec="$(plan_record "$(matomo_root "$PWD")")"; mkdir -p "$(dirname "$rec")"; echo "$rec"
+. <this-skill-dir>/hooks/lib.sh; rec="$(plan_record "$(matomo_root "$PWD")" "${CLAUDE_CODE_SESSION_ID:-}")"; mkdir -p "$(dirname "$rec")"; echo "$rec"
 ```
 
 Write nothing while a question is open, and delete a stale record when re-planning raises one. A new
 task on the same branch gets a new plan and record. In Claude Code the plugin's hooks enforce this:
 edits to files the repository would commit are denied until the record exists, and a plan without
-the marker cannot be presented (`hooks/README.md`). The record lives outside the checkout, so it
-never reaches a diff.
+the marker cannot be presented (`hooks/README.md`). The record is per session where the agent
+exposes one (`CLAUDE_CODE_SESSION_ID`), so parallel sessions on one branch keep separate plans. It
+lives outside the checkout, so it never reaches a diff.
 
 ## 3. Implement
 

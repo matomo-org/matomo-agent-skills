@@ -37,7 +37,12 @@ if [ -n "$target" ]; then
   fi
 fi
 
-[ -f "$(plan_record "$root")" ] && exit 0
+# Same session id the skill reads from CLAUDE_CODE_SESSION_ID.
+session="$(printf '%s' "$input" \
+  | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | head -1 | sed -E 's/^[^:]*:[[:space:]]*"//; s/"$//' || true)"
+
+[ -f "$(plan_record "$root" "$session")" ] && exit 0
 
 cat <<JSON
 {

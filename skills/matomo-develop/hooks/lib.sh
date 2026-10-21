@@ -18,13 +18,17 @@ matomo_root() {
   fi
 }
 
-# plan_record <root>: prints the plan record path for <root> and its current branch. The skill
-# resolves the path through this function too ("Plan record" in SKILL.md), so there is one copy.
+# plan_record <root> [session]: prints the plan record path for <root>, its current branch and the
+# agent session. Two sessions on one checkout and branch (core and a submodule plugin, say) would
+# otherwise overwrite each other's record and edit on each other's plan. Without a session id
+# (Codex) the record is per branch. The skill resolves the path through this function too ("Plan
+# record" in SKILL.md), so there is one copy.
 plan_record() {
-  local root="$1" branch
+  local root="$1" session="${2:-}" branch suffix=""
   branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
-  printf '%s/%s-%s.md\n' "${TMPDIR:-/tmp}/matomo-develop" \
-    "$(printf %s "$root" | tr -c 'A-Za-z0-9' _)" "$(printf %s "$branch" | tr -c 'A-Za-z0-9' _)"
+  [ -n "$session" ] && suffix="-$(printf %s "$session" | tr -c 'A-Za-z0-9' _)"
+  printf '%s/%s-%s%s.md\n' "${TMPDIR:-/tmp}/matomo-develop" \
+    "$(printf %s "$root" | tr -c 'A-Za-z0-9' _)" "$(printf %s "$branch" | tr -c 'A-Za-z0-9' _)" "$suffix"
 }
 
 # The skill name the deny message tells the agent to run: namespaced when loaded as a plugin.
