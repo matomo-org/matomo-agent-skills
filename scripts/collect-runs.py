@@ -13,12 +13,20 @@ Hand labels live in <cycle>/analysis/labels.csv (copy clusters.csv there and fil
 tp | fp | tp-sev | dup | unclear).  Labels are keyed on case + path + line + rule family, so
 they survive re-collection when more runs are added.
 
-Usage: collect-runs.py <cycle-dir> [--corpus eval/corpus.tsv] [--line-window 5]
+Runs whose transcript shows a usage-limit error although they finished (a sub-agent hit the
+quota) are `degraded` and left out of every table unless --include-degraded is given; runs
+that stopped on the quota were moved to <cycle>/quota-failed/ by run-matrix.sh and are only
+counted.
+
+Usage: collect-runs.py <cycle-dir> [--corpus eval/corpus.tsv] [--line-window 5] [--include-degraded]
 """
 import argparse, csv, json, os, re, statistics, subprocess, sys
 from collections import Counter, defaultdict
 from itertools import combinations
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import review_quota  # noqa: E402  (shared quota and transcript detection)
 
 # --- report parsing -----------------------------------------------------------------------
 CI_HEADER = re.compile(r'<!-- matomo-ci-review (.*?) -->')
@@ -146,27 +154,19 @@ def rule_ids(skills_repo, commit):
 LEAK = re.compile(r'review-runs|refs/review-eval|corpus\.tsv|make-seeds|git log [^"\\]*--all|--branches|for-each-ref')
 
 
-def transcripts(meta, run_dir):
-    if meta['agent'] == 'codex':
-        return list((run_dir / 'codex-sessions').rglob('*.jsonl'))
-    sid = meta.get('session_id')
-    if not sid:
-        return []
-    root = Path.home() / '.claude' / 'projects'
-    return [p for p in root.glob(f'*/{sid}*') if p.is_file()] + list(root.glob(f'*/{sid}/**/*.jsonl'))
-
-
-def leak_hits(meta, run_dir):
-    files = transcripts(meta, run_dir)
+def transcript_checks(meta, run_dir):
+    """(leak hits, limit tags) from a run's transcripts, or (None, None) without any."""
+    files = review_quota.find_transcripts(meta, run_dir)
     if not files:
-        return None
+        return None, None
     hits = set()
     for p in files:
         try:
             hits |= set(LEAK.findall(p.read_text(errors='replace')))
         except OSError:
             pass
-    return sorted(hits)
+    tags, _ = review_quota.transcript_limits(meta.get('agent'), files)
+    return sorted(hits), tags
 
 
 def family(rule):
@@ -213,6 +213,8 @@ def main():
     ap.add_argument('cycle')
     ap.add_argument('--corpus')
     ap.add_argument('--line-window', type=int, default=5)
+    ap.add_argument('--include-degraded', action='store_true',
+                    help='analyse runs whose transcript shows a usage-limit error')
     a = ap.parse_args()
     cycle = Path(a.cycle).resolve()
     manifest = json.loads((cycle / 'cycle.json').read_text()) if (cycle / 'cycle.json').exists() else {}
@@ -241,19 +243,27 @@ def main():
                'duration_s': (meta.get('duration_ms') or 0) / 1000 or None,
                'permission_denials': meta.get('permission_denials'),
                'output_tokens': (meta.get('usage') or {}).get('output_tokens'),
+               'failure': meta.get('failure'), 'started_at': meta.get('started_at'),
                'problems': []}
         if manifest and meta.get('skills_commit') != manifest.get('skills_commit'):
             run['problems'].append('skills commit differs from cycle')
         if meta.get('skills_dirty'):
             run['problems'].append('skills tree dirty')
-        leaks = leak_hits(meta, d)
+        leaks, limits = transcript_checks(meta, d)
         run['transcript'] = leaks is not None
+        run['limits'] = limits or []
         if leaks:
             run['problems'].append('possible contamination: ' + ', '.join(leaks))
+        if 'safeguard' in run['limits']:
+            run['problems'].append('safeguard refusal inside the run')
         rp = d / 'report.md'
         if not rp.exists():
             run.update(verdict=None, outcome='error', n_findings=0, n_open=0)
-            run['problems'].append('no report')
+            run['problems'].append(f"no report (failure: {meta.get('failure') or 'unclassified'})")
+            runs.append(run); continue
+        if 'rate limit' in run['limits'] and not a.include_degraded:
+            run.update(verdict=None, outcome='degraded', n_findings=0, n_open=0)
+            run['problems'].append('degraded: usage limit hit during the run; excluded')
             runs.append(run); continue
         verdict, header, fs, open_items, problems = parse_report(rp.read_text(), skill)
         run['problems'] += problems
@@ -344,7 +354,7 @@ def main():
         for f in findings:
             fh.write(json.dumps(f) + '\n')
 
-    runs_per_combo = Counter((r['case'], r['agent'], r['skill']) for r in runs if r['outcome'] != 'error')
+    runs_per_combo = Counter((r['case'], r['agent'], r['skill']) for r in runs if r['outcome'] not in ('error', 'degraded'))
     combos = sorted({(r['agent'], r['skill']) for r in runs})
     with (out / 'clusters.csv').open('w', newline='') as fh:
         w = csv.writer(fh)
@@ -362,17 +372,19 @@ def main():
             row += [fs[0]['label'] or '', '', f0['text'][:400]]
             w.writerow(row)
 
-    (out / 'summary.md').write_text(summarise(runs, findings, clusters, corpus, combos, manifest))
+    shelved = Counter(json.loads(m.read_text()).get('agent', '?')
+                      for m in (cycle / 'quota-failed').glob('*/*/*/meta.json'))
+    (out / 'summary.md').write_text(summarise(runs, findings, clusters, corpus, combos, manifest, shelved))
     print(out / 'summary.md')
 
 
 # --- summary -----------------------------------------------------------------------------
-def summarise(runs, findings, clusters, corpus, combos, manifest):
+def summarise(runs, findings, clusters, corpus, combos, manifest, shelved):
     L = []
     P = L.append
-    ok_runs = [r for r in runs if r['outcome'] != 'error']
+    ok_runs = [r for r in runs if r['outcome'] not in ('error', 'degraded')]
     P(f"# Review evaluation: {manifest.get('skills_commit', '?')[:7]}\n")
-    P(f"{len(runs)} runs ({len(runs) - len(ok_runs)} errored) · {len(findings)} findings in "
+    P(f"{len(runs)} runs ({len(runs) - len(ok_runs)} excluded: errored or degraded) · {len(findings)} findings in "
       f"{len(clusters)} clusters · {sum(1 for c in clusters.values() if c[0].get('label'))} clusters labelled\n")
 
     # Harness / format
@@ -384,6 +396,15 @@ def summarise(runs, findings, clusters, corpus, combos, manifest):
     else:
         P('No run-level problems.')
     chk = Counter(c for f in findings for c in f['checks'])
+    fails = Counter(r.get('failure') or 'unclassified' for r in runs if r['outcome'] == 'error')
+    if fails:
+        P('\nFailed runs by cause: ' + ', '.join(f'{k}: {v}' for k, v in fails.most_common()))
+    degraded = sum(1 for r in runs if r['outcome'] == 'degraded')
+    if degraded:
+        P(f'\n{degraded} degraded run(s) excluded (usage limit hit mid-run).')
+    if shelved:
+        P('\nRuns stopped by quota and retried (not attempts): '
+          + ', '.join(f'{k}: {v}' for k, v in sorted(shelved.items())))
     no_tx = sum(1 for r in runs if not r.get('transcript'))
     if no_tx:
         P(f'\n{no_tx} run(s) without a transcript to check for contamination.')

@@ -26,6 +26,10 @@ Options:
   -n, --dry-run           validate and print the agent command, spend nothing
   -h, --help              show this help
 
+Exit status: 0 on success, 75 when the agent's usage quota is spent (meta.json then holds
+failure=quota and, when the agent named it, reset_at as epoch seconds), 1 when the review
+failed otherwise (meta.json failure = budget | refused | error), 2 on bad arguments.
+
 Writes <out>/<label>/<agent>-<skill>/<timestamp>/{report.md,raw.json,meta.json}, so
 repeated runs of one range, by either agent, sit side by side under
 <out>/<base10>..<head10>/.
@@ -215,6 +219,7 @@ fi
 
 echo "Running $skill_ref ($agent) on ${base_sha:0:10}...${head_sha:0:10} -> $out" >&2
 status=0
+started_at=$(date -Iseconds)
 start_ms=$(date +%s%3N)
 case $agent in
   claude) (cd "$wt" && MATOMO_DEVELOP_GATE=off "${cmd[@]}") >"$out/raw.json" || status=$? ;;
@@ -250,11 +255,12 @@ jq -n --arg agent "$agent" --arg skill "$skill" --arg plugin "$plugin" --arg ski
   --arg skills_commit "$skills_commit" --arg skills_dirty "$skills_dirty" \
   --arg repo "$repo" --arg base "$base_sha" --arg head "$head_sha" \
   --arg model "$model" --argjson exit "$status" --argjson elapsed_ms "$elapsed_ms" \
+  --arg started_at "$started_at" \
   --argjson codex_models "$codex_models" --argjson codex_effort "$codex_effort" \
   --slurpfile raw <(jq -c . "$out/raw.json" 2>/dev/null || echo null) \
   '{agent: $agent, skill: $skill, plugin: $plugin, skills: $skills, skills_commit: $skills_commit,
     skills_dirty: ($skills_dirty != ""), repo: $repo, base: $base, head: $head,
-    model: (if $model == "" then null else $model end), exit: $exit}
+    model: (if $model == "" then null else $model end), exit: $exit, started_at: $started_at}
    + (if $raw == [null] then {is_error: null} else '"$summary"' end)' >"$out/meta.json"
 
 case $agent in
@@ -262,9 +268,21 @@ case $agent in
   codex)  result=$(cat "$last_message" 2>/dev/null || true) ;;
 esac
 if (( status != 0 )) || [[ -z $result ]] || [[ $(jq -r .is_error "$out/meta.json") == true ]]; then
-  echo "$(basename "$0"): review failed (exit $status); see $out/raw.json" >&2
+  # Say why, so a caller can tell a spent quota (retry after reset_at) from a real failure.
+  verdict=$(python3 "$script_dir/review_quota.py" classify --agent "$agent" --raw "$out/raw.json" \
+    --sessions "$codex_home/sessions" --exit "$status" 2>/dev/null) \
+    || verdict='{"failure": "error", "reset_at": null, "detail": "could not classify"}'
+  jq --argjson v "$verdict" '. + $v' "$out/meta.json" >"$out/meta.json.tmp" && mv "$out/meta.json.tmp" "$out/meta.json"
+  failure=$(jq -r '.failure // "error"' <<<"$verdict")
+  echo "$(basename "$0"): review failed ($failure, exit $status); see $out/raw.json" >&2
+  if [[ $failure == quota ]]; then
+    reset=$(jq -r '.reset_at // empty' <<<"$verdict")
+    [[ -z $reset ]] || echo "quota resets at $(date -d "@$reset" '+%F %T %Z')" >&2
+    exit 75  # EX_TEMPFAIL: retry once the quota resets
+  fi
   exit 1
 fi
+jq '. + {failure: null, reset_at: null}' "$out/meta.json" >"$out/meta.json.tmp" && mv "$out/meta.json.tmp" "$out/meta.json"
 printf '%s\n' "$result" >"$out/report.md"
 
 denials=$(jq -r '.permission_denials // 0' "$out/meta.json")

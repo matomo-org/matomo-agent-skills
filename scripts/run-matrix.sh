@@ -23,17 +23,29 @@ Options:
       --claude-model <m>    pinned claude model                          [$claude_model]
       --codex-model <m>     pinned codex model                           [$codex_model]
       --budget <usd>        per-run budget cap for claude                [$budget]
+      --wait-on-quota       when an agent's quota is spent, sleep until it resets and carry on
+                            (default: defer that agent's runs and exit; re-run to resume)
+      --codex-headroom <%>  do not start a codex run once its 5-hour or weekly window is this
+                            full, so runs do not die halfway                [$codex_headroom]
   -N, --dry-run             list the runs that would start, spend nothing
   -h, --help                show this help
 
-The review runs from a snapshot of the skills repository's HEAD commit (.claude-plugin and
-skills/ only, exported under \$TMPDIR): uncommitted changes are not reviewed with, and the
+The review runs from a snapshot of the last commit that changed .claude-plugin or skills/ (both
+only, exported under \$TMPDIR): uncommitted changes are not reviewed with, and the
 eval/ corpus with its expected answers is out of the reviewing agent's reach.
 
 A cycle is bound to one skills commit and one pair of models, recorded in
 <out>/<cycle>/cycle.json on the first run; later invocations refuse to mix in runs
 from another commit or model.  A run that fails still counts as an attempt; at most
 reps+1 attempts are made per case/skill/agent so a broken case cannot burn budget.
+
+Quota: a run that stops because the agent's usage limit is spent (run-review.sh exit 75), or
+that finished although its transcript shows a limit error (e.g. a sub-agent hit it), does
+not count as an attempt: it is moved to <cycle>/quota-failed/ and the agent is paused until
+the reset time the agent named (30 minutes when it named none), in <cycle>/.pause-<agent>.
+Paused runs are deferred, never started; the other agent carries on.  codex is also paused
+before a run when its logged rate-limit window reaches --codex-headroom.  claude reports no
+usage ahead of time, so it is only caught when it hits the limit.
 
 Corpus columns (tab-separated, '#' lines ignored):
   id  stage  category  base  head  expect  expect_where  notes
@@ -49,13 +61,14 @@ repo=/data/matomo/core/6.x-dev
 out_root=/data/matomo/review-runs
 cycle='' reps=3 jobs=3 agents=claude,codex skill_list=ci-review,dev-review cases='' tiers=''
 claude_model=claude-opus-5-5 codex_model=gpt-6.1-sol budget=10
-dry_run=0
+dry_run=0 wait_on_quota=0 codex_headroom=90
 
 while (( $# )); do
   case $1 in
     -h|--help)     usage; exit 0 ;;
     -N|--dry-run)  dry_run=1; shift ;;
-    -C|--cycle|-c|--corpus|-r|--repo|-o|--out|-n|--reps|-j|--jobs|-a|--agents|-s|--skills|-i|--cases|-t|--tier|--claude-model|--codex-model|--budget)
+    --wait-on-quota) wait_on_quota=1; shift ;;
+    -C|--cycle|-c|--corpus|-r|--repo|-o|--out|-n|--reps|-j|--jobs|-a|--agents|-s|--skills|-i|--cases|-t|--tier|--claude-model|--codex-model|--budget|--codex-headroom)
       [[ $# -ge 2 && -n $2 ]] || die "$1 needs a value"
       case $1 in
         -C|--cycle)     cycle=$2 ;;
@@ -71,6 +84,7 @@ while (( $# )); do
         --claude-model) claude_model=$2 ;;
         --codex-model)  codex_model=$2 ;;
         --budget)       budget=$2 ;;
+        --codex-headroom) codex_headroom=$2 ;;
       esac
       shift 2 ;;
     *) usage >&2; die "unknown argument: $1" ;;
@@ -81,10 +95,13 @@ done
 [[ $cycle =~ ^[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]] || die "invalid cycle name: $cycle"
 [[ $reps =~ ^[1-9][0-9]*$ ]] || die "--reps must be a positive integer"
 [[ $jobs =~ ^[1-9][0-9]*$ ]] || die "--jobs must be a positive integer"
+[[ $codex_headroom =~ ^[0-9]+$ ]] && (( codex_headroom <= 100 )) || die "--codex-headroom must be 0-100"
 [[ -f $corpus ]] || die "corpus not found: $corpus"
 command -v jq >/dev/null || die "jq not found on PATH"
 
-skills_commit=$(git -C "$skills_repo" rev-parse HEAD)
+# The last commit that changed what the agents load, so commits to scripts/ or eval/ alone do
+# not split a cycle.
+skills_commit=$(git -C "$skills_repo" log -1 --format=%H -- .claude-plugin skills)
 [[ -z $(git -C "$skills_repo" status --porcelain -- .claude-plugin skills) ]] \
   || echo "note: uncommitted changes under skills/ are not part of this cycle (reviewing ${skills_commit:0:7})" >&2
 snapshot=${TMPDIR:-/tmp}/matomo-skills-$skills_commit
@@ -107,31 +124,49 @@ in_list() { [[ -z $2 || ,$2, == *,$1,* ]]; }
 
 # --- plan the runs ------------------------------------------------------------
 jobs_file=$(mktemp); trap 'rm -f "$jobs_file"' EXIT
-planned=0
-while IFS=$'\t' read -r id stage category base head expect expect_where notes; do
-  [[ -z $id || $id == \#* ]] && continue
-  in_list "$id" "$cases" || continue
-  in_list "$stage" "$tiers" || continue
-  for agent in ${agents//,/ }; do
-    for skill in ${skill_list//,/ }; do
-      dir=$cycle_dir/$id/$agent-$skill
-      ok=0 tried=0
-      if [[ -d $dir ]]; then
-        tried=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | wc -l)
-        ok=$(find "$dir" -mindepth 2 -maxdepth 2 -name report.md | wc -l)
-      fi
-      missing=$(( reps - ok )); room=$(( reps + 1 - tried ))
-      (( missing < room )) || missing=$room
-      for (( k = 0; k < missing; k++ )); do
-        printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$agent" "$skill" "$base" "$head" >>"$jobs_file"
-        planned=$(( planned + 1 ))
+# Fills $jobs_file with the runs still missing and sets $planned.  Quota failures are moved
+# out of the case directories, so only real attempts count against reps+1.
+plan_runs() {
+  : >"$jobs_file"; planned=0
+  local id stage category base head expect expect_where notes agent skill dir ok tried missing room k
+  while IFS=$'\t' read -r id stage category base head expect expect_where notes; do
+    [[ -z $id || $id == \#* ]] && continue
+    in_list "$id" "$cases" || continue
+    in_list "$stage" "$tiers" || continue
+    for agent in ${agents//,/ }; do
+      for skill in ${skill_list//,/ }; do
+        dir=$cycle_dir/$id/$agent-$skill
+        ok=0 tried=0
+        if [[ -d $dir ]]; then
+          tried=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | wc -l)
+          ok=$(find "$dir" -mindepth 2 -maxdepth 2 -name report.md | wc -l)
+        fi
+        missing=$(( reps - ok )); room=$(( reps + 1 - tried ))
+        (( missing < room )) || missing=$room
+        for (( k = 0; k < missing; k++ )); do
+          printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$agent" "$skill" "$base" "$head" >>"$jobs_file"
+          planned=$(( planned + 1 ))
+        done
+        (( ok >= reps || room > 0 )) || echo "giving up on $id $agent-$skill: $tried attempts, $ok succeeded" >&2
       done
-      (( ok >= reps || room > 0 )) || echo "giving up on $id $agent-$skill: $tried attempts, $ok succeeded" >&2
     done
-  done
-done <"$corpus"
+  done <"$corpus"
+}
 
+# Epoch until which an agent is paused, or empty when it is not.
+paused_until() {
+  local f=$cycle_dir/.pause-$1 until
+  [[ -f $f ]] || return 0
+  until=$(<"$f")
+  (( until > $(date +%s) )) && echo "$until" || true
+}
+
+plan_runs
 echo "cycle $cycle · skills ${skills_commit:0:7} · $planned run(s) to start, $jobs at a time" >&2
+for agent in ${agents//,/ }; do
+  until=$(paused_until "$agent")
+  [[ -z $until ]] || echo "  $agent is paused for quota until $(date -d "@$until" '+%F %T')" >&2
+done
 (( planned )) || exit 0
 if (( dry_run )); then column -t -s $'\t' "$jobs_file"; exit 0; fi
 
@@ -143,25 +178,101 @@ if [[ ! -f $snapshot/.skills-commit ]]; then
   echo "$skills_commit" >"$snapshot.tmp/.skills-commit"
   rm -rf "$snapshot" && mv "$snapshot.tmp" "$snapshot"
 fi
-export script_dir repo cycle_dir claude_model codex_model budget snapshot
+export script_dir repo cycle_dir claude_model codex_model budget snapshot codex_headroom
+export -f paused_until
+
+# Pause an agent until the given epoch; concurrent jobs keep the latest reset.
+pause_agent() {
+  local agent=$1 until=$2 f=$cycle_dir/.pause-$1
+  (
+    flock 9
+    local cur=0
+    [[ -f $f ]] && cur=$(<"$f")
+    (( until > cur )) && echo "$until" >"$f"
+  ) 9>"$f.lock"
+}
+
+# Move a run out of its case directory so it does not count as an attempt.
+shelve_run() {
+  local out=$1 id=$2 combo=$3 dest=$cycle_dir/quota-failed/$2/$3
+  mkdir -p "$dest" && mv "$out" "$dest/"
+}
+
+# Fresh codex rate-limit reading, from this cycle's runs, runs in flight and your own codex use.
+codex_window() {
+  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d
+  for d in "${TMPDIR:-/tmp}"/matomo-review.*/codex-home; do [[ -d $d ]] && roots+=("$d"); done
+  python3 "$script_dir/review_quota.py" codex-usage "${roots[@]}" 2>/dev/null || echo null
+}
+
 run_one() {
-  local id=$1 agent=$2 skill=$3 base=$4 head=$5 model log
+  local id=$1 agent=$2 skill=$3 base=$4 head=$5 model log until out status=0 limits reset
+  until=$(paused_until "$agent")
+  if [[ -n $until ]]; then
+    echo "defer $id $agent-$skill  (quota until $(date -d "@$until" '+%H:%M'))"
+    return 0
+  fi
+  if [[ $agent == codex ]]; then
+    local w; w=$(codex_window)
+    if [[ $w != null ]] && jq -e --argjson h "$codex_headroom" '.used_percent >= $h' <<<"$w" >/dev/null; then
+      pause_agent codex "$(jq -r '.resets_at' <<<"$w")"
+      echo "defer $id $agent-$skill  (codex window $(jq -r '.used_percent' <<<"$w")% used)"
+      return 0
+    fi
+  fi
   [[ $agent == claude ]] && model=$claude_model || model=$codex_model
   log=$cycle_dir/logs/$id.$agent-$skill.$(date +%Y%m%d-%H%M%S).$$.log
   local args=(-s "$skill" -b "$base" -H "$head" -r "$repo" -a "$agent" -m "$model"
     -k "$snapshot" -o "$cycle_dir" -l "$id")
   [[ $agent == codex ]] || args+=(--budget "$budget")
-  if "$script_dir/run-review.sh" "${args[@]}" >"$log" 2>&1; then
-    echo "ok    $id $agent-$skill"
-  else
-    echo "FAIL  $id $agent-$skill  (see $log)"
+  "$script_dir/run-review.sh" "${args[@]}" >"$log" 2>&1 || status=$?
+  out=$(sed -n 's/^Running .* -> //p' "$log" | head -1)
+
+  if (( status == 0 )) && [[ -n $out ]]; then
+    # Finished, but did a sub-agent hit the limit on the way?  Then the report is degraded.
+    limits=$(python3 "$script_dir/review_quota.py" run-limits "$out" 2>/dev/null || echo null)
+    if jq -e '.tags // [] | index("rate limit")' <<<"$limits" >/dev/null; then
+      status=75
+      reset=$(jq -r '.reset_at // empty' <<<"$limits")
+    fi
+  elif (( status == 75 )) && [[ -n $out ]]; then
+    reset=$(jq -r '.reset_at // empty' "$out/meta.json" 2>/dev/null || true)
   fi
+
+  case $status in
+    0)  echo "ok    $id $agent-$skill" ;;
+    75) pause_agent "$agent" "${reset:-$(( $(date +%s) + 1800 ))}"
+        [[ -z $out || ! -d $out ]] || shelve_run "$out" "$id" "$agent-$skill"
+        echo "QUOTA $id $agent-$skill  (paused until $(date -d "@$(paused_until "$agent" || true)" '+%H:%M' 2>/dev/null || echo '?'); see $log)" ;;
+    *)  echo "FAIL  $id $agent-$skill  (see $log)" ;;
+  esac
 }
-export -f run_one
-# Shuffle so one slow case or agent does not serialise the batch, and stagger the
-# starts so concurrent `git worktree add`s do not race on the repository lock.
-shuf "$jobs_file" \
-  | while IFS=$'\t' read -r id agent skill base head; do
-      printf '%s\0%s\0%s\0%s\0%s\0' "$id" "$agent" "$skill" "$base" "$head"
-    done \
-  | xargs -0 -n5 -P "$jobs" bash -c 'sleep $((RANDOM % 5)); run_one "$@"' _
+export -f run_one pause_agent shelve_run codex_window
+
+while :; do
+  # Shuffle so one slow case or agent does not serialise the batch, and stagger the
+  # starts so concurrent `git worktree add`s do not race on the repository lock.
+  shuf "$jobs_file" \
+    | while IFS=$'\t' read -r id agent skill base head; do
+        printf '%s\0%s\0%s\0%s\0%s\0' "$id" "$agent" "$skill" "$base" "$head"
+      done \
+    | xargs -0 -n5 -P "$jobs" bash -c 'sleep $((RANDOM % 5)); run_one "$@"' _
+
+  plan_runs
+  (( planned )) || { echo "cycle $cycle complete" >&2; break; }
+  next=''
+  for agent in ${agents//,/ }; do
+    until=$(paused_until "$agent")
+    [[ -z $until ]] || [[ -n $next && $next -le $until ]] || next=$until
+  done
+  if [[ -z $next ]]; then
+    echo "$planned run(s) still missing (failed attempts with retries left); re-run to retry them" >&2
+    break
+  fi
+  if (( ! wait_on_quota )); then
+    echo "$planned run(s) deferred for quota; the first agent resumes at $(date -d "@$next" '+%F %T'). Re-run this command then, or pass --wait-on-quota." >&2
+    exit 75
+  fi
+  echo "waiting for quota until $(date -d "@$next" '+%F %T') ($planned run(s) left)" >&2
+  sleep $(( next - $(date +%s) + 60 ))
+done
