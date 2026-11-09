@@ -27,6 +27,8 @@ Options:
                             (default: defer that agent's runs and exit; re-run to resume)
       --codex-headroom <%>  do not start a codex run once its 5-hour or weekly window is this
                             full, so runs do not die halfway                [$codex_headroom]
+                            'off' skips the check, e.g. after switching to another account,
+                            whose usage the logged windows do not show
   -N, --dry-run             list the runs that would start, spend nothing
   -h, --help                show this help
 
@@ -95,7 +97,8 @@ done
 [[ $cycle =~ ^[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]] || die "invalid cycle name: $cycle"
 [[ $reps =~ ^[1-9][0-9]*$ ]] || die "--reps must be a positive integer"
 [[ $jobs =~ ^[1-9][0-9]*$ ]] || die "--jobs must be a positive integer"
-[[ $codex_headroom =~ ^[0-9]+$ ]] && (( codex_headroom <= 100 )) || die "--codex-headroom must be 0-100"
+[[ $codex_headroom == off ]] || { [[ $codex_headroom =~ ^[0-9]+$ ]] && (( codex_headroom <= 100 )); } \
+  || die "--codex-headroom must be 0-100 or off"
 [[ -f $corpus ]] || die "corpus not found: $corpus"
 command -v jq >/dev/null || die "jq not found on PATH"
 
@@ -212,7 +215,7 @@ run_one() {
     echo "defer $id $agent-$skill  (quota until $(date -d "@$until" '+%H:%M'))"
     return 0
   fi
-  if [[ $agent == codex ]]; then
+  if [[ $agent == codex && $codex_headroom != off ]]; then
     local w; w=$(codex_window)
     if [[ $w != null ]] && jq -e --argjson h "$codex_headroom" '.used_percent >= $h' <<<"$w" >/dev/null; then
       pause_agent codex "$(jq -r '.resets_at' <<<"$w")"
