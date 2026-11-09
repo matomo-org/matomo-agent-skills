@@ -156,12 +156,32 @@ plan_runs() {
   done <"$corpus"
 }
 
-# Epoch until which an agent is paused, or empty when it is not.
+# Fresh codex rate-limit reading, from this cycle's runs, runs in flight and your own codex use.
+codex_window() {
+  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d
+  for d in "${TMPDIR:-/tmp}"/matomo-review.*/codex-home; do [[ -d $d ]] && roots+=("$d"); done
+  python3 "$script_dir/review_quota.py" codex-usage "${roots[@]}" 2>/dev/null || echo null
+}
+
+# Epoch until which an agent is paused, or empty when it is not.  A codex pause is lifted
+# early when a rate-limit reading taken after it was set shows room again, since the
+# provider can reset the window before the announced time.
 paused_until() {
-  local f=$cycle_dir/.pause-$1 until
+  local f=$cycle_dir/.pause-$1 until w limit
   [[ -f $f ]] || return 0
   until=$(<"$f")
-  (( until > $(date +%s) )) && echo "$until" || true
+  (( until > $(date +%s) )) || return 0
+  if [[ $1 == codex ]]; then
+    [[ $codex_headroom == off ]] && limit=100 || limit=$codex_headroom
+    w=$(codex_window)
+    if [[ $w != null ]] && jq -e --argjson h "$limit" --argjson set "$(stat -c %Y "$f")" \
+         '.used_percent < $h and ((.seen_at // "") | sub("\\.[0-9]+Z$"; "Z") | try fromdateiso8601 catch 0) > $set' \
+         <<<"$w" >/dev/null; then
+      rm -f "$f"
+      return 0
+    fi
+  fi
+  echo "$until"
 }
 
 plan_runs
@@ -199,13 +219,6 @@ pause_agent() {
 shelve_run() {
   local out=$1 id=$2 combo=$3 dest=$cycle_dir/quota-failed/$2/$3
   mkdir -p "$dest" && mv "$out" "$dest/"
-}
-
-# Fresh codex rate-limit reading, from this cycle's runs, runs in flight and your own codex use.
-codex_window() {
-  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d
-  for d in "${TMPDIR:-/tmp}"/matomo-review.*/codex-home; do [[ -d $d ]] && roots+=("$d"); done
-  python3 "$script_dir/review_quota.py" codex-usage "${roots[@]}" 2>/dev/null || echo null
 }
 
 run_one() {
