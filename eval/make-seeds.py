@@ -40,69 +40,64 @@ def range_sub(text, start_marker, end_marker, old, new, where):
 
 
 SEEDS = {
-    # SEC: return value of the access check ignored -> any user can attach a segment to any site.
-    's01-sec-access': ('8eb05ab6df', {
-        'plugins/SegmentEditor/API.php': lambda t: sub_once(t,
-            "        } else {\n            Piwik::checkUserHasViewAccess($idSite);\n        }\n    }\n\n    protected function checkAutoArchive",
-            "        } else {\n            Piwik::isUserHasViewAccess($idSite);\n        }\n    }\n\n    protected function checkAutoArchive", 's01'),
+    # SEC: the site access check the host adds is replaced by a call whose return value is ignored,
+    # so the row evolution of any site renders for any user.
+    's01-sec-access': ('02c261a8dbc55e879106a20da90c9bfc9a21112e', {
+        'plugins/CoreHome/Controller.php': lambda t: sub_once(t,
+            "    {\n        $this->checkSitePermission();\n\n        if ($isMultiRowEvolution) {",
+            "    {\n        Piwik::isUserHasViewAccess($this->idSite);\n\n        if ($isMultiRowEvolution) {", 's01'),
     }),
-    # SEC: 2FA replay - drop the staleness condition, so a used code is accepted again at once.
-    's02-sec-2fa-replay': ('619bdcc493', {
-        'plugins/TwoFactorAuth/TwoFactorAuthentication.php': lambda t: sub_once(sub_once(t,
-            "$updateBind = [$currentTime, $optionName, $staleThreshold];",
-            "$updateBind = [$currentTime, $optionName];", 's02a'),
-            "WHERE option_name = ? AND CAST(option_value AS UNSIGNED) <= ?'",
-            "WHERE option_name = ?'", 's02b'),
+    # SEC: "strict" comparison against the string '0', but the ini reader returns int 0, so logme
+    # stays enabled after an admin turned it off.
+    's02-sec-logme': ('96f7898a30a4caf773ee7ce4dcd0fb55eaccf80c', {
+        'plugins/Login/Controller.php': lambda t: sub_once(t,
+            "getConfigValue('login_allow_logme') == 0)", "getConfigValue('login_allow_logme') === '0')", 's02'),
     }),
-    # SEC: SQL injection - visitorId (getVisitorProfile parameter, unvalidated) concatenated into
-    # the visit query that every Live request builds.
-    's03-sec-sqli': ('c6c351c5d5', {
-        'plugins/Live/Model.php': lambda t: sub_once(t,
-            "        [$whereBind, $where] = $this->getWhereClauseAndBind($whereClause, $bindIdSites, $startDate, $endDate, $visitorId, $minTimestamp);\n",
-            "        [$whereBind, $where] = $this->getWhereClauseAndBind($whereClause, $bindIdSites, $startDate, $endDate, false, $minTimestamp);\n        if (!empty($visitorId)) {\n            $where .= \" AND log_visit.idvisitor = UNHEX('\" . $visitorId . \"')\";\n        }\n", 's03'),
+    # SEC: SQL injection - the login of an unauthenticated unsubscribe request is concatenated into
+    # the token lookup.
+    's03-sec-sqli': ('8c66aab8af9fdac4701197f35fb4cb056796683a', {
+        'plugins/Marketplace/PluginTrial/UnsubscribeToken.php': lambda t: sub_once(t,
+            "Common::prefixTable('user') . ' WHERE login = ?',\n            [$login]\n        );",
+            "Common::prefixTable('user') . \" WHERE login = '\" . $login . \"'\"\n        );", 's03'),
     }),
-    # SEC: stored XSS via Twig attribute - user-defined segment name printed raw.
-    's04-sec-twig-raw': ('fdfe189253', {
-        'plugins/SegmentEditor/templates/manageSegments.twig': lambda t: sub_once(t,
-            'data-segment-name="{{ segment.name }}"', 'data-segment-name="{{ segment.name|raw }}"', 's04'),
+    # SEC: reflected XSS - the segment request parameter goes into a JS string inside an onclick
+    # attribute with only Twig's HTML escaping, which the browser decodes before running the JS.
+    's04-sec-twig-js': ('d97033f232943417ff16f2a2df72f356b6d19bbc', {
+        'plugins/Goals/templates/conversionOverview.twig': lambda t: sub_once(t,
+            "'{{ currentSegment|e('js') }}'", "'{{ currentSegment }}'", 's04'),
     }),
-    # SEC: stored XSS via v-html of a goal name.
-    's05-sec-vue-vhtml': ('0b992c7fa0', {
-        'plugins/Goals/vue/src/ManageGoals/ManageGoals.vue': lambda t: sub_once(t,
-            "                    :aria-label=\"translate('Goals_ViewGoalReport')\"\n                  ></a>",
-            "                    :aria-label=\"translate('Goals_ViewGoalReport')\"\n                  ><span class=\"visuallyhidden\" v-html=\"goal.name\"></span></a>", 's05'),
+    # SEC: stored XSS - a tracked outlink URL reaches the row's href unsanitised, so a tracked
+    # javascript: URL runs when the row is clicked.
+    's05-sec-vue-href': ('a175cf0569b0f541b58bc2657c8f57a649098604', {
+        'plugins/Transitions/vue/src/TransitionsReport/TransitionsRow.vue': lambda t: sub_once(t,
+            "return this.row.externalUrl ? this.$sanitizeUrl(this.row.externalUrl) : '';",
+            "return this.row.externalUrl || '';", 's05'),
     }),
-    # Upgrade: migration added but version not bumped -> never runs; writer inserts a missing column.
-    's06-mig-version': ('9e8d48d1cc', {
-        'core/Version.php': lambda t: sub_once(t, "VERSION = '5.8.0-b2'", "VERSION = '5.8.0-b1'", 's06'),
+    # Upgrade: migration added but version not bumped -> it never runs.
+    's06-mig-version': ('2053ecaffd849bbc0dd527aa7eb74ca73d705b2d', {
+        'core/Version.php': lambda t: sub_once(t, "VERSION = '6.0.0-b5'", "VERSION = '6.0.0-b4'", 's06'),
     }),
-    # Correctness/abuse: anonymous limits swapped - users without access get the higher limit.
-    's07-cor-bulk-limit': ('199c7ba2f7', {
-        'plugins/API/API.php': lambda t: sub_once(t,
-            "Piwik::isUserHasSomeViewAccess() ? 50 : 10", "Piwik::isUserHasSomeViewAccess() ? 10 : 50", 's07'),
+    # Correctness: the calendar-day count is computed but the old hour-based value is still
+    # returned, so the fix the commit states has no effect.
+    's07-cor-unused-fix': ('d7496b7385ae9da1c6214bef426054d3f912d079', {
+        'plugins/Live/VisitorDetails.php': lambda t: sub_once(t,
+            "'daysAgo'         => (int) $daysAgo,",
+            "'daysAgo'         => (int) Date::secondsToDays($today->getTimestamp() - $firstActionDate->getTimestamp()),", 's07'),
     }),
     # Quality only: drive-by rename of a local in an untouched private method. CI should pass.
-    's08-quality-driveby': ('460e551344', {
-        'plugins/SitesManager/API.php': lambda t: range_sub(t,
-            'private function getSitesFromIds(', 'protected function getNormalizedUrls', '$sites', '$siteRows', 's08'),
+    's08-quality-driveby': ('34bf64ab80e4676f8239e9ff0442e680b20e66a1', {
+        'plugins/UsersManager/Controller.php': lambda t: range_sub(t,
+            'private function getTokenAccessLevelOptions(', 'private function getTokenAccessLevelLabel(',
+            '$options', '$optionRows', 's08'),
     }),
-    # API break: public API parameter renamed (sitesToExclude -> excludedSites); named-parameter
-    # callers (?sitesToExclude=...) silently lose the filter.
-    's09-api-param-rename': ('460e551344', {
-        'plugins/SitesManager/API.php': lambda t: drive_by(t),
+    # API break: public API parameter renamed (copyToUser -> targetLogin); HTTP callers passing
+    # copyToUser= now fail with a missing parameter.
+    's09-api-param-rename': ('5f338c6a4c69e4462ad8b9e4257ab3767724e816', {
+        'plugins/Dashboard/API.php': lambda t: range_sub(t,
+            '     * @param int $idDashboard ID of the dashboard to copy.', "throw new \\Exception('Dashboard not found')",
+            '$copyToUser', '$targetLogin', 's09'),
     }),
 }
-
-
-def drive_by(t):
-    lines = t.split('\n')
-    # the first method using $sitesToExclude (around line 377 at the host), whole method
-    i = next(k for k, l in enumerate(lines) if 'is_array($sitesToExclude)' in l)
-    s = max(k for k in range(i) if re.match(r'\s+(public|private|protected) function', lines[k]))
-    e = next(k for k in range(i, len(lines)) if re.match(r'    \}$', lines[k]))
-    for k in range(s, e + 1):
-        lines[k] = lines[k].replace('$sitesToExclude', '$excludedSites')
-    return '\n'.join(lines)
 
 
 def make(seed_id, host, edits):
