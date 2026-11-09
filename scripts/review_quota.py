@@ -7,9 +7,11 @@
   run-limits RUN_DIR
       Print {"tags": [...], "reset_at": epoch|null} for a run whose transcripts show a limit
       or safeguard error even though it finished (e.g. a sub-agent that hit the quota).
-  codex-usage ROOT...
+  codex-usage [--account ID] ROOT...
       Print the most constrained codex rate-limit window seen in the newest session logs
       under the roots as {"used_percent", "resets_at", "window_minutes", "seen_at"}, or null.
+      With --account, only logs of sessions that account started count (session_meta
+      creator_account_id), so another account's usage is never read as this one's.
 
 The patterns come from real transcripts.  claude: an API error record with
 error "rate_limit" / status 429 and text "You've hit your 5-hour limit · resets 2:40pm
@@ -18,7 +20,7 @@ error "invalid_request" with "safeguards flagged".  codex: event_msg payload typ
 codex_error_info "usage_limit_exceeded" and "try again at 8:54 PM"; every token_count event
 carries rate_limits.{primary,secondary}.{used_percent,window_minutes,resets_at}.
 """
-import argparse, datetime as dt, json, re, sys, time
+import argparse, datetime as dt, itertools, json, re, sys, time
 from pathlib import Path
 
 QUOTA_TEXT = re.compile(r"hit your (?:[\w-]+ )*limit|usage limit|usage_limit_exceeded|rate[_ ]limit|out of credits", re.I)
@@ -88,6 +90,15 @@ def codex_event_error(ev):
     if isinstance(p.get('error'), dict):
         e = p['error']
         return f"{e.get('codex_error_info') or ''} {e.get('message') or ''}"
+    return None
+
+
+def codex_session_account(path):
+    """The account that started a codex session: creator_account_id of its session_meta."""
+    for ev in _jsonl(path):
+        if ev.get('type') == 'session_meta':
+            return (ev.get('payload') or {}).get('creator_account_id')
+        return None
     return None
 
 
@@ -234,6 +245,7 @@ def main():
     r.add_argument('run_dir')
     u = sub.add_parser('codex-usage')
     u.add_argument('roots', nargs='+')
+    u.add_argument('--account')
     u.add_argument('--max-files', type=int, default=20)
     a = ap.parse_args()
     if a.cmd == 'classify':
@@ -246,8 +258,11 @@ def main():
         for root in a.roots:
             p = Path(root)
             if p.is_dir():
-                files += [f for f in p.rglob('*.jsonl') if 'sessions' in f.parts]
-        files = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)[:a.max_files]
+                files += [f for f in p.rglob('*.jsonl') if {'sessions', 'codex-sessions'} & set(f.parts)]
+        files = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)
+        if a.account:
+            files = (f for f in files if codex_session_account(f) == a.account)
+        files = list(itertools.islice(files, a.max_files))
         snap = codex_rate_limits(files)
         w = constrained_window(snap[1]) if snap else None
         if not w or (w[1] and w[1] < time.time()):

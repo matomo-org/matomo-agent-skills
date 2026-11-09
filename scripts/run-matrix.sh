@@ -27,8 +27,9 @@ Options:
                             (default: defer that agent's runs and exit; re-run to resume)
       --codex-headroom <%>  do not start a codex run once its 5-hour or weekly window is this
                             full, so runs do not die halfway                [$codex_headroom]
-                            'off' skips the check, e.g. after switching to another account,
-                            whose usage the logged windows do not show
+                            'off' skips the check
+      --recheck-quota       drop the selected agents' quota pauses before starting, e.g. when
+                            you know the limit has reset; a run that still hits it pauses again
   -N, --dry-run             list the runs that would start, spend nothing
   -h, --help                show this help
 
@@ -44,10 +45,13 @@ reps+1 attempts are made per case/skill/agent so a broken case cannot burn budge
 Quota: a run that stops because the agent's usage limit is spent (run-review.sh exit 75), or
 that finished although its transcript shows a limit error (e.g. a sub-agent hit it), does
 not count as an attempt: it is moved to <cycle>/quota-failed/ and the agent is paused until
-the reset time the agent named (30 minutes when it named none), in <cycle>/.pause-<agent>.
-Paused runs are deferred, never started; the other agent carries on.  codex is also paused
-before a run when its logged rate-limit window reaches --codex-headroom.  claude reports no
-usage ahead of time, so it is only caught when it hits the limit.
+the reset time the agent named (30 minutes when it named none), in <cycle>/.pause-<agent>
+(.pause-codex-<account> for codex).  Paused runs are deferred, never started; the other agent
+carries on.  codex is also paused before a run when its logged rate-limit window reaches
+--codex-headroom, and a codex pause is lifted early when a newer reading shows room again.
+codex readings and pauses belong to the account logged in through \$CODEX_HOME/auth.json, so
+switching accounts neither inherits the other account's pause nor reads its usage.  claude
+reports no usage ahead of time, so it is only caught when it hits the limit.
 
 Corpus columns (tab-separated, '#' lines ignored):
   id  stage  category  base  head  expect  expect_where  notes
@@ -63,13 +67,14 @@ repo=/data/matomo/core/6.x-dev
 out_root=/data/matomo/review-runs
 cycle='' reps=3 jobs=3 agents=claude,codex skill_list=ci-review,dev-review cases='' tiers=''
 claude_model=claude-opus-5-5 codex_model=gpt-6.1-sol budget=10
-dry_run=0 wait_on_quota=0 codex_headroom=90
+dry_run=0 wait_on_quota=0 codex_headroom=90 recheck_quota=0
 
 while (( $# )); do
   case $1 in
     -h|--help)     usage; exit 0 ;;
     -N|--dry-run)  dry_run=1; shift ;;
     --wait-on-quota) wait_on_quota=1; shift ;;
+    --recheck-quota) recheck_quota=1; shift ;;
     -C|--cycle|-c|--corpus|-r|--repo|-o|--out|-n|--reps|-j|--jobs|-a|--agents|-s|--skills|-i|--cases|-t|--tier|--claude-model|--codex-model|--budget|--codex-headroom)
       [[ $# -ge 2 && -n $2 ]] || die "$1 needs a value"
       case $1 in
@@ -156,18 +161,33 @@ plan_runs() {
   done <"$corpus"
 }
 
-# Fresh codex rate-limit reading, from this cycle's runs, runs in flight and your own codex use.
+# The codex account runs use now (run-review.sh links this auth.json), or empty.
+codex_account() {
+  jq -r '.tokens.account_id // empty' "${CODEX_HOME:-$HOME/.codex}/auth.json" 2>/dev/null || true
+}
+
+# An agent's pause file; codex pauses are per account.
+pause_file() {
+  local acct
+  [[ $1 == codex ]] && acct=$(codex_account)
+  echo "$cycle_dir/.pause-$1${acct:+-$acct}"
+}
+
+# Fresh codex rate-limit reading for the current account, from this cycle's runs, runs in
+# flight and your own codex use.
 codex_window() {
-  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d
+  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d acct
   for d in "${TMPDIR:-/tmp}"/matomo-review.*/codex-home; do [[ -d $d ]] && roots+=("$d"); done
-  python3 "$script_dir/review_quota.py" codex-usage "${roots[@]}" 2>/dev/null || echo null
+  acct=$(codex_account)
+  python3 "$script_dir/review_quota.py" codex-usage ${acct:+--account "$acct"} "${roots[@]}" 2>/dev/null || echo null
 }
 
 # Epoch until which an agent is paused, or empty when it is not.  A codex pause is lifted
 # early when a rate-limit reading taken after it was set shows room again, since the
 # provider can reset the window before the announced time.
 paused_until() {
-  local f=$cycle_dir/.pause-$1 until w limit
+  local f until w limit
+  f=$(pause_file "$1")
   [[ -f $f ]] || return 0
   until=$(<"$f")
   (( until > $(date +%s) )) || return 0
@@ -185,6 +205,12 @@ paused_until() {
 }
 
 plan_runs
+if (( recheck_quota )); then
+  for agent in ${agents//,/ }; do
+    f=$(pause_file "$agent")
+    [[ ! -f $f ]] || { rm -f "$f"; echo "  dropped the $agent quota pause" >&2; }
+  done
+fi
 echo "cycle $cycle · skills ${skills_commit:0:7} · $planned run(s) to start, $jobs at a time" >&2
 for agent in ${agents//,/ }; do
   until=$(paused_until "$agent")
@@ -202,11 +228,12 @@ if [[ ! -f $snapshot/.skills-commit ]]; then
   rm -rf "$snapshot" && mv "$snapshot.tmp" "$snapshot"
 fi
 export script_dir repo cycle_dir claude_model codex_model budget snapshot codex_headroom
-export -f paused_until
+export -f paused_until pause_file codex_account codex_window
 
 # Pause an agent until the given epoch; concurrent jobs keep the latest reset.
 pause_agent() {
-  local agent=$1 until=$2 f=$cycle_dir/.pause-$1
+  local agent=$1 until=$2 f
+  f=$(pause_file "$agent")
   (
     flock 9
     local cur=0
@@ -263,7 +290,7 @@ run_one() {
     *)  echo "FAIL  $id $agent-$skill  (see $log)" ;;
   esac
 }
-export -f run_one pause_agent shelve_run codex_window
+export -f run_one pause_agent shelve_run
 
 while :; do
   # Shuffle so one slow case or agent does not serialise the batch, and stagger the
