@@ -134,10 +134,11 @@ unavailable, apply the `PATTERNS` in `scripts/inventory.py` to the diff by hand 
   sink row, not an input row.
 - A **stored-state row** is one table, column, `log_*` dimension, persisted setting or option,
   archive record, file on disk, cache entry or session key.
-- A **behaviour row** (`C01`, ...) is one existing function whose body the change alters — it
-  existed before the change, so code elsewhere already depends on what it did. The script lists its
-  direct callers; the consumers that matter are often further away, wherever the value it returns
-  or accepts ends up.
+- A **behaviour row** (`C01`, ...) is one existing function (PHP, JS or TS) whose body the change
+  alters, or one existing Twig template or Vue component it alters — it existed before the change, so
+  code elsewhere already depends on what it did. The script lists its direct callers (for a template
+  or component, what includes, renders, imports or mounts it); the consumers that matter are often
+  further away, wherever the value it returns, accepts or outputs ends up.
 
 Add rows the script misses when the diff shows them, marked as added. Never drop a script row: answer
 it, or give the reason it is not a row (for example two rows for the same table, answered once).
@@ -219,6 +220,10 @@ Each kind adds numbered questions, answered like the six above (`T02 Q7 unmet �
      existing stored values and new ones still mean the same thing?
    - **2e Output:** where it is displayed, exported or sent onward. Does anyone downstream now get
      something they cannot handle?
+   - **2f Plugins:** when the value passes through public surface — an `@api` class, method or
+     property, an event, a template variable or a component plugins mount — plugins are consumers
+     outside the repository. Take each in-repository use as the sample of what a plugin does with it:
+     what does a plugin that uses it as documented now get? (`DEP-02`, `DEP-03`)
 3. **Tests:** which existing tests assert or rely on the old behaviour (also indirectly, through
    input they send), and were they updated in the change? (`TEST-01`, `DEV-06`)
 4. **Contract:** is the behaviour change intended, documented for its audience (`DOC-01`), and
@@ -239,7 +244,7 @@ C01 Q2c open — traced to plugins/Foo/API.php and plugins/Bar/Model.php; not re
 ```
 
 The **floor-carrying questions** are input questions 1–3, sink questions 1–2, stored-state questions
-1–4 and each kind's own, and behaviour questions 2a–2e and 3. An `open` answer to one of them means the
+1–4 and each kind's own, and behaviour questions 2a–2f and 3. An `open` answer to one of them means the
 review cannot vouch that no floor is met there; the entry skill reports it as such.
 
 An answer that rests on core behaviour ("core validates this parameter", "this hook runs once per
@@ -252,8 +257,8 @@ The security pass sub-agent gets the input and sink rows, and also step 7 questi
 every loaded `locked` rule; it returns the row answers and its question-1 candidates. The stored-state
 pass sub-agent gets the stored-state rows, the six common questions, each row kind's own questions,
 and the text of the rules they name (`SEC-02`, `SEC-11`, `COR-02`, `MIG-*`, `PERF-*`). The behaviour
-pass sub-agent gets the behaviour rows with their callers and the behaviour questions (2a–2e answered separately) with `COR-02..04`,
-`TEST-01`, `DEV-06`, `DOC-01` and `DEP-02`. For all of them, give the sub-agent: the repository root, the pinned `<range>`, the rows, the hunks that contain
+pass sub-agent gets the behaviour rows with their callers and the behaviour questions (2a–2f answered separately) with `COR-02..04`,
+`TEST-01`, `DEV-06`, `DOC-01`, `DEP-02` and `DEP-03`. For all of them, give the sub-agent: the repository root, the pinned `<range>`, the rows, the hunks that contain
 them, the question list above with the text of the rules it names, and section 0. Ask it to trace
 each row as far as needed to answer — callers, core code the value flows into, the PrivacyManager
 paths a table is reached through — and to return the answer lines in the format above, then its

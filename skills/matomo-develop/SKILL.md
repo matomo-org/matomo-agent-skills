@@ -39,8 +39,8 @@ Write a short plan before the first edit: files to touch and why, per file. Chec
 
 For a trivial change the plan is one line. For a change that adds public surface, inputs, sinks or
 stored state, the plan also carries the inventories of `matomo-rules/references/release-review.md`
-step 6: list each row the change will create or touch — including every existing function whose
-behaviour it changes, with the consumers of that behaviour traced as behaviour question 2 asks — and
+step 6: list each row the change will create or touch — including every existing function, template
+or component whose behaviour it changes, with the consumers of that behaviour traced as behaviour question 2 asks — and
 answer every question for it with the mechanism
 you will use ("`Piwik::checkUserHasWriteAccess($idSite)`", "rejected with an exception naming the
 parameter", "reached by `PrivacyManager.deleteDataSubjects`"). A question you cannot answer from

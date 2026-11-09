@@ -8,6 +8,9 @@ scanned at head for stored-state definitions (a log table whose writes or joins 
 whose creation moves), marked `"via": "changed-file"`; and every `LogTable` class of a plugin the
 change touches is listed (`"via": "component-log-table"`), because a change that creates or fills a
 table makes its erasure and retention joins live even when the class itself is unchanged.
+Behaviour rows are the existing PHP, JS and TS functions, Twig templates and Vue components whose
+body the change alters, each with its direct callers (tests included): what calls the function,
+includes or renders the template, or imports or mounts the component.
 The same range always yields the same rows; the review answers the questions per row and may add
 rows the patterns miss, but never drops one without saying why.
 
@@ -24,7 +27,10 @@ import re
 import subprocess
 import sys
 
-EXCLUDE = ['*/tests/*', 'tests/*', '*/vue/dist/*', '*.min.js', '*.spec.ts', '*/libs/*', 'vendor/*']
+EXCLUDE = ['*/tests/*', 'tests/*', '*/vue/dist/*', '*.min.js', '*.spec.ts', '*/libs/*', 'libs/*', 'vendor/*',
+           'node_modules/*']
+# Callers keep tests (behaviour question 3 asks which tests rely on the old behaviour), not built or vendored code.
+CALLER_EXCLUDE = ['*/vue/dist/*', '*.min.js', '*/libs/*', 'libs/*', 'vendor/*', 'node_modules/*']
 COMMENT = re.compile(r'^\s*(\*|//|#(?!\[)|/\*)')
 
 # (table, kind, file globs, pattern). Kinds name the row type the review answers questions for.
@@ -90,6 +96,12 @@ def added_lines(root, base, head):
 
 HUNK_OLD_NEW = re.compile(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@')
 FUNCTION = re.compile(r'^\s*(?:(?:abstract|final|public|protected|private|static)\s+)*function\s+&?(\w+)\s*\(')
+# JS/TS/Vue: `function f(`, a method `f(...) {` or `f(...): T {`, `const f = (...) =>` / `= async (`.
+JS_FUNCTION = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s*\*?\s*(\w+)\s*[(<]'
+                         r'|^\s*(?:async\s+)?(?!(?:if|for|while|switch|catch|return|function|else)\b)(\w+)\s*\(.*\)'
+                         r'\s*(?::\s*[^{=;]+)?\{\s*$'
+                         r'|^\s*(?:export\s+)?(?:const|let)\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*(?::[^=]+)?=>')
+JS_FILES = ('.ts', '.js', '.vue')
 CALLER_LIMIT = 20
 
 
@@ -108,39 +120,119 @@ def changed_hunks(root, base, head):
                 yield path, max(int(m.group(3)), 1)
 
 
-def enclosing_function(lines, line):
+def function_name(path, text):
+    """(name, is_method) when the line declares a function, else (None, False)."""
+    m = (JS_FUNCTION if path.endswith(JS_FILES) else FUNCTION).match(text)
+    if not m:
+        return None, False
+    return next(g for g in m.groups() if g), path.endswith(JS_FILES) and bool(m.group(2))
+
+
+def body_end(lines, start):
+    """Last line (1-based) of the body that opens at or after line `start`; None if it has no body."""
+    depth, opened = 0, False
+    for n in range(start, len(lines) + 1):
+        for ch in lines[n - 1]:
+            if ch == '{':
+                depth, opened = depth + 1, True
+            elif ch == '}':
+                depth -= 1
+            elif ch == ';' and not opened:
+                return None
+            if opened and depth == 0:
+                return n
+    return None
+
+
+def enclosing_function(path, lines, line):
+    """The innermost function whose body contains `line`: (name, declaration line, is_method)."""
     for n in range(min(line, len(lines)), 0, -1):
-        m = FUNCTION.match(lines[n - 1])
-        if m:
-            return m.group(1), n
-    return None, None
+        name, method = function_name(path, lines[n - 1])
+        if name:
+            end = body_end(lines, n)
+            if end and end >= line:
+                return name, n, method
+    return None, None, False
+
+
+def grep_callers(root, head, pattern, globs, fixed=False):
+    grep = subprocess.run(['git', '-C', root, 'grep', '-n', '-F' if fixed else '-E', pattern,
+                           *([head] if head else []), '--', *globs], capture_output=True, text=True)
+    callers = []
+    for hit in grep.stdout.splitlines():
+        parts = hit.split(':', 3) if head else [None] + hit.split(':', 2)
+        if not any(fnmatch.fnmatch(parts[1], g) for g in CALLER_EXCLUDE):
+            callers.append(f'{parts[1]}:{parts[2]}')
+    return callers
+
+
+def template_name(path):
+    """`plugins/Foo/templates/bar.twig` -> `@Foo/bar`, the name includes and renders use."""
+    m = re.match(r'plugins/(\w+)/templates/(.+)\.twig$', path)
+    return f'@{m.group(1)}/{m.group(2)}' if m else None
+
+
+def module_name(path):
+    return path.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+
+
+def importers(root, head, path):
+    """Files that import a JS/TS/Vue module, and Twig/PHP that mount a Vue component by name."""
+    name = module_name(path)
+    callers = grep_callers(root, head, r"""(from|import\(?)\s*['"][^'"]*/""" + name + r"""(\.(vue|ts|js))?['"]""",
+                           ['*.vue', '*.ts', '*.js'])
+    m = re.match(r'plugins/(\w+)/vue/src/', path)
+    if m and path.endswith('.vue'):
+        callers += grep_callers(root, head, f'{m.group(1)}.{name}', ['*.twig', '*.php'], fixed=True)
+    return [c for c in callers if not c.startswith(path + ':')]
+
+
+def row(kind, path, line, name, callers):
+    return {'id': None, 'kind': kind, 'path': path, 'line': line, 'text': name, 'via': 'changed-hunk',
+            'callers': callers[:CALLER_LIMIT], 'caller_count': len(callers)}
 
 
 def changed_behaviour(root, base, head):
-    """Existing PHP functions whose body the change alters, with their direct callers."""
+    """Existing code whose behaviour the change alters, with its direct consumers.
+
+    PHP and JS/TS functions are one row per function. A Twig template and a Vue component are one row
+    each, because their consumers are whatever includes, renders or mounts them; their props, markup
+    and setup code change behaviour without being a function.
+    """
     rows, seen = [], set()
     merge_base = base
     if head:
         mb = subprocess.run(['git', '-C', root, 'merge-base', base, head], capture_output=True, text=True)
         merge_base = mb.stdout.strip() or base
     for path, line in changed_hunks(root, base, head):
-        if excluded(path) or not path.endswith('.php'):
+        if excluded(path) or not path.endswith(('.php', '.twig') + JS_FILES):
             continue
-        name, at = enclosing_function(read_at(root, head, path).splitlines(), line)
+        if path.endswith(('.twig', '.vue')):
+            name = template_name(path) if path.endswith('.twig') else module_name(path)
+            if not name or path in seen or not read_at(root, merge_base, path):
+                continue  # a new template or component: what it does is a row of the other tables
+            seen.add(path)
+            if path.endswith('.twig'):
+                callers = [c for c in grep_callers(root, head, name, ['*.php', '*.twig'], fixed=True)
+                           if not c.startswith(path + ':')]
+                rows.append(row('changed-template', path, line, name, callers))
+            else:
+                rows.append(row('changed-component', path, line, name, importers(root, head, path)))
+            continue
+        name, at, method = enclosing_function(path, read_at(root, head, path).splitlines(), line)
         if not name or (path, name) in seen:
             continue
-        before = read_at(root, merge_base, path)
-        if not re.search(r'function\s+&?' + re.escape(name) + r'\s*\(', before):
+        if not any(function_name(path, text)[0] == name for text in read_at(root, merge_base, path).splitlines()):
             continue  # a new function: its inputs, sinks and state are rows of the other tables
         seen.add((path, name))
-        grep = subprocess.run(['git', '-C', root, 'grep', '-n', '-E', r'(->|::)' + name + r'\s*\(',
-                               *([head] if head else []), '--', '*.php'], capture_output=True, text=True)
-        callers = []
-        for hit in grep.stdout.splitlines():
-            parts = hit.split(':', 3) if head else [None] + hit.split(':', 2)
-            callers.append(f'{parts[1]}:{parts[2]}')
-        rows.append({'id': None, 'kind': 'changed-function', 'path': path, 'line': at, 'text': name,
-                     'via': 'changed-hunk', 'callers': callers[:CALLER_LIMIT], 'caller_count': len(callers)})
+        if not path.endswith(JS_FILES):
+            callers = grep_callers(root, head, r'(->|::)' + name + r'\s*\(', ['*.php'])
+        elif method:
+            callers = importers(root, head, path)  # an object or class member: reached through its module
+        else:
+            callers = [c for c in grep_callers(root, head, r'\b' + name + r'\s*\(', ['*.vue', '*.ts', '*.js'])
+                       if c != f'{path}:{at}']
+        rows.append(row('changed-function', path, at, name, callers))
     return rows
 
 
