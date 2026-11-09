@@ -30,11 +30,16 @@ Writes <out>/<label>/<agent>-<skill>/<timestamp>/{report.md,raw.json,meta.json},
 repeated runs of one range, by either agent, sit side by side under
 <out>/<base10>..<head10>/.
 
-codex runs get their own CODEX_HOME in <timestamp>/codex-home: it links your auth.json and
-only this repository's skills, and ignores ~/.codex/config.toml, so the model is codex's
-default unless -m is given.  They use a read-only sandbox, report no cost and have no
-budget cap, and raw.json holds the --json event stream (one event per line).  That stream
-leaves out the commands codex ran; the full session log is under codex-home/sessions/.
+The review worktree, and for codex its own CODEX_HOME, are created in a temporary directory
+under \$TMPDIR, outside the results tree, so the agent cannot find other runs' reports.  The
+CODEX_HOME links your auth.json and only this repository's skills, and ignores
+~/.codex/config.toml, so the model is codex's default unless -m is given.  codex runs use a
+read-only sandbox, report no cost and have no budget cap, and raw.json holds the --json event
+stream (one event per line).  That stream leaves out the commands codex ran; the full session
+log is copied to <timestamp>/codex-sessions/.
+
+-k may also name a snapshot without git metadata (as run-matrix.sh exports), provided it holds
+a .skills-commit file naming the commit it was exported from.
 
 Example, re-reviewing a squash-merged PR commit as if it were the open branch:
   $(basename "$0") -s ci-review -b <sha>^ -H <sha> -r /data/matomo/core/5.x-dev
@@ -109,6 +114,15 @@ skills=$(cd -- "$skills" && pwd)
 [[ -f $skills/.claude-plugin/plugin.json ]] || die "not a Claude plugin (no .claude-plugin/plugin.json): $skills"
 [[ -f $skills/skills/matomo-$skill/SKILL.md ]] || die "skill matomo-$skill not found in $skills/skills"
 plugin=$(jq -er .name "$skills/.claude-plugin/plugin.json") || die "plugin.json has no name: $skills"
+# A snapshot exported by run-matrix.sh is no git repository; it names its commit in .skills-commit.
+if git -C "$skills" rev-parse --git-dir >/dev/null 2>&1; then
+  skills_commit=$(git -C "$skills" rev-parse HEAD)
+  skills_dirty=$(git -C "$skills" status --porcelain | head -c1)
+elif [[ -f $skills/.skills-commit ]]; then
+  skills_commit=$(<"$skills/.skills-commit") skills_dirty=''
+else
+  die "skills directory is neither a git repository nor a snapshot with .skills-commit: $skills"
+fi
 
 [[ -d $repo ]] || die "Matomo checkout does not exist: $repo"
 git -C "$repo" rev-parse --git-dir >/dev/null 2>&1 || die "not a git repository: $repo"
@@ -122,8 +136,13 @@ label=${label:-${base_sha:0:10}..${head_sha:0:10}}
 out=$out_root/$label/$agent-$skill/$(date +%Y%m%d-%H%M%S)
 # Parallel runs of one range can start in the same second.
 [[ ! -e $out ]] || out=$out-$$
-wt=$out/worktree
-codex_home=$out/codex-home
+# The worktree and codex's home live outside the results tree, so the reviewing agent cannot
+# stumble on other runs' reports from its working directory or its skill paths.
+scratch_parent=${TMPDIR:-/tmp}
+scratch=$scratch_parent/matomo-review.XXXXXX
+wt=$scratch/matomo
+codex_home=$scratch/codex-home
+last_message=$scratch/last-message.md
 
 # Both agents name the skill <plugin>:<skill> (codex reads .claude-plugin/plugin.json too),
 # so the prompt is identical for either.
@@ -157,7 +176,7 @@ case $agent in
     # The read-only sandbox stands in for claude's allow-list: any command may read, none may write.
     cmd=("$agent_bin" exec --json
       --sandbox read-only -c 'approval_policy="never"'
-      -C "$wt" -o "$out/last-message.md")
+      -C "$wt" -o "$last_message")
     [[ -z $model ]] || cmd+=(--model "$model")
     cmd+=("$prompt") ;;
 esac
@@ -172,10 +191,19 @@ fi
 
 mkdir -p "$(dirname "$out")"
 mkdir "$out" || die "output directory already exists: $out"
+scratch=$(mktemp -d "$scratch_parent/matomo-review.XXXXXX")
+wt=$scratch/matomo codex_home=$scratch/codex-home last_message=$scratch/last-message.md
 git -C "$repo" worktree add --quiet --detach "$wt" "$head_sha"
 cleanup() {
-  (( keep_worktree )) || git -C "$repo" worktree remove --force "$wt" 2>/dev/null || true
   rm -f "$codex_home/auth.json"
+  # codex's full session log (with the commands it ran) is kept next to the report.
+  [[ ! -d $codex_home/sessions ]] || cp -r "$codex_home/sessions" "$out/codex-sessions"
+  if (( keep_worktree )); then
+    echo "worktree kept: $wt" >&2
+  else
+    git -C "$repo" worktree remove --force "$wt" 2>/dev/null || true
+    rm -rf "$scratch"
+  fi
 }
 trap cleanup EXIT
 
@@ -196,22 +224,33 @@ elapsed_ms=$(( $(date +%s%3N) - start_ms ))
 
 # Per-agent fields of meta.json, read from raw.json: one result object for claude, a
 # stream of events for codex.  Fields an agent does not report are null.
+# models_used is what actually served the run, which -m alone does not tell when it is omitted.
 case $agent in
   claude) summary='$raw[0] | {is_error, cost_usd: .total_cost_usd, turns: .num_turns,
     duration_ms, session_id, permission_denials: (.permission_denials // [] | length),
-    usage}' ;;
+    models_used: (.modelUsage // {} | keys), effort: null, usage}' ;;
   codex) summary='$raw | {is_error: any(.[]; .type == "turn.failed" or .type == "error"),
     cost_usd: null, turns: null, duration_ms: $elapsed_ms,
     session_id: (first(.[] | select(.type == "thread.started") | .thread_id) // null),
-    permission_denials: null,
+    permission_denials: null, models_used: $codex_models, effort: $codex_effort,
     usage: (reduce (.[] | select(.type == "turn.completed") | .usage // {} | to_entries[]) as $e
       ({}; .[$e.key] += $e.value))}' ;;
 esac
+# codex names its model and reasoning effort only in the session log.
+codex_models='[]' codex_effort=null
+if [[ $agent == codex ]]; then
+  if [[ -d $codex_home/sessions ]]; then
+    logs() { find "$codex_home/sessions" -name '*.jsonl' -exec cat {} +; }
+    codex_models=$(logs | grep -oE '"model":"[^"]+"' | cut -d'"' -f4 | sort -u | jq -Rsc 'split("\n") | map(select(. != ""))')
+    codex_effort=$(logs | grep -oE '"effort":"[^"]+"' | head -1 | cut -d'"' -f4 | jq -Rc 'select(. != "")')
+    codex_effort=${codex_effort:-null}
+  fi
+fi
 jq -n --arg agent "$agent" --arg skill "$skill" --arg plugin "$plugin" --arg skills "$skills" \
-  --arg skills_commit "$(git -C "$skills" rev-parse HEAD)" \
-  --arg skills_dirty "$(git -C "$skills" status --porcelain | head -c1)" \
+  --arg skills_commit "$skills_commit" --arg skills_dirty "$skills_dirty" \
   --arg repo "$repo" --arg base "$base_sha" --arg head "$head_sha" \
   --arg model "$model" --argjson exit "$status" --argjson elapsed_ms "$elapsed_ms" \
+  --argjson codex_models "$codex_models" --argjson codex_effort "$codex_effort" \
   --slurpfile raw <(jq -c . "$out/raw.json" 2>/dev/null || echo null) \
   '{agent: $agent, skill: $skill, plugin: $plugin, skills: $skills, skills_commit: $skills_commit,
     skills_dirty: ($skills_dirty != ""), repo: $repo, base: $base, head: $head,
@@ -220,7 +259,7 @@ jq -n --arg agent "$agent" --arg skill "$skill" --arg plugin "$plugin" --arg ski
 
 case $agent in
   claude) result=$(jq -r '.result // empty' "$out/raw.json" 2>/dev/null || true) ;;
-  codex)  result=$(cat "$out/last-message.md" 2>/dev/null || true); rm -f "$out/last-message.md" ;;
+  codex)  result=$(cat "$last_message" 2>/dev/null || true) ;;
 esac
 if (( status != 0 )) || [[ -z $result ]] || [[ $(jq -r .is_error "$out/meta.json") == true ]]; then
   echo "$(basename "$0"): review failed (exit $status); see $out/raw.json" >&2

@@ -1,0 +1,25 @@
+# Review evaluation corpus — Matomo 6.x-dev only.  Tab-separated; use '-' for an empty field.
+# expect: pass | fail | any (verdict the CI review should give; dev: fail = Changes required).
+# expect_where: comma-separated path[:line] at head that a gating finding should hit.
+# Seeded cases need refs/review-eval/* in the checkout: run eval/make-seeds.py first.
+# stage: smoke < pilot < full (run-matrix -t smoke,pilot runs both).
+#id	stage	category	base	head	expect	expect_where	notes
+c00	smoke	real-unknown	f294594262f5d6ee471cdae56fb73752f65e5b4a	9c42e8f872634ce3c4c8cb8f8505204c25cfc565	any	core/Settings/Storage/Backend/PluginSettingsTable.php:312	Pilot range. 3 of 4 pilot runs flagged a tab-only-login cleanup regression; the label decides whether it is real.
+s04	smoke	seeded-sec	refs/review-eval/s04-sec-twig-raw^	refs/review-eval/s04-sec-twig-raw	fail	plugins/SegmentEditor/templates/manageSegments.twig:43	Twig |raw on a user-defined segment name inside an HTML attribute (stored XSS). Host fdfe189253 = h04.
+h04	smoke	clean-host	refs/review-eval/s04-sec-twig-raw^	fdfe1892535429f58a6d651ff83129bd1330a10c	pass	-	Host of s04: segment editor table overflow fix, Twig-only.
+s02	pilot	seeded-sec	refs/review-eval/s02-sec-2fa-replay^	refs/review-eval/s02-sec-2fa-replay	fail	plugins/TwoFactorAuth/TwoFactorAuthentication.php:182	Staleness condition dropped from the used-code UPDATE: a 2FA code can be replayed right away.
+h02	pilot	clean-host	refs/review-eval/s02-sec-2fa-replay^	619bdcc493ac6baf38db4f5b3cc80e03d53c1cab	pass	-	Host of s02: stale 2FA used-code records fix.
+r02	pilot	real-bad-sec	72cccf50d35da2c41555084aabbcb4b0508377e7^	72cccf50d35da2c41555084aabbcb4b0508377e7	fail	plugins/Overlay/templates/index.twig:75,plugins/Overlay/templates/index.twig:86,plugins/Overlay/templates/index_noframe.twig:11	Handshake params HTML-escaped inside inline JS strings; fixed by 5b934e9b57 (|e('js')).
+s08	pilot	seeded-quality	refs/review-eval/s08-quality-driveby^	refs/review-eval/s08-quality-driveby	pass	-	Drive-by local rename in untouched private SitesManager\API::getSitesFromIds. CI must pass; dev should raise DEV-02 under Guardrails at plugins/SitesManager/API.php:585.
+s06	pilot	seeded-upgrade	refs/review-eval/s06-mig-version^	refs/review-eval/s06-mig-version	fail	core/Version.php:25,core/Updates/5.8.0-b2.php,plugins/ArchivingMetrics/Writer/DbWriter.php	Update file added but core version not bumped: migration never runs, writer inserts the missing is_temporary column on upgraded installs.
+s01	full	seeded-sec	refs/review-eval/s01-sec-access^	refs/review-eval/s01-sec-access	fail	plugins/SegmentEditor/API.php:98	checkUserHasViewAccess replaced by isUserHasViewAccess with result ignored: segments can be attached to any site.
+h01	full	clean-host	refs/review-eval/s01-sec-access^	8eb05ab6dfa6dc403e8d1e41f7037e55a61607b5	pass	-	Host of s01: shared segments filtered by site access.
+s03	full	seeded-sec	refs/review-eval/s03-sec-sqli^	refs/review-eval/s03-sec-sqli	fail	plugins/Live/Model.php:646	visitorId (Live.getVisitorProfile, unvalidated) concatenated into the visit query.
+s05	full	seeded-sec	refs/review-eval/s05-sec-vue-vhtml^	refs/review-eval/s05-sec-vue-vhtml	fail	plugins/Goals/vue/src/ManageGoals/ManageGoals.vue:95	v-html of a goal name (stored XSS). dist/ deliberately not rebuilt.
+s07	full	seeded-cor	refs/review-eval/s07-cor-bulk-limit^	refs/review-eval/s07-cor-bulk-limit	fail	plugins/API/API.php:557	Anonymous bulk limits swapped: users without access get 50 instead of 10.
+s09	full	seeded-api	refs/review-eval/s09-api-param-rename^	refs/review-eval/s09-api-param-rename	fail	plugins/SitesManager/API.php:372	Public API parameter sitesToExclude renamed: callers passing sitesToExclude= silently lose the filter.
+h08	full	clean-host	refs/review-eval/s08-quality-driveby^	460e551344205f1e2d64a0b4ccfe50313d93f13c	pass	-	Host of s08/s09: SitesTable code quality refactor.
+h06	full	clean-host	refs/review-eval/s06-mig-version^	9e8d48d1ccc83eb62aa988e8b9df0108b69d0970	pass	-	Host of s06: is_temporary migration with version bump.
+r01	full	real-bad-ui	54ba044658d2bb9786505fcd37f5aaedff5c2950^	54ba044658d2bb9786505fcd37f5aaedff5c2950	fail	plugins/CorePluginsAdmin/vue/src/FormField/FieldExpandableSelect.vue	Option list teleported to <body>: search box cannot hold focus inside modals, list can open off-screen; fixed by 92061653a7. Contains submodule bumps.
+r03	full	real-bad-large	0ee5c9590a0ab67701b9913ee89412c654efcd45^	0ee5c9590a0ab67701b9913ee89412c654efcd45	fail	plugins/Marketplace/Environment.php:62,plugins/Marketplace/Api/Client.php:104	Large (about 1.2k reviewable lines). getPhpVersion() returns the web PHP version from CLI so plugin installs check require.php against the wrong PHP; empty consumer response read as no licenses. Fixed by f8bd463d8d.
+e01	full	edge-docs	6186f2aa64521a5ee7addda8a99d84c8090be893^	6186f2aa64521a5ee7addda8a99d84c8090be893	pass	-	PHPDoc-only correction across core/ plus phpstan baseline.
