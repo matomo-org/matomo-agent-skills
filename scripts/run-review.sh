@@ -142,8 +142,13 @@ out=$out_root/$label/$agent-$skill/$(date +%Y%m%d-%H%M%S)
 [[ ! -e $out ]] || out=$out-$$
 # The worktree and codex's home live outside the results tree, so the reviewing agent cannot
 # stumble on other runs' reports from its working directory or its skill paths.
+# Created before the agent command is built, which embeds these paths.
 scratch_parent=${TMPDIR:-/tmp}
-scratch=$scratch_parent/matomo-review.XXXXXX
+if (( dry_run )); then
+  scratch=$scratch_parent/matomo-review.XXXXXX
+else
+  scratch=$(mktemp -d "$scratch_parent/matomo-review.XXXXXX")
+fi
 wt=$scratch/matomo
 codex_home=$scratch/codex-home
 last_message=$scratch/last-message.md
@@ -194,9 +199,7 @@ if (( dry_run )); then
 fi
 
 mkdir -p "$(dirname "$out")"
-mkdir "$out" || die "output directory already exists: $out"
-scratch=$(mktemp -d "$scratch_parent/matomo-review.XXXXXX")
-wt=$scratch/matomo codex_home=$scratch/codex-home last_message=$scratch/last-message.md
+mkdir "$out" || { rmdir "$scratch"; die "output directory already exists: $out"; }
 git -C "$repo" worktree add --quiet --detach "$wt" "$head_sha"
 cleanup() {
   rm -f "$codex_home/auth.json"
@@ -210,6 +213,9 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+# bash skips the EXIT trap when a signal kills it; exiting turns the signal into a normal exit.
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [[ $agent == codex ]]; then
   mkdir -p "$codex_home/skills"
