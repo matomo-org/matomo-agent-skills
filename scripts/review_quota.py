@@ -7,11 +7,14 @@
   run-limits RUN_DIR
       Print {"tags": [...], "reset_at": epoch|null} for a run whose transcripts show a limit
       or safeguard error even though it finished (e.g. a sub-agent that hit the quota).
-  codex-usage [--account ID] ROOT...
+  codex-identity AUTH_JSON
+      Print the current account/user IDs and an opaque pause-file key (never tokens).
+  codex-usage [--account ID] [--user ID] [--since EPOCH] ROOT...
       Print the most constrained codex rate-limit window seen in the newest session logs
       under the roots as {"used_percent", "resets_at", "window_minutes", "seen_at"}, or null.
       With --account, only logs of sessions that account started count (session_meta
-      creator_account_id), so another account's usage is never read as this one's.
+      creator_account_id); --user also matches creator_user_id. --since excludes usage
+      events at or before that epoch, regardless of the session file's modification time.
 
 The patterns come from real transcripts.  claude: an API error record with
 error "rate_limit" / status 429 and text "You've hit your 5-hour limit · resets 2:40pm
@@ -20,7 +23,7 @@ error "invalid_request" with "safeguards flagged".  codex: event_msg payload typ
 codex_error_info "usage_limit_exceeded" and "try again at 8:54 PM"; every token_count event
 carries rate_limits.{primary,secondary}.{used_percent,window_minutes,resets_at}.
 """
-import argparse, datetime as dt, itertools, json, re, sys, time
+import argparse, base64, datetime as dt, hashlib, itertools, json, re, sys, time
 from pathlib import Path
 
 QUOTA_TEXT = re.compile(r"hit your (?:[\w-]+ )*limit|usage limit|usage_limit_exceeded|rate[_ ]limit|out of credits", re.I)
@@ -93,16 +96,45 @@ def codex_event_error(ev):
     return None
 
 
-def codex_session_account(path):
-    """The account that started a codex session: creator_account_id of its session_meta."""
+def codex_identity(path):
+    """Read quota ownership from local auth without exposing credentials.
+
+    Account IDs identify workspaces; users in the same workspace have separate limits.
+    JWT claims are only local identity hints, not authentication/authorization checks.
+    """
+    try:
+        auth = json.loads(Path(path).read_text())
+        tokens = auth.get('tokens') or {}
+        account = tokens.get('account_id')
+        user = None
+        for field in ('access_token', 'id_token'):
+            try:
+                payload = tokens[field].split('.')[1]
+                claims = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+                info = claims.get('https://api.openai.com/auth') or {}
+                user = info.get('chatgpt_user_id') or info.get('user_id')
+                if user:
+                    break
+            except (KeyError, IndexError, ValueError, TypeError):
+                continue
+        if not account or not user:
+            return None
+        key = hashlib.sha256(json.dumps([account, user]).encode()).hexdigest()
+        return {'account': account, 'user': user, 'key': key}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return None
+
+
+def codex_session_matches(path, account=None, user=None):
     for ev in _jsonl(path):
         if ev.get('type') == 'session_meta':
-            return (ev.get('payload') or {}).get('creator_account_id')
-        return None
-    return None
+            meta = ev.get('payload') or {}
+            return ((not account or meta.get('creator_account_id') == account)
+                    and (not user or meta.get('creator_user_id') == user))
+    return False
 
 
-def codex_rate_limits(files):
+def codex_rate_limits(files, since=None):
     """Latest rate_limits snapshot across session files: (seen_at, snapshot)."""
     best = None
     for f in files:
@@ -111,6 +143,12 @@ def codex_rate_limits(files):
             if not rl:
                 continue
             ts = ev.get('timestamp') or ''
+            if since is not None:
+                try:
+                    if dt.datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp() <= since:
+                        continue
+                except ValueError:
+                    continue
             if best is None or ts >= best[0]:
                 best = (ts, rl)
     return best
@@ -243,9 +281,13 @@ def main():
     c.add_argument('--has-report', action='store_true')
     r = sub.add_parser('run-limits')
     r.add_argument('run_dir')
+    i = sub.add_parser('codex-identity')
+    i.add_argument('auth_json')
     u = sub.add_parser('codex-usage')
     u.add_argument('roots', nargs='+')
     u.add_argument('--account')
+    u.add_argument('--user')
+    u.add_argument('--since', type=float)
     u.add_argument('--max-files', type=int, default=20)
     a = ap.parse_args()
     if a.cmd == 'classify':
@@ -253,6 +295,8 @@ def main():
         print(json.dumps({'failure': failure, 'reset_at': reset, 'detail': detail}))
     elif a.cmd == 'run-limits':
         print(json.dumps(run_limits(a.run_dir)))
+    elif a.cmd == 'codex-identity':
+        print(json.dumps(codex_identity(a.auth_json)))
     else:
         files = []
         for root in a.roots:
@@ -260,10 +304,10 @@ def main():
             if p.is_dir():
                 files += [f for f in p.rglob('*.jsonl') if {'sessions', 'codex-sessions'} & set(f.parts)]
         files = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)
-        if a.account:
-            files = (f for f in files if codex_session_account(f) == a.account)
+        if a.account or a.user:
+            files = (f for f in files if codex_session_matches(f, a.account, a.user))
         files = list(itertools.islice(files, a.max_files))
-        snap = codex_rate_limits(files)
+        snap = codex_rate_limits(files, a.since)
         w = constrained_window(snap[1]) if snap else None
         if not w or (w[1] and w[1] < time.time()):
             print('null')  # nothing seen, or the window has reset since

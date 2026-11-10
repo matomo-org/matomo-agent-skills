@@ -32,7 +32,8 @@ Options:
                             when .claude-plugin/ or skills/ at the locked commit differ from it,
                             'off' skips the check                       [$skills_branch]
       --recheck-quota       drop the selected agents' quota pauses before starting, e.g. when
-                            you know the limit has reset; a run that still hits it pauses again
+                            you know the limit has reset; ignore older codex usage readings,
+                            but pause again on fresh readings or a run that hits the limit
   -N, --dry-run             list the runs that would start, spend nothing
   -h, --help                show this help
 
@@ -52,12 +53,13 @@ Quota: a run that stops because the agent's usage limit is spent (run-review.sh 
 that finished although its transcript shows a limit error (e.g. a sub-agent hit it), does
 not count as an attempt: it is moved to <cycle>/quota-failed/ and the agent is paused until
 the reset time the agent named (30 minutes when it named none), in <cycle>/.pause-<agent>
-(.pause-codex-<account> for codex).  Paused runs are deferred, never started; the other agent
+(.pause-codex-<identity-hash> for codex).  Paused runs are deferred, never started; the other agent
 carries on.  codex is also paused before a run when its logged rate-limit window reaches
 --codex-headroom, and a codex pause is lifted early when a newer reading shows room again.
-codex readings and pauses belong to the account logged in through \$CODEX_HOME/auth.json, so
+codex readings and pauses belong to the workspace and user logged in through \$CODEX_HOME/auth.json, so
 switching accounts neither inherits the other account's pause nor reads its usage.  claude
 reports no usage ahead of time, so it is only caught when it hits the limit.
+Deleting a pause file alone does not discard logged usage; use --recheck-quota to do both.
 
 Corpus columns (tab-separated, '#' lines ignored):
   id  stage  category  base  head  expect  expect_where  notes
@@ -174,25 +176,30 @@ plan_runs() {
   done <"$corpus"
 }
 
-# The codex account runs use now (run-review.sh links this auth.json), or empty.
-codex_account() {
-  jq -r '.tokens.account_id // empty' "${CODEX_HOME:-$HOME/.codex}/auth.json" 2>/dev/null || true
+# The workspace and user runs use now, or null if ownership cannot be established.
+codex_identity() {
+  python3 "$script_dir/review_quota.py" codex-identity "${CODEX_HOME:-$HOME/.codex}/auth.json"
 }
 
 # An agent's pause file; codex pauses are per account.
 pause_file() {
   local acct
-  [[ $1 == codex ]] && acct=$(codex_account)
+  [[ $1 == codex ]] && acct=$(codex_identity | jq -r '.key // "unknown"')
   echo "$cycle_dir/.pause-$1${acct:+-$acct}"
 }
 
 # Fresh codex rate-limit reading for the current account, from this cycle's runs, runs in
 # flight and your own codex use.
 codex_window() {
-  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d acct
+  local roots=("$cycle_dir" "${CODEX_HOME:-$HOME/.codex}/sessions") d identity
+  local args=()
   for d in "${TMPDIR:-/tmp}"/matomo-review.*/codex-home; do [[ -d $d ]] && roots+=("$d"); done
-  acct=$(codex_account)
-  python3 "$script_dir/review_quota.py" codex-usage ${acct:+--account "$acct"} "${roots[@]}" 2>/dev/null || echo null
+  identity=$(codex_identity)
+  # Never fall back to another user's logs when auth is absent or not account based.
+  [[ $identity != null ]] || { echo null; return; }
+  args+=(--account "$(jq -r .account <<<"$identity")" --user "$(jq -r .user <<<"$identity")")
+  [[ -z ${codex_usage_since:-} ]] || args+=(--since "$codex_usage_since")
+  python3 "$script_dir/review_quota.py" codex-usage "${args[@]}" "${roots[@]}" 2>/dev/null || echo null
 }
 
 # Epoch until which an agent is paused, or empty when it is not.  A codex pause is lifted
@@ -218,7 +225,9 @@ paused_until() {
 }
 
 plan_runs
+codex_usage_since=''
 if (( recheck_quota )); then
+  codex_usage_since=$(date +%s.%N)
   for agent in ${agents//,/ }; do
     f=$(pause_file "$agent")
     [[ ! -f $f ]] || { rm -f "$f"; echo "  dropped the $agent quota pause" >&2; }
@@ -240,8 +249,8 @@ if [[ ! -f $snapshot/.skills-commit ]]; then
   echo "$skills_commit" >"$snapshot.tmp/.skills-commit"
   rm -rf "$snapshot" && mv "$snapshot.tmp" "$snapshot"
 fi
-export script_dir repo cycle_dir claude_model codex_model budget snapshot codex_headroom
-export -f paused_until pause_file codex_account codex_window
+export script_dir repo cycle_dir claude_model codex_model budget snapshot codex_headroom codex_usage_since
+export -f paused_until pause_file codex_identity codex_window
 
 # Pause an agent until the given epoch; concurrent jobs keep the latest reset.
 pause_agent() {
