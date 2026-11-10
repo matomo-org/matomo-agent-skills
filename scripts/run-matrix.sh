@@ -47,7 +47,9 @@ the harness, would test skills that are not on --skills-branch, and stops the ru
 A cycle is bound to one skills commit and one pair of models, recorded in
 <out>/<cycle>/cycle.json on the first run; later invocations refuse to mix in runs
 from another commit or model.  A run that fails still counts as an attempt; at most
-reps+1 attempts are made per case/skill/agent so a broken case cannot burn budget.
+reps+1 attempts are made per case/skill/agent so a broken case cannot burn budget.  A run
+directory without meta.json was interrupted (Ctrl-C, a killed job) before it finished and
+does not count; it stays where it is for inspection.
 
 Quota: a run that stops because the agent's usage limit is spent (run-review.sh exit 75), or
 that finished although its transcript shows a limit error (e.g. a sub-agent hit it), does
@@ -161,7 +163,7 @@ plan_runs() {
         dir=$cycle_dir/$id/$agent-$skill
         ok=0 tried=0
         if [[ -d $dir ]]; then
-          tried=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | wc -l)
+          tried=$(find "$dir" -mindepth 2 -maxdepth 2 -name meta.json | wc -l)
           ok=$(find "$dir" -mindepth 2 -maxdepth 2 -name report.md | wc -l)
         fi
         missing=$(( reps - ok )); room=$(( reps + 1 - tried ))

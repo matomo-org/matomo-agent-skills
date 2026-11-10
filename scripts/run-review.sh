@@ -278,8 +278,10 @@ codex_models='[]' codex_effort=null
 if [[ $agent == codex ]]; then
   if [[ -d $codex_home/sessions ]]; then
     logs() { find "$codex_home/sessions" -name '*.jsonl' -exec cat {} +; }
-    codex_models=$(logs | grep -oE '"model":"[^"]+"' | cut -d'"' -f4 | sort -u | jq -Rsc 'split("\n") | map(select(. != ""))')
-    codex_effort=$(logs | grep -oE '"effort":"[^"]+"' | head -1 | cut -d'"' -f4 | jq -Rc 'select(. != "")')
+    # A session that failed before its first turn (spent credits) names no effort, and grep
+    # finding nothing must not end the script before meta.json is written.
+    codex_models=$({ logs | grep -oE '"model":"[^"]+"' || true; } | cut -d'"' -f4 | sort -u | jq -Rsc 'split("\n") | map(select(. != ""))')
+    codex_effort=$({ logs | grep -oE '"effort":"[^"]+"' || true; } | head -1 | cut -d'"' -f4 | jq -Rc 'select(. != "")')
     codex_effort=${codex_effort:-null}
   fi
 fi
