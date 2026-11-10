@@ -23,6 +23,8 @@ Options:
   -m, --model <model>     model passed to the agent                [agent default]
       --budget <usd>      max spend for the run (claude only)      [$default_budget]
       --keep-worktree     do not remove the review worktree afterwards
+      --vendor-cache <dir> where composer installs per lock file are kept [$vendor_cache]
+      --no-vendor         review without vendor/
   -n, --dry-run           validate and print the agent command, spend nothing
   -h, --help              show this help
 
@@ -41,6 +43,10 @@ CODEX_HOME links your auth.json and only this repository's skills, and ignores
 read-only sandbox, report no cost and have no budget cap, and raw.json holds the --json event
 stream (one event per line).  That stream leaves out the commands codex ran; the full session
 log is copied to <timestamp>/codex-sessions/.
+
+The worktree gets vendor/ as a hard-linked copy of a composer install of the head's
+composer.lock (see review-vendor.sh), so reviewers can read how a dependency behaves, as they could in CI after
+composer install.  meta.json records vendor = linked | unavailable | off.
 
 -k may also name a snapshot without git metadata (as run-matrix.sh exports), provided it holds
 a .skills-commit file naming the commit it was exported from.
@@ -66,14 +72,16 @@ agent=claude
 skills=$(dirname "$script_dir")
 out_root=/data/matomo/review-runs
 default_budget=10
-keep_worktree=0 dry_run=0
+keep_worktree=0 dry_run=0 use_vendor=1
+vendor_cache=/data/matomo/review-vendor
 
 while (( $# )); do
   case $1 in
     -h|--help)       usage; exit 0 ;;
     --keep-worktree) keep_worktree=1; shift ;;
+    --no-vendor)     use_vendor=0; shift ;;
     -n|--dry-run)    dry_run=1; shift ;;
-    -s|--skill|-b|--base|-H|--head|-r|--repo|-a|--agent|-k|--skills|-o|--out|-l|--label|-m|--model|--budget)
+    -s|--skill|-b|--base|-H|--head|-r|--repo|-a|--agent|-k|--skills|-o|--out|-l|--label|-m|--model|--budget|--vendor-cache)
       [[ $# -ge 2 && -n $2 ]] || die "$1 needs a value"
       case $1 in
         -s|--skill)  skill=$2 ;;
@@ -86,6 +94,7 @@ while (( $# )); do
         -l|--label)  label=$2 ;;
         -m|--model)  model=$2 ;;
         --budget)    budget=$2 ;;
+        --vendor-cache) vendor_cache=$2 ;;
       esac
       shift 2 ;;
     *) usage >&2; die "unknown argument: $1" ;;
@@ -223,6 +232,23 @@ if [[ $agent == codex ]]; then
   for d in "$skills"/skills/*/; do ln -s "${d%/}" "$codex_home/skills/"; done
 fi
 
+# vendor/ is ignored by Matomo's .gitignore, so the link leaves the worktree clean.
+vendor=off
+if (( use_vendor )); then
+  if vendor_dir=$("$script_dir/review-vendor.sh" -r "$repo" -H "$head_sha" -c "$vendor_cache"); then
+    # A hard-linked copy, not a symlink: searches do not follow symlinks, and the agent reads it
+    # inside its working directory.  Neither agent can write (allow-list, read-only sandbox).
+    if cp -al "$vendor_dir" "$wt/vendor" 2>/dev/null || cp -r "$vendor_dir" "$wt/vendor"; then
+      vendor=linked
+    else
+      vendor=unavailable
+    fi
+  else
+    vendor=unavailable
+    echo "$(basename "$0"): reviewing without vendor/" >&2
+  fi
+fi
+
 echo "Running $skill_ref ($agent) on ${base_sha:0:10}...${head_sha:0:10} -> $out" >&2
 status=0
 started_at=$(date -Iseconds)
@@ -261,12 +287,13 @@ jq -n --arg agent "$agent" --arg skill "$skill" --arg plugin "$plugin" --arg ski
   --arg skills_commit "$skills_commit" --arg skills_dirty "$skills_dirty" \
   --arg repo "$repo" --arg base "$base_sha" --arg head "$head_sha" \
   --arg model "$model" --argjson exit "$status" --argjson elapsed_ms "$elapsed_ms" \
-  --arg started_at "$started_at" \
+  --arg started_at "$started_at" --arg vendor "$vendor" \
   --argjson codex_models "$codex_models" --argjson codex_effort "$codex_effort" \
   --slurpfile raw <(jq -c . "$out/raw.json" 2>/dev/null || echo null) \
   '{agent: $agent, skill: $skill, plugin: $plugin, skills: $skills, skills_commit: $skills_commit,
     skills_dirty: ($skills_dirty != ""), repo: $repo, base: $base, head: $head,
-    model: (if $model == "" then null else $model end), exit: $exit, started_at: $started_at}
+    model: (if $model == "" then null else $model end), exit: $exit, started_at: $started_at,
+    vendor: $vendor}
    + (if $raw == [null] then {is_error: null} else '"$summary"' end)' >"$out/meta.json"
 
 case $agent in
