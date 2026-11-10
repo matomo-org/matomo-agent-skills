@@ -218,7 +218,12 @@ Each kind adds numbered questions, answered like the six above (`T02 Q7 unmet �
    they are consumed — through the API, events and stored state, not only the call sites — and
    answer each kind on its own line: the consumers of that kind you found (`path:line`) and what
    they now do differently, or the search showing there are none. A kind you did not search is
-   `open`, not `met`. (`COR-04`, `COR-02`, `COR-03`)
+   `open`, not `met`. A consumer is every reader of the value where it arrives, not only the request
+   it builds: when the change moves a value or a constraint from one parameter, field or variable to
+   another, every reader of each of them there is a consumer — the actions, exports, links and
+   follow-up requests that reuse the view's parameters — and a reader that still looks in the old
+   place now gets something else. A correct data path to the API or the query does not answer for
+   them. (`COR-04`, `COR-02`, `COR-03`)
    - **2a Validation:** code that accepts or rejects the value (empty checks, allow-lists, format
      checks). Does it now let through, or reject, what it handled before?
    - **2b Comparison:** code that compares or matches it (equality, patterns, lookups by value).
@@ -248,7 +253,11 @@ Each kind adds numbered questions, answered like the six above (`T02 Q7 unmet �
 
 Each answer is `met` with the code that meets it, `unmet` with evidence, `n/a` with the reason, or
 `open` when the trace was cut short before it could decide — naming what it reached and what it did
-not. Runtime behaviour that tracked code decides — a script that renames, removes or replaces what
+not. `met` means it holds on every path that can execute, in every supported configuration: a
+failure that needs a non-default config setting, data a plugin or import wrote, or an unusual but
+possible value is `unmet`, with the reach stated in the answer ("only with a config setting that
+is off by default"). Severity is decided later, by `severity.md`, where
+reach is not a discount; an answer never weighs it. Runtime behaviour that tracked code decides — a script that renames, removes or replaces what
 the change relies on, a handler that runs later — is traced in that code, never left `open` or "not
 verified" as needing a browser or a test run. Standard platform behaviour (HTML, HTTP, PHP and
 database semantics) is known: state it and apply it. `open` is for what no readable code or standard
@@ -280,7 +289,8 @@ pass sub-agent gets the stored-state rows, the six common questions, each row ki
 and the text of the rules they name (`SEC-02`, `SEC-11`, `COR-02`, `MIG-*`, `PERF-*`). The behaviour
 pass sub-agent gets the behaviour rows with their callers and the behaviour questions (2a–2f answered separately) with `COR-01..04`,
 `TEST-01`, `DEV-06`, `DOC-01`, `DEP-02` and `DEP-03`. For all of them, give the sub-agent: the repository root, the pinned `<range>`, the rows, the hunks that contain
-them, the question list above with the text of the rules it names, and section 0. Ask it to trace
+them, the question list above with the text of the rules it names, the answer format with its
+definition of `met`, `unmet`, `n/a` and `open`, and section 0. Ask it to trace
 each row as far as needed to answer — callers, core code the value flows into, the PrivacyManager
 paths a table is reached through — and to return the answer lines in the format above, then its
 candidates. Nothing else. The sub-agent returns synchronously; the main context waits for it.
