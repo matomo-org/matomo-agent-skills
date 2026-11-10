@@ -331,13 +331,18 @@ def main():
         with labels_path.open() as fh:
             for row in csv.DictReader(fh):
                 if row.get('label'):
-                    labels[(row['case'], row['path'], row['family'])] = (int(row['line'] or 0), row['label'], row.get('comment', ''))
+                    labels.setdefault((row['case'], row['path'], row['family']), []).append(
+                        (int(row['line'] or 0), set(row.get('rules', '').split()), row['label']))
 
     def label_for(f):
-        hit = labels.get((f['case'], f['path'] or '', family(f['rule'])))
-        if hit and abs(hit[0] - (f['line'] or 0)) <= a.line_window:
-            return hit[1]
-        return None
+        # Several labelled clusters can share case, path and family: take the nearest line.
+        # Findings without a path cluster by rule, so their labels must match the rule as well.
+        line = f['line'] or 0
+        hits = [(abs(l - line), lab)
+                for l, rules, lab in labels.get((f['case'], f['path'] or '', family(f['rule'])), [])
+                if f['path'] or f['rule'] in rules]
+        hits = [h for h in hits if h[0] <= a.line_window]
+        return min(hits, key=lambda h: h[0])[1] if hits else None
 
     clusters = defaultdict(list)
     for f in findings:
