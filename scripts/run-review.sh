@@ -40,9 +40,13 @@ The review worktree, and for codex its own CODEX_HOME, are created in a temporar
 under \$TMPDIR, outside the results tree, so the agent cannot find other runs' reports.  The
 CODEX_HOME links your auth.json and only this repository's skills, and ignores
 ~/.codex/config.toml, so the model is codex's default unless -m is given.  codex runs use a
-read-only sandbox, report no cost and have no budget cap, and raw.json holds the --json event
+read-only sandbox and have no budget cap, and raw.json holds the --json event
 stream (one event per line).  That stream leaves out the commands codex ran; the full session
 log is copied to <timestamp>/codex-sessions/.
+
+meta.json usage counts every model and sub-agent of the run.  cost_usd is claude's own figure
+(cost_basis reported) or, for codex, which reports none, the session logs' tokens priced at
+list rates (cost_basis estimated; see review_usage.py).
 
 The worktree gets vendor/ as a hard-linked copy of a composer install of the head's
 composer.lock (see review-vendor.sh), so reviewers can read how a dependency behaves, as they could in CI after
@@ -264,10 +268,11 @@ elapsed_ms=$(( $(date +%s%3N) - start_ms ))
 # models_used is what actually served the run, which -m alone does not tell when it is omitted.
 case $agent in
   claude) summary='$raw[0] | {is_error, cost_usd: .total_cost_usd, turns: .num_turns,
+    cost_basis: (if .total_cost_usd == null then null else "reported" end),
     duration_ms, session_id, permission_denials: (.permission_denials // [] | length),
     models_used: (.modelUsage // {} | keys), effort: null, usage}' ;;
   codex) summary='$raw | {is_error: any(.[]; .type == "turn.failed" or .type == "error"),
-    cost_usd: null, turns: null, duration_ms: $elapsed_ms,
+    cost_usd: null, cost_basis: null, turns: null, duration_ms: $elapsed_ms,
     session_id: (first(.[] | select(.type == "thread.started") | .thread_id) // null),
     permission_denials: null, models_used: $codex_models, effort: $codex_effort,
     usage: (reduce (.[] | select(.type == "turn.completed") | .usage // {} | to_entries[]) as $e
@@ -297,6 +302,13 @@ jq -n --arg agent "$agent" --arg skill "$skill" --arg plugin "$plugin" --arg ski
     model: (if $model == "" then null else $model end), exit: $exit, started_at: $started_at,
     vendor: $vendor}
    + (if $raw == [null] then {is_error: null} else '"$summary"' end)' >"$out/meta.json"
+# The fields above cover the main thread only.  Replace usage (and codex's cost) with totals
+# over every model and sub-agent session, where the transcripts hold them; see review_usage.py.
+if totals=$(python3 "$script_dir/review_usage.py" summarize --agent "$agent" --raw "$out/raw.json" \
+    --sessions "$codex_home/sessions" 2>/dev/null); then
+  jq --argjson t "$totals" '. + ($t | with_entries(select(.value != null)))' "$out/meta.json" >"$out/meta.json.tmp" \
+    && mv "$out/meta.json.tmp" "$out/meta.json"
+fi
 
 case $agent in
   claude) result=$(jq -r '.result // empty' "$out/raw.json" 2>/dev/null || true) ;;

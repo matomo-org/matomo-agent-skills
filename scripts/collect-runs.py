@@ -27,6 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import review_quota  # noqa: E402  (shared quota and transcript detection)
+import review_usage  # noqa: E402  (token totals and cost over every session of a run)
 
 # --- report parsing -----------------------------------------------------------------------
 CI_HEADER = re.compile(r'<!-- matomo-ci-review (.*?) -->')
@@ -312,8 +313,16 @@ def main():
                'duration_s': (meta.get('duration_ms') or 0) / 1000 or None,
                'permission_denials': meta.get('permission_denials'),
                'output_tokens': (meta.get('usage') or {}).get('output_tokens'),
+               'cost_basis': meta.get('cost_basis'),
                'failure': meta.get('failure'), 'started_at': meta.get('started_at'),
                'problems': []}
+        # Recomputed from the transcripts: meta.json written before review_usage.py existed holds
+        # main-thread usage only and no codex cost.
+        totals = review_usage.summarize(agent, d / 'raw.json', d / 'codex-sessions')
+        if totals:
+            run['output_tokens'] = totals['usage'].get('output_tokens')
+            if totals['cost_usd'] is not None:
+                run.update(cost_usd=totals['cost_usd'], cost_basis=totals['cost_basis'])
         if manifest and meta.get('skills_commit') != manifest.get('skills_commit'):
             run['problems'].append('skills commit differs from cycle')
         if meta.get('skills_dirty'):
@@ -521,6 +530,8 @@ def summarise(runs, findings, clusters, corpus, combos, manifest, shelved):
 
     # Cost
     P('## Cost and time\n')
+    P('Tokens and cost include sub-agents. claude cost is its own reported figure; codex cost is '
+      'estimated from its session logs at list prices (review_usage.py RATES).\n')
     P('| agent-skill | runs | cost median | cost p90 | total $ | time median s | p90 s | out tokens median | models |')
     P('|---|---|---|---|---|---|---|---|---|')
     for ag, sk in combos:
