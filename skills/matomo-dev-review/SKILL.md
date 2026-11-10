@@ -55,6 +55,11 @@ Verify the `process` rules from the evidence available — diff, commits, PR des
   If the user wants direct verification and a DDEV environment is available, offer to run the
   static checks and tests from `references/tooling.md` on the changed paths — ask first.
 - `DEV-07` — known gaps and skipped checks stated in the PR description.
+- `DEV-05`, `DEV-06` and `DEV-07` judge a record of what was run. Commit messages are not where
+  that record lives, so with no PR description and no `matomo-develop` hand-back there is nothing
+  to judge: report no finding under these rules, and say once under "Not verified" that no PR or
+  hand-back was available. Evidence in the code still counts: a test that cannot pass at head is
+  evidence for the defect it exposes, reported once under that defect's rule.
 - `DEV-08` — compare the PR's "Inventory" section, if any, with the inventories pass 1 derived.
   Every row it claims `met` that pass 1 found `unmet` is a `DEV-08` finding next to the pass 1
   finding for the defect. Rows pass 1 found that the section omits are listed in the same finding.
@@ -78,7 +83,8 @@ Verify the `process` rules from the evidence available — diff, commits, PR des
 
 ### Checked
 - Rule sets: <list> · disabled by profile: <IDs with reason, or none>
-- Inventories: <n> inputs (<m> unmet) · <n> sinks (<m> unmet) · <n> stored-state rows (<m> unmet) · <reviewable size> lines · dispatch: <inline | sub-agents used>
+- Inventories: <n> inputs (<m> unmet) · <n> sinks (<m> unmet) · <n> stored-state rows (<m> unmet) · <n> behaviour rows (<m> unmet) · <reviewable size> lines
+- Passes: security <sub-agent | inline: reason> · stored-state <sub-agent | inline: reason | no rows> · behaviour <sub-agent | inline: reason | no rows>
 - Verification: <n> gating candidates, <k> dropped[: `<RULE-ID>` `<path>:<line>` — dropped by `<path>:<line>`; ...]
 - Rows: <n> unmet answers, all in findings above[, dropped: <row IDs>]
 - Open: <every `open` answer line to a floor-carrying question, or none>

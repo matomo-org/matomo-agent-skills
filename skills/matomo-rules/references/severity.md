@@ -16,7 +16,7 @@ privacy, raw-output sinks) at its own severity. Everything else is for `matomo-d
 These impact classes are `blocking` whatever rule they come from, and nothing else is. Each floor
 has a rule to cite when no more specific rule fits.
 
-1. **Security or privacy defect** (`SEC-*`, `TWIG-01`, `VUE-01`) that exposes data, grants access or
+1. **Security or privacy defect** (`SEC-*`, `TWIG-01`, `TWIG-02`, `VUE-01`) that exposes data, grants access or
    executes attacker-controlled input — including an access-control or trust-boundary gap and a
    client-controlled value treated as trusted or as scope-limited (`SEC-02`, `SEC-06`).
 2. **Data loss** (`COR-02`). Stored data, rows, fields or arguments dropped, overwritten or deleted
@@ -68,6 +68,13 @@ default, stripped from release packages, experimental, an example plugin, behind
 used by few installations — state the reach in the finding text instead ("affects git checkouts
 that activate the plugin"). Example code is copied into third-party plugins, so it is held to the
 same bar. The only reach that lowers or drops a finding is a path that cannot execute at all.
+
+Timing is not reach. A defect that occurs only when two events nobody controls coincide — a session
+started in the same second as an unrelated invalidation, two independent requests interleaving at
+one exact point — and that no actor can trigger, repeat or widen at will, is `major`, not
+`blocking`: say which coincidence it needs. A race an actor can drive (by repeating requests,
+holding a lock, choosing when to act) or one that ordinary concurrent use hits regularly (two tabs,
+a retry, parallel archiving) keeps its floor.
 
 ## Recorded decisions are not a discount
 

@@ -63,7 +63,8 @@ line is an HTML comment the workflow parses; keep it on one line.
 <One line: what the change does, as understood from its intent.>
 
 **Scope:** `<sha7>...<sha7>` · <name> (<kind>, php ≥<php_min>, matomo ≥<matomo_min>[, <set>: <variant>]), ... · rule sets: <resolver rule_sets, union>
-**Inventories:** <n> inputs (<m> unmet) · <n> sinks (<m> unmet) · <n> stored-state rows (<m> unmet) · <reviewable size> lines
+**Inventories:** <n> inputs (<m> unmet) · <n> sinks (<m> unmet) · <n> stored-state rows (<m> unmet) · <n> behaviour rows (<m> unmet) · <reviewable size> lines
+**Passes:** security <sub-agent | inline: reason> · stored-state <sub-agent | inline: reason | no rows> · behaviour <sub-agent | inline: reason | no rows>
 **Verification:** <n> gating candidates, <k> dropped[: `<RULE-ID>` `<path>:<line>` — dropped by `<path>:<line>`; ...]
 **Rows:** <n> unmet answers · <a> in findings · below the gate: <row IDs, e.g. I02 Q3, T05 Q10, or none> · dropped: <row IDs or none>
 
@@ -83,6 +84,8 @@ line is an HTML comment the workflow parses; keep it on one line.
 - `Blocking` holds every `blocking` finding, security ones included. `Security` holds the
   non-blocking findings under `locked` rules. `blocking=` counts the first section, `security=` the
   second.
+- `Passes` says how each inventory pass of `release-review.md` step 4 ran. `inline` needs its
+  reason (the agent cannot delegate), and is valid only when every row's answer lines were written.
 - `Open` lists every `open` answer to a floor-carrying question (`release-review.md` step 6), copied
   from its answer line; `open=` counts them. Omit the section when there are none.
 - `result`: `fail` if `Blocking` or `Security` has a finding; otherwise `incomplete` if `Open` has an

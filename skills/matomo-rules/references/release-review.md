@@ -16,6 +16,12 @@ untracked or ignored files, anything outside the repository root, earlier review
 notes and plans — unless the user explicitly points you to them. Two runs over the same range must
 see the same evidence.
 
+One exception: installed dependencies (`vendor/`, a plugin's `node_modules/`), when present, are
+evidence for how a library behaves, because the tracked lock files pin them. Read them to confirm a
+claim such as "the INI reader returns an int"; they are not part of the change and are never
+reviewed. When they are absent, a claim that rests on dependency behaviour carries an
+`Unconfirmed:` sentence.
+
 ## 1. Pin the target
 
 Per `review-target.md`. Record base and head SHAs; every later command uses them. `<range>` below
@@ -56,13 +62,10 @@ This is the **reviewable size**: changed lines outside tests, build output, expe
 translations. Together with the number of components it decides how the work in steps 6–8 is
 dispatched:
 
-| Reviewable size | Security pass | Stored-state inventory | General read (step 7, questions 2–5) | Verification (step 8) |
-| --- | --- | --- | --- | --- |
-| ≤ 2000 lines and ≤ 2 components | **one sub-agent** | **one sub-agent** (when it has rows) | inline | **one sub-agent** |
-| larger, or 3+ components | **one sub-agent per component**, or per ~1500-line file group | **one sub-agent per component** | one sub-agent per component, or per ~1500-line file group | **one sub-agent** |
-
-Behaviour rows, when there are any, get the same treatment as stored state: one **behaviour pass**
-sub-agent (one per component when larger), answer lines for every row and question.
+| Reviewable size | Security pass | Stored-state pass | Behaviour pass | General read (step 7, questions 2–5) | Verification (step 8) |
+| --- | --- | --- | --- | --- | --- |
+| ≤ 2000 lines and ≤ 2 components | **one sub-agent** | **one sub-agent** (when it has rows) | **one sub-agent** (when it has rows) | inline | **one sub-agent** |
+| larger, or 3+ components | **one sub-agent per component**, or per ~1500-line file group | **one sub-agent per component** | **one sub-agent per component** | one sub-agent per component, or per ~1500-line file group | **one sub-agent** |
 
 The **security pass** is the input and sink inventories of step 6 plus step 7 question 1. It runs in
 its own sub-agent at every size whenever the agent can delegate — running it inline when delegation
@@ -71,11 +74,17 @@ shortened because the rest of the review is large. The general read takes its re
 anything security-relevant the general read notices is still a candidate.
 
 The **stored-state pass** is the stored-state inventory: privacy, retention, erasure, anonymisation,
-upgrade and growth of everything the change persists. It too runs in its own sub-agent at every size
-whenever there is at least one stored-state row, for the same reason: its questions are the ones a
-review under time pressure answers in its head instead of on the evidence. Both passes return their
-answer lines (step 6) and candidates; the main context copies the answer lines unchanged into its
-working notes, so every row and question has a written answer.
+upgrade and growth of everything the change persists. The **behaviour pass** is the behaviour
+inventory: what the code that already depended on a changed function, template or component now
+gets, and whether what the changed code relies on still holds. Each runs in its own sub-agent at
+every size whenever it has at least one row, for the same reason as the security pass: their
+questions are the ones a review under time pressure answers in its head instead of on the evidence,
+and the defects they find (a caller that now breaks, a name another script changes) are the ones a
+read of the diff alone does not show. Skipping either when delegation is available is a procedure
+violation, like skipping the security pass. All three passes return their answer lines (step 6) and
+candidates; the main context copies the answer lines unchanged into its working notes, so every row
+and question has a written answer. A row without written answer lines was not reviewed, whatever
+the report says.
 
 The verification sub-agent runs whenever step 8 has at least one gating candidate, at any size: a
 gating finding is not reported without it, and the context that raised a candidate never verifies
@@ -83,8 +92,8 @@ it. The inventories are what drives recall, not where they run.
 
 Sub-agents are only used where the agent can delegate; otherwise run the same step inline, the
 security pass first and on its own, then the stored-state and behaviour passes, still writing every
-answer line, and
-say so under "Not reviewed". Sub-agents return rows or
+answer line, and say so under "Not reviewed". The report states how each pass ran (the entry
+skill's `Passes` line), so a skipped pass is visible. Sub-agents return rows or
 candidates with evidence, never final severities: merging, de-duplicating and scoring stay in the
 main context.
 
@@ -228,10 +237,22 @@ Each kind adds numbered questions, answered like the six above (`T02 Q7 unmet �
    input they send), and were they updated in the change? (`TEST-01`, `DEV-06`)
 4. **Contract:** is the behaviour change intended, documented for its audience (`DOC-01`), and
    compatible or announced where it changes a public contract (`DEP-02`)?
+5. **Preconditions:** what does the changed code rely on that other code can change — a frame or
+   window name, a DOM id or element, a global or module variable, session, cache or config state,
+   the order in which events or requests arrive? Find every writer (`path:line`), including code
+   outside the change and scripts running in another document (the JS tracker inside a tracked
+   page, a framed page), and say whether the precondition still holds every time the code runs —
+   after a reload, a navigation, a second call, a concurrent request — not only the first time. A
+   declaration (`name="..."`, an initial value, a constructor) shows what the value starts as, not
+   what it is when the code uses it. (`COR-01`, `COR-04`)
 
 Each answer is `met` with the code that meets it, `unmet` with evidence, `n/a` with the reason, or
 `open` when the trace was cut short before it could decide — naming what it reached and what it did
-not. `open` is not a softer `met`: give it whenever the evidence stops before the question is
+not. Runtime behaviour that tracked code decides — a script that renames, removes or replaces what
+the change relies on, a handler that runs later — is traced in that code, never left `open` or "not
+verified" as needing a browser or a test run. Standard platform behaviour (HTML, HTTP, PHP and
+database semantics) is known: state it and apply it. `open` is for what no readable code or standard
+decides. `open` is not a softer `met`: give it whenever the evidence stops before the question is
 settled, and never answer `met` for a trace that did not reach every consumer, path or reader the
 question asks about. Write one line per row and question, in row order, with nothing else on the
 line:
@@ -244,7 +265,7 @@ C01 Q2c open — traced to plugins/Foo/API.php and plugins/Bar/Model.php; not re
 ```
 
 The **floor-carrying questions** are input questions 1–3, sink questions 1–2, stored-state questions
-1–4 and each kind's own, and behaviour questions 2a–2f and 3. An `open` answer to one of them means the
+1–4 and each kind's own, and behaviour questions 2a–2f, 3 and 5. An `open` answer to one of them means the
 review cannot vouch that no floor is met there; the entry skill reports it as such.
 
 An answer that rests on core behaviour ("core validates this parameter", "this hook runs once per
@@ -257,7 +278,7 @@ The security pass sub-agent gets the input and sink rows, and also step 7 questi
 every loaded `locked` rule; it returns the row answers and its question-1 candidates. The stored-state
 pass sub-agent gets the stored-state rows, the six common questions, each row kind's own questions,
 and the text of the rules they name (`SEC-02`, `SEC-11`, `COR-02`, `MIG-*`, `PERF-*`). The behaviour
-pass sub-agent gets the behaviour rows with their callers and the behaviour questions (2a–2f answered separately) with `COR-02..04`,
+pass sub-agent gets the behaviour rows with their callers and the behaviour questions (2a–2f answered separately) with `COR-01..04`,
 `TEST-01`, `DEV-06`, `DOC-01`, `DEP-02` and `DEP-03`. For all of them, give the sub-agent: the repository root, the pinned `<range>`, the rows, the hunks that contain
 them, the question list above with the text of the rules it names, and section 0. Ask it to trace
 each row as far as needed to answer — callers, core code the value flows into, the PrivacyManager

@@ -20,6 +20,12 @@ or any breaking change gets an entry in `CHANGELOG.md` under the upcoming versio
 ("Breaking Changes", "New APIs", "Deprecations", ...), written for plugin developers: what changed,
 who is affected, what to do.
 
+Public API means plugin-facing: a class, method or property tagged `@api`, an HTTP API method
+(`API.php`), an event, a config key, or the JS tracker. A `public` PHP method of an untagged class
+(a `Model`, a `Dao`, a controller helper) is internal, and so is a controller action or endpoint
+reached only from the plugin's own templates and scripts: changing them needs no entry unless it
+breaks one of the plugin-facing surfaces above.
+
 ### DOC-02 · API docblocks state the real public contract
 `release` `major`
 

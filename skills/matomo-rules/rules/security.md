@@ -93,6 +93,13 @@ ids, date range, recursion depth) has a size bound enforced before the work runs
 that is then used as an identity (primary key, join column) is not a bound: it merges distinct
 inputs.
 
+The rule is about amplification: work per element that costs far more than reading the element
+(a query, remote call, file or archive operation per id, per date or per segment part), cost that
+grows faster than the input (nested loops, recursion, regex backtracking), or a value that sets the
+size of the work without being part of the request (a limit, a count, a date range). A single
+linear pass over a value the request already carries — escaping, hashing, copying, splitting it
+once — is bounded by the server's request size limit and is not a finding.
+
 ### SEC-11 · Privacy settings and data subject rights hold
 `release` `blocking` `locked`
 

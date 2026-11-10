@@ -12,6 +12,7 @@ applies: ["**/*.twig"]
 `|raw` renders only markup that is safe by construction: output of a Matomo helper that escapes, or
 a controlled fragment. Request-, database- or user-derived content never goes through `|raw`.
 `'Key'|translate(...)|raw` is fine when every injected placeholder value is controlled or escaped.
+A value printed without `|raw` but escaped for the wrong context is `TWIG-02`, not this rule.
 
 Check: `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`
 
@@ -21,6 +22,12 @@ Check: `git diff <range> -- '*.twig' | grep -n '^+.*|raw'`
 Dynamic values inside HTML attributes use `|e('html_attr')`; values inside inline JavaScript use
 `|e('js')` or `|json_encode`. Data-derived URLs in `href`/`src` go through `safelink` so
 `javascript:` URLs cannot be injected.
+
+Autoescaping is HTML escaping, which is the wrong context inside JavaScript. In an event-handler
+attribute (`onclick="..."`) the browser decodes the HTML entities before the script runs, so a
+request- or user-derived value there without `|e('js')` executes attacker input: that is the
+security floor, `blocking` under this rule. Inside a `<script>` element the entities are not decoded,
+so the same omission garbles the value instead of executing it.
 
 ### TWIG-03 · Use Matomo's Twig helpers
 `release` `minor`
