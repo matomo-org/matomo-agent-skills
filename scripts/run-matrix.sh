@@ -28,6 +28,9 @@ Options:
       --codex-headroom <%>  do not start a codex run once its 5-hour or weekly window is this
                             full, so runs do not die halfway                [$codex_headroom]
                             'off' skips the check
+      --skills-branch <ref> branch holding the skills under test; the cycle refuses to start
+                            when .claude-plugin/ or skills/ at the locked commit differ from it,
+                            'off' skips the check                       [$skills_branch]
       --recheck-quota       drop the selected agents' quota pauses before starting, e.g. when
                             you know the limit has reset; a run that still hits it pauses again
   -N, --dry-run             list the runs that would start, spend nothing
@@ -35,7 +38,10 @@ Options:
 
 The review runs from a snapshot of the last commit that changed .claude-plugin or skills/ (both
 only, exported under \$TMPDIR): uncommitted changes are not reviewed with, and the
-eval/ corpus with its expected answers is out of the reviewing agent's reach.
+eval/ corpus with its expected answers is out of the reviewing agent's reach.  The skills live on
+--skills-branch and this harness on a branch on top of it, so harness commits never move the
+lock; a harness commit that touched skills/, or a skills branch that moved on without a rebase of
+the harness, would test skills that are not on --skills-branch, and stops the run instead.
 
 A cycle is bound to one skills commit and one pair of models, recorded in
 <out>/<cycle>/cycle.json on the first run; later invocations refuse to mix in runs
@@ -67,7 +73,7 @@ repo=/data/matomo/core/6.x-dev
 out_root=/data/matomo/review-runs
 cycle='' reps=3 jobs=3 agents=claude,codex skill_list=ci-review,dev-review cases='' tiers=''
 claude_model=claude-opus-5-5 codex_model=gpt-6.1-sol budget=10
-dry_run=0 wait_on_quota=0 codex_headroom=90 recheck_quota=0
+dry_run=0 wait_on_quota=0 codex_headroom=90 recheck_quota=0 skills_branch=review-rebuild
 
 while (( $# )); do
   case $1 in
@@ -75,7 +81,7 @@ while (( $# )); do
     -N|--dry-run)  dry_run=1; shift ;;
     --wait-on-quota) wait_on_quota=1; shift ;;
     --recheck-quota) recheck_quota=1; shift ;;
-    -C|--cycle|-c|--corpus|-r|--repo|-o|--out|-n|--reps|-j|--jobs|-a|--agents|-s|--skills|-i|--cases|-t|--tier|--claude-model|--codex-model|--budget|--codex-headroom)
+    -C|--cycle|-c|--corpus|-r|--repo|-o|--out|-n|--reps|-j|--jobs|-a|--agents|-s|--skills|-i|--cases|-t|--tier|--claude-model|--codex-model|--budget|--codex-headroom|--skills-branch)
       [[ $# -ge 2 && -n $2 ]] || die "$1 needs a value"
       case $1 in
         -C|--cycle)     cycle=$2 ;;
@@ -92,6 +98,7 @@ while (( $# )); do
         --codex-model)  codex_model=$2 ;;
         --budget)       budget=$2 ;;
         --codex-headroom) codex_headroom=$2 ;;
+        --skills-branch) skills_branch=$2 ;;
       esac
       shift 2 ;;
     *) usage >&2; die "unknown argument: $1" ;;
@@ -112,6 +119,12 @@ command -v jq >/dev/null || die "jq not found on PATH"
 skills_commit=$(git -C "$skills_repo" log -1 --format=%H -- .claude-plugin skills)
 [[ -z $(git -C "$skills_repo" status --porcelain -- .claude-plugin skills) ]] \
   || echo "note: uncommitted changes under skills/ are not part of this cycle (reviewing ${skills_commit:0:7})" >&2
+if [[ $skills_branch != off ]]; then
+  git -C "$skills_repo" rev-parse --verify -q "$skills_branch^{commit}" >/dev/null \
+    || die "--skills-branch does not resolve to a commit: $skills_branch"
+  git -C "$skills_repo" diff --quiet "$skills_branch" "$skills_commit" -- .claude-plugin skills \
+    || die "skills at ${skills_commit:0:7} differ from $skills_branch: rebase this branch onto $skills_branch, or move the skills change there ($(git -C "$skills_repo" diff --stat "$skills_branch" "$skills_commit" -- .claude-plugin skills | tail -1 | sed 's/^ *//'))"
+fi
 snapshot=${TMPDIR:-/tmp}/matomo-skills-$skills_commit
 
 cycle_dir=$out_root/$cycle
