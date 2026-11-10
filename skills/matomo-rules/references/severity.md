@@ -82,6 +82,11 @@ A decision to accept a risk — in the PR description, a commit message or track
 change the severity either. Keep the finding and note the decision ("accepted in <source>"), so the
 person merging makes that call knowingly.
 
+Neither is a fix expected later. Score the code at head as it ships: a version marker someone will
+bump "at release", a follow-up pull request, a build step or an operator action the change relies on
+but does not contain leaves the defect in place. Name the expected fix in the finding if you like;
+it does not lower or drop it.
+
 What a change sets out to do is not a defect: when the stated purpose is a behaviour change, its
 direct, intended effect is not a finding. Its consequences elsewhere — code that relied on the old
 behaviour and now breaks, validates less or computes something else — are findings at their own

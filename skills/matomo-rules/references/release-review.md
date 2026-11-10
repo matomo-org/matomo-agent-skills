@@ -351,7 +351,9 @@ The main context applies the verdicts. A `drop` is applied only when corroborate
 1. The evidence is code — an access check, validator, binding, encoding, bound or unreachable
    branch — cited by file and line. Documentation, comments, intent, likelihood or "only admins can
    do this" are not evidence; the last one is, only when that actor could already do the same thing
-   legitimately, so nothing is gained.
+   legitimately, so nothing is gained. Code that prevents the defect only after a later change the
+   range does not contain — a version bump at release, a follow-up commit, an operator step — is
+   not evidence either: the defect is judged at head.
 2. The main context reads the cited code itself and confirms it prevents the defect on every path
    the candidate named. Evidence that covers some paths narrows the finding to the rest; it does not
    drop it.
