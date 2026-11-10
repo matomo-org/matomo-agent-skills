@@ -169,6 +169,75 @@ def transcript_checks(meta, run_dir):
     return sorted(hits), tags
 
 
+# --- procedure: did the inventory passes run? ----------------------------------------------
+PASSES = ('security', 'stored-state', 'behaviour')
+PASSES_LINE = re.compile(r'^(?:\*\*Passes:\*\*|- Passes:)\s*(.+)$', re.M)
+INVENTORIES_LINE = re.compile(r'^(?:\*\*Inventories:\*\*|- Inventories:)\s*(.+)$', re.M)
+
+
+def reported_passes(text):
+    """({pass: 'sub-agent' | 'inline' | 'no rows' | text}, {kind: row count}) from the report."""
+    passes, rows = {}, {}
+    m = PASSES_LINE.search(text)
+    if m:
+        for part in m.group(1).split('·'):
+            part = part.strip()
+            for name in PASSES:
+                if part.startswith(name + ' '):
+                    v = part[len(name):].strip(' `')
+                    passes[name] = ('sub-agent' if v.startswith('sub-agent') else 'inline' if v.startswith('inline')
+                                    else 'no rows' if v.startswith('no rows') else v)
+    m = INVENTORIES_LINE.search(text)
+    if m:
+        for n, kind in re.findall(r'(\d+)\s+(inputs?|sinks?|stored-state rows?|behaviour rows?)', m.group(1)):
+            rows[kind.split()[0].rstrip('s')] = int(n)
+    return passes, rows
+
+
+def launched_passes(meta, files):
+    """Passes a claude run delegated, from the Agent calls in its main transcript (None for codex,
+    whose session log does not show delegation)."""
+    if meta.get('agent') != 'claude':
+        return None
+    main = [f for f in files if f.name == f"{meta.get('session_id')}.jsonl"]
+    found = set()
+    for f in main:
+        for line in f.read_text(errors='replace').splitlines():
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get('type') != 'assistant':
+                continue
+            for b in (ev.get('message') or {}).get('content') or []:
+                if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') in ('Agent', 'Task'):
+                    d = ((b.get('input') or {}).get('description') or '').lower()
+                    if 'security' in d:
+                        found.add('security')
+                    if 'stored' in d or 'state pass' in d:
+                        found.add('stored-state')
+                    if 'behaviour' in d or 'behavior' in d:
+                        found.add('behaviour')
+    return found
+
+
+def procedure_problems(passes, rows, launched):
+    """A pass that had rows but did not run as a sub-agent, or a report that claims one the
+    transcript does not show."""
+    probs = []
+    if not passes:
+        return ['no Passes line']
+    need = {'security': True, 'stored-state': rows.get('stored-state', 0) > 0,
+            'behaviour': rows.get('behaviour', 0) > 0}
+    for name in PASSES:
+        said = passes.get(name)
+        if need[name] and said != 'sub-agent':
+            probs.append(f'{name} pass {said or "not reported"}')
+        if launched is not None and said == 'sub-agent' and name not in launched:
+            probs.append(f'{name} pass claimed as sub-agent, none launched')
+    return probs
+
+
 def family(rule):
     return rule.split('-')[0] if rule and re.match(r'^[A-Z]{2,5}-\d{2}$', rule) else (rule or '?')
 
@@ -250,6 +319,8 @@ def main():
         if meta.get('skills_dirty'):
             run['problems'].append('skills tree dirty')
         leaks, limits = transcript_checks(meta, d)
+        launched = launched_passes(meta, review_quota.find_transcripts(meta, d))
+        run['launched'] = sorted(launched) if launched is not None else None
         run['transcript'] = leaks is not None
         run['limits'] = limits or []
         if leaks:
@@ -265,8 +336,11 @@ def main():
             run.update(verdict=None, outcome='degraded', n_findings=0, n_open=0)
             run['problems'].append('degraded: usage limit hit during the run; excluded')
             runs.append(run); continue
-        verdict, header, fs, open_items, problems = parse_report(rp.read_text(), skill)
+        text = rp.read_text()
+        verdict, header, fs, open_items, problems = parse_report(text, skill)
         run['problems'] += problems
+        passes, rows = reported_passes(text)
+        run.update(passes=passes, rows=rows, procedure=procedure_problems(passes, rows, launched))
         run.update(verdict=verdict, outcome=is_fail(verdict, skill), n_findings=len(fs), n_open=len(open_items))
         if skill == 'ci-review' and header:
             counts = {'blocking': sum(f['section'] == 'Blocking' for f in fs),
@@ -414,6 +488,36 @@ def summarise(runs, findings, clusters, corpus, combos, manifest, shelved):
     if no_tx:
         P(f'\n{no_tx} run(s) without a transcript to check for contamination.')
     P('\nFinding checks: ' + (', '.join(f'{k}: {v}' for k, v in chk.most_common()) or 'all pass') + '\n')
+
+    # Procedure
+    P('## Procedure\n')
+    P('Inventory passes per release-review.md step 4: each runs as its own sub-agent when it has rows. '
+      '*Reported* is the report\'s Passes line; *launched* is what the transcript shows (claude only).\n')
+    P('| agent-skill | runs | no Passes line | security ok | stored-state ok / needed | behaviour ok / needed | claimed, not launched |')
+    P('|---|---|---|---|---|---|---|')
+    for ag, sk in combos:
+        rs = [r for r in ok_runs if r['agent'] == ag and r['skill'] == sk]
+        if not rs:
+            continue
+        def ok(r, name):
+            if r.get('passes', {}).get(name) != 'sub-agent':
+                return False
+            return r.get('launched') is None or name in r['launched']
+        need = lambda r, k: r.get('rows', {}).get(k, 0) > 0
+        P(f"| {ag}-{sk} | {len(rs)} | {sum(1 for r in rs if not r.get('passes'))} | "
+          f"{sum(ok(r, 'security') for r in rs)}/{len(rs)} | "
+          f"{sum(ok(r, 'stored-state') for r in rs if need(r, 'stored-state'))}/{sum(need(r, 'stored-state') for r in rs)} | "
+          f"{sum(ok(r, 'behaviour') for r in rs if need(r, 'behaviour'))}/{sum(need(r, 'behaviour') for r in rs)} | "
+          f"{sum(any('none launched' in p for p in r.get('procedure', [])) for r in rs)} |")
+    off = [r for r in ok_runs if r.get('procedure') and r['procedure'] != ['no Passes line']]
+    no_line = sum(1 for r in ok_runs if r.get('procedure') == ['no Passes line'])
+    if no_line:
+        P(f'\n{no_line} run(s) have no Passes line (reports from skills before the field existed, or a format slip).')
+    if off:
+        P('')
+        for r in off:
+            P(f"- `{r['run']}`: {'; '.join(r['procedure'])}")
+    P('')
 
     # Cost
     P('## Cost and time\n')
