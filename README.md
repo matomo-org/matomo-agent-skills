@@ -48,8 +48,18 @@ What to expect:
 To leave the trial, run `claude plugin marketplace remove matomo-agent-skills` (this also
 uninstalls the plugin) and reinstall the old skills from `main`.
 
-**Feedback** — what helped, what was wrong or noisy, where the plan gate got in the way — goes to
-the [trial Slack channel](https://innocrafthq.slack.com/archives/C0CJ0DX42MC).
+### Trial feedback
+
+Post feedback in the [trial Slack channel](https://innocrafthq.slack.com/archives/C0CJ0DX42MC).
+Keep it constructive: what helped is as useful as what didn't.
+
+When something went wrong, include:
+
+- **What happened:** the skill used, the task, and what it did (a wrong or missed finding, noisy
+  output, a blocked edit, a wrong command).
+- **What you expected** instead.
+- **Where:** the PR, branch or commit, and the agent (Claude Code or Codex).
+- **Suggested change:** a rule to add, change or drop, or wording that would have avoided it.
 
 ## Skills
 
