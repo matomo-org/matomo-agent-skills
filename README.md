@@ -3,6 +3,54 @@
 Skills that let coding agents (Claude Code, Codex) develop and review Matomo core and Matomo
 plugins at Matomo's quality bar.
 
+## Trial
+
+These skills replace the ones on `main` and are being trialled before they do. If you are in the
+trial, install them from the `review-rebuild-trial` branch as below, not with the
+[Installation](#installation) steps, which would install `main`. Use one set of skills at a time.
+
+1. Remove the old skills these replace, so the two sets do not compete for the same tasks. Keep
+   `matomo-code-quality`, `matomo-test-runner`, `matomo-pr-autofix` and the two
+   `matomo-ui-screenshot-*` skills.
+
+   ```sh
+   for d in ~/.claude/skills ~/.codex/skills; do
+     for s in review adversarial-review debt-check implementation-planning security-rules \
+       api-development-rules plugin-architecture twig-development-rules vue-development-rules \
+       css-development-rules i18n-development-rules migrations-workflow deprecation-rules \
+       documentation frontend-direction; do
+       rm -rf "$d/matomo-$s"
+     done
+   done
+   ```
+
+2. Install the trial skills in Claude Code, then start a new session:
+
+   ```text
+   /plugin marketplace add matomo-org/matomo-agent-skills#review-rebuild-trial
+   /plugin install matomo@matomo-agent-skills
+   ```
+
+   Codex users: clone the repository, `git checkout review-rebuild-trial`, and link the skills as in
+   [Codex and other agents](#codex-and-other-agents-with-skillmd-support).
+
+What to expect:
+
+- **Plan gate.** In a Matomo checkout or plugin repository, the first edit is denied until
+  `matomo-develop` has recorded a plan for the change. This is intended. Start the session with
+  `MATOMO_DEVELOP_GATE=off` to turn it off. Details:
+  [`skills/matomo-develop/hooks/README.md`](skills/matomo-develop/hooks/README.md).
+- **Missing-skills warning.** Matomo's `AGENTS.md` still lists the old skill names, so an agent may
+  warn that they are missing. Ignore it during the trial.
+- **Skill names.** Installed as a plugin, the skills are namespaced: `/matomo:matomo-develop`,
+  `/matomo:matomo-dev-review`, `/matomo:matomo-ci-review`, `/matomo:matomo-rules`.
+
+To leave the trial, run `claude plugin marketplace remove matomo-agent-skills` (this also
+uninstalls the plugin) and reinstall the old skills from `main`.
+
+**Feedback** — what helped, what was wrong or noisy, where the plan gate got in the way — goes to
+the [trial Slack channel](https://innocrafthq.slack.com/archives/C0CJ0DX42MC).
+
 ## Skills
 
 | Skill | Use it for | Applies | Runs tools |
