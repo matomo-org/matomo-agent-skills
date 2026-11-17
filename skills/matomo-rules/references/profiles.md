@@ -21,11 +21,24 @@ python3 <skill-dir>/scripts/resolve_profile.py --root <root> path/to/file ...  #
 python3 <skill-dir>/scripts/resolve_profile.py ... --tiers release              # only sets with release rules
 ```
 
-`<skill-dir>` is this skill's directory. The output is JSON: per component, its kind, version
-envelope, the rule files to read, variant files, plugin-local rule files, and the rule IDs that are
-disabled with their reason. It exits `1` with a message when a profile is invalid (unknown key,
-unknown variant, exclusion of a `locked` rule), and `2` on usage errors. Treat exit `1` as a finding
-against the profile itself; continue with core defaults for that component.
+`<skill-dir>` is this skill's directory. The output is JSON: per component, its kind, versioning,
+version envelope, the rule files to read, variant files, plugin-local rule files, and the rule IDs
+that are disabled with their reason. It exits `1` with a message when a profile is invalid (unknown
+key, unknown variant, exclusion of a `locked` rule), and `2` on usage errors. Treat exit `1` as a
+finding against the profile itself; continue with core defaults for that component.
+
+| `kind` | Component |
+| --- | --- |
+| `core` | Matomo core, and any path not owned by a plugin |
+| `plugin-bundled` | a plugin in core's own repository |
+| `plugin-separate` | a plugin under `plugins/` in its own repository (submodule or checkout) |
+| `plugin-repository` | the plugin repository given as `--root` |
+| `plugin-deleted` | a removed plugin directory that was not a submodule |
+
+`versioning` says whose version a release bumps: `own` when the plugin carries its own version
+(`plugin.json` `version`, or `getInformation()['version']` in a legacy plugin class), `core` for
+core, bundled plugins and a plugin in its own repository without one (TagManager), and `null` for
+`plugin-deleted`. `DOC-05` and the `MIG-*` version marker follow it, not `kind`.
 
 The resolver needs only Python 3 and works both in a full Matomo checkout and in a standalone plugin
 repository (root contains `plugin.json` and no `core/Version.php`).

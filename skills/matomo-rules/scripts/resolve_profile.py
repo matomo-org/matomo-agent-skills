@@ -220,12 +220,27 @@ def core_envelope(core_root):
 def plugin_metadata(plugin_root):
     path = os.path.join(plugin_root, "plugin.json")
     if not os.path.isfile(path):
-        return None, {}
+        return None, {}, None
     try:
         data = json.loads(read(path))
     except ValueError as exc:
         raise ProfileError(f"{path}: invalid JSON: {exc}")
-    return data.get("name"), data.get("require") or {}
+    version = str(data.get("version") or "").strip() or None
+    return data.get("name"), data.get("require") or {}, version
+
+
+def plugin_versioning(plugin_root, class_name, version):
+    """`own` when the plugin carries its own version, else `core`: it is released with core.
+
+    The version is `plugin.json` `version`, or `getInformation()['version']` in a legacy plugin
+    class. A plugin in its own repository without one (TagManager) follows core versioning.
+    """
+    if version:
+        return "own"
+    class_file = os.path.join(plugin_root, f"{class_name}.php")
+    if os.path.isfile(class_file) and re.search(r"""['"]version['"]\s*=>""", read(class_file)):
+        return "own"
+    return "core"
 
 
 def agents_profile(component_root):
@@ -357,6 +372,7 @@ def resolve_component(comp, sets, rules, variants, root_profile, errors, tiers=N
     return {
         "name": comp["name"],
         "kind": comp["kind"],
+        "versioning": comp.get("versioning"),
         "root": comp["root"],
         "php_min": php,
         "matomo_min": matomo,
@@ -380,9 +396,10 @@ def build_components(root, paths):
         return components[key]
 
     if is_plugin_root(root):
-        name, require = plugin_metadata(root)
+        name, require, version = plugin_metadata(root)
         name = name or os.path.basename(os.path.abspath(root))
         comp = component(name, name=name, kind="plugin-repository", root=".", abs_root=root,
+                         versioning=plugin_versioning(root, name, version),
                          php_min=lower_bound(require.get("php")),
                          matomo_min=lower_bound(require.get("matomo")))
         comp["files"].extend(paths)
@@ -398,7 +415,8 @@ def build_components(root, paths):
             name = parts[1]
             abs_root = os.path.join(root, "plugins", name)
             if name not in components:
-                meta_name, require = plugin_metadata(abs_root) if os.path.isdir(abs_root) else (None, {})
+                meta_name, require, version = plugin_metadata(abs_root) \
+                    if os.path.isdir(abs_root) else (None, {}, None)
                 kind = "plugin-deleted"
                 if f"plugins/{name}" in submodules:
                     kind = "plugin-separate"
@@ -413,13 +431,20 @@ def build_components(root, paths):
                     php_min = core_php
                 if not php_min and major(matomo_min) == major(core_matomo):
                     php_min = core_php
+                versioning = None
+                if kind == "plugin-bundled":
+                    versioning = "core"
+                elif kind == "plugin-separate":
+                    versioning = plugin_versioning(abs_root, name, version)
                 component(name, name=meta_name or name, kind=kind, root=f"plugins/{name}",
-                          abs_root=abs_root, php_min=php_min, matomo_min=matomo_min)
+                          abs_root=abs_root, versioning=versioning, php_min=php_min,
+                          matomo_min=matomo_min)
             # A bare `plugins/<Name>` path is a submodule pointer move.
             components[name]["files"].append("/".join(parts[2:]) or ".")
         else:
             component("core", name="core", kind="core", root=".", abs_root=root,
-                      php_min=core_php, matomo_min=core_matomo)["files"].append(path)
+                      versioning="core", php_min=core_php,
+                      matomo_min=core_matomo)["files"].append(path)
     return list(components.values())
 
 

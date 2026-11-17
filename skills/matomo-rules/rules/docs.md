@@ -54,15 +54,21 @@ When behaviour, settings or requirements users see change, update the component'
 ### DOC-05 · Separately versioned plugins record the release
 `release` `minor`
 
-For a plugin with its own repository: bump its version (`plugin.json`, or
-`getInformation()['version']` in a legacy plugin class; core throws if both exist) and add a
-`CHANGELOG.md` entry. If an unreleased version is already pending (version ahead of the newest
-release tag and a changelog entry exists), append to that entry instead; with no tags, or tags that
-do not track the version series and no `CHANGELOG.md`, bump per change and say the release state was
-unresolved. Bundled plugins follow core versioning.
+For a plugin that carries its own version (resolver `versioning: own`): bump that version
+(`plugin.json`, or `getInformation()['version']` in a legacy plugin class; core throws if both
+exist) and add a `CHANGELOG.md` entry. If an unreleased version is already pending (version ahead
+of the newest release tag and a changelog entry exists), append to that entry instead; with no
+tags, or tags that do not track the version series and no `CHANGELOG.md`, bump per change and say
+the release state was unresolved.
 
-Check (only for components of kind `plugin-separate` / `plugin-repository`, from the component root
-the resolver reports): `git -C <component-root> tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1`
+A plugin without its own version (`versioning: core`) follows core versioning, even in its own
+repository (TagManager): never add a version to it, since its update files are keyed on core
+versions. If it keeps a `CHANGELOG.md`, add the entry to its unreleased top entry (one without a
+release date); when every entry is dated, start a new top entry and say its version label needs
+confirming. Bundled plugins follow core versioning.
+
+Check (only for components with `versioning: own`, from the component root the resolver reports):
+`git -C <component-root> tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1`
 
 ### DOC-06 · Internal docblocks are minimal and correct
 `quality` `minor`

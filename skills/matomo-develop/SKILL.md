@@ -34,7 +34,8 @@ Write a short plan before the first edit: files to touch and why, per file. Chec
 - `DEV-02` — no refactors, renames or reformatting the task does not need; note them instead.
 - The non-negotiables that are expensive to retrofit: access checks and CSRF (`SEC-01..03`),
   bounded input (`SEC-10`), privacy coverage for new stored data (`SEC-11`), update file + version
-  marker + install schema parity (`MIG-01`, `MIG-02`), compatibility of public surface (`DEP-*`),
+  marker + install schema parity (`MIG-01`, `MIG-02`), destructive schema changes staged so both
+  deploy orders work (`MIG-10`), compatibility of public surface (`DEP-*`),
   PHP and core API availability for the component (`PHP-01`, `PHP-02`).
 
 For a trivial change the plan is one line. For a change that adds public surface, inputs, sinks or

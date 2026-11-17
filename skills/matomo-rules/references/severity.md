@@ -30,10 +30,11 @@ has a rule to cite when no more specific rule fits.
    that can never match, a filter that drops everything), or a documented parameter, return shape
    or recovery path the code does not honour. A downstream internal exception is not the declared
    contract being honoured.
-4. **Broken installation or upgrade** (`MIG-01`..`MIG-03`, `PHP-01`, `PHP-02`, `DEP-01`..`DEP-04`,
-   `REPO-01`, `REPO-03`, `REPO-05`, `VUE-02`): upgrade, rollback or migration breakage on an existing
-   installation, code that does not run on a supported PHP or Matomo version, public surface
-   removed or changed so that existing plugins fail, or a release artefact that is missing or stale.
+4. **Broken installation or upgrade** (`MIG-01`..`MIG-03`, `MIG-10`, `PHP-01`, `PHP-02`,
+   `DEP-01`..`DEP-04`, `REPO-01`, `REPO-03`, `REPO-05`, `VUE-02`): upgrade, rollback or migration
+   breakage on an existing installation, code that does not run on a supported PHP or Matomo
+   version, public surface removed or changed so that existing plugins fail, or a release artefact
+   that is missing or stale.
 5. **Severely degraded performance** (`SEC-10`, `PERF-01`..`PERF-05`) an operator of a large
    instance notices at once: cost unbounded or superlinear in a value a client controls with no
    bound enforced first, unindexed or unbounded `log_*` queries, a query, remote call or lock added

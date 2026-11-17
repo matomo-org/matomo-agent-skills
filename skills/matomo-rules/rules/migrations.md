@@ -8,8 +8,10 @@ applies: ["Updates/**", "core/Updates/**", "plugin.json", "core/Version.php", "c
 
 Core updates live in `core/Updates/<version>.php`, plugin updates in
 `plugins/<Plugin>/Updates/<version>.php`. The version marker is `core/Version.php` for core and
-bundled plugins, and `plugin.json` `version` (legacy: the plugin class `getInformation()['version']`)
-for separately versioned plugins. Commands are in `references/tooling.md`.
+for plugins that follow core versioning (resolver `versioning: core`: bundled plugins, and a plugin
+in its own repository without its own version, such as TagManager), and `plugin.json` `version`
+(legacy: the plugin class `getInformation()['version']`) for separately versioned plugins
+(`versioning: own`). Commands are in `references/tooling.md`.
 
 ### MIG-01 · A new update file ships with its version marker
 `release` `blocking`
@@ -80,3 +82,24 @@ their own repository (see `.gitmodules` and `corePluginsThatAreIndependent` in
 `core/Version.php` changes only when a core update file needs it or the change is a release: a bare
 bump sends every installation through the updater with nothing to run. Separately versioned plugins
 follow `DOC-05` instead.
+
+### MIG-10 · Changes survive either deploy order
+`release` `major`
+
+Code and schema reach an installation in two steps: the files are deployed, then the update runs.
+The change works in the window between them, in both directions:
+
+- **New code before its update has run.** Tracking requests, scheduled tasks and the UI keep
+  running on the new files until `core:update` finishes. Code that uses a table, column, index,
+  option or config key an update adds tolerates its absence instead of failing or dropping data.
+- **Previous release after the update has run.** Multi-server and rolling deploys, and a rollback,
+  leave the previous release running against the new schema. Updates are additive: they add
+  tables, columns, indexes and options, and do not drop, rename, retype or make restrictive
+  (`NOT NULL`, unique key) anything the previous release reads or writes.
+
+Stage a destructive change across releases: add the new structure, backfill it, switch the code to
+it, and remove the old structure in a later release that no longer has to run beside the code that
+used it. When a change cannot work in both windows, the PR states the deploy order it needs and
+why. That statement is for whoever deploys it and does not lower the finding
+(`references/severity.md`): a violation that loses tracking data or breaks the previous release
+meets a `blocking` floor, and accepting it is the merger's decision.

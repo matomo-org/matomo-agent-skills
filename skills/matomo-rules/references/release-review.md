@@ -196,8 +196,10 @@ it, or give the reason it is not a row (for example two rows for the same table,
 Each kind adds numbered questions, answered like the six above (`T02 Q7 unmet — ...`):
 
 - **Table or column:** 7. Do fresh install and upgrade produce the same schema? (`MIG-02`)
+  8. Does the code work before its update has run, and the previous release after it? (`MIG-10`)
 - **`log_*` dimension:** 7. What does it add per tracking request — queries, lookups, remote calls,
-  locks? (`PERF-01`) 8. Is the schema change shipped as a major update? (`MIG-06`)
+  locks? (`PERF-01`) 8. Is the schema change shipped as a major update? (`MIG-06`) 9. Does the
+  tracker work before the update has added the column, and the previous release after it? (`MIG-10`)
 - **Setting or option:** 7. Which access level can change it? (`SEC-02`) 8. Is the value validated
   on write? (`SEC-06`) 9. What value do existing installations get? (`MIG-02`)
 - **Archive record:** 7. Is it invalidated when its source data changes
