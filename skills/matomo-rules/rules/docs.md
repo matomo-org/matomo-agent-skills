@@ -63,9 +63,8 @@ the release state was unresolved.
 
 A plugin without its own version (`versioning: core`) follows core versioning, even in its own
 repository (TagManager): never add a version to it, since its update files are keyed on core
-versions. If it keeps a `CHANGELOG.md`, add the entry to its unreleased top entry (one without a
-release date); when every entry is dated, start a new top entry and say its version label needs
-confirming. Bundled plugins follow core versioning.
+versions. Do not require a plugin `CHANGELOG.md` entry, even if the file exists; plugin-facing
+changes go in core's developer changelog (`DOC-01`). Bundled plugins follow core versioning.
 
 Check (only for components with `versioning: own`, from the component root the resolver reports):
 `git -C <component-root> tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1`
