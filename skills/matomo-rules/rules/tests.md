@@ -23,6 +23,10 @@ are a regression until shown otherwise.
 A bug fix adds a test that fails without the fix and passes with it, at the lightest level that
 proves it. If that is impractical, the PR says why.
 
+It applies only where the component has a test harness for that kind of file (PHP, JS/Vue,
+templates, updates). Build, CI and release scripts without one get no `TEST-02` finding; an
+unstated gap there is `DEV-07`.
+
 ### TEST-03 · New behaviour is covered at the right level
 `quality` `major`
 
