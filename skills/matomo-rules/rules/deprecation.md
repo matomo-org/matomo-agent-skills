@@ -12,6 +12,15 @@ posted events and their parameters, config and option keys, segment/metric/dimen
 schemas (especially `log_*`), the JavaScript tracker and HTTP tracking API, and exported Vue
 components, props and helpers.
 
+Surface is released when it exists at the component's newest release tag, not merely in the
+review base: a base on a stacked or unmerged branch can hold surface no release has shipped.
+Published betas and release candidates count as releases; nightly `-alpha.<timestamp>` tags do
+not. Surface absent from that tag is new and may change freely. Fetch tags first; with no usable
+tags (shallow clone, untagged repository), compare against the target dev branch and say the
+release state was unresolved.
+
+Check (from the component root): `git -c versionsort.suffix=-b -c versionsort.suffix=-rc tag --sort=-v:refname | grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+(-(b|rc)[0-9]+)?$'`, then `git show <tag>:<path> | grep -n '<name>'`
+
 ### DEP-01 · Public surface is not removed or renamed without a deprecation path
 `release` `blocking`
 
@@ -21,17 +30,17 @@ event, config fallback, segment alias) and deprecate it.
 
 Check: `git diff <range> -- ':!*tests/*' | grep -nE '^-\s*(public|protected) (static )?function'`
 
-### DEP-02 · Existing signatures and behaviour stay compatible
+### DEP-02 · Released signatures and behaviour stay compatible
 `release` `blocking`
 
-Changing an existing public method's parameter order, meaning, types, defaults or return shape in a
+Changing a released public method's parameter order, meaning, types, defaults or return shape in a
 non-major release breaks callers. Additive changes only: new optional trailing parameters, new
 methods, new optional return keys.
 
 ### DEP-03 · Event contracts are additive only
 `release` `blocking`
 
-Posted event parameters are a contract. Only a new trailing parameter is allowed; reordering,
+A released event's parameters are a contract. Only a new trailing parameter is allowed; reordering,
 removing, repurposing, or changing by-reference behaviour is breaking. Renames fire both events
 during the transition.
 
