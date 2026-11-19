@@ -76,7 +76,7 @@ Verify the `process` rules from the evidence available — diff, commits, PR des
 1. **blocking** `<path>:<line>` — `<RULE-ID>` [<rows>] — <defect, consequence, fix>
 
 ### Quality
-2. **major** `<path>:<line>` — `<RULE-ID or "idiom">` — <issue, precedent to follow, fix>
+2. **major** `<path>:<line>` — `<RULE-ID or "no-rule">` — <issue, precedent to follow, fix>
 
 ### Guardrails
 3. **major** — `DEV-02` — <hunks that do not belong, or missing evidence>
@@ -99,4 +99,7 @@ Verify the `process` rules from the evidence available — diff, commits, PR des
 - Findings are specific: file and line (every `path:line`, also inside the text, is the full
   repository-relative path and a line of the file at head), the rule, the concrete consequence, the smallest fix. Group
   repeated instances of one issue into one finding listing the locations.
+- Every finding cites a rule ID. General behaviour defects cite `COR-*` under Release; a departure
+  from the surrounding code cites `DEV-03` and names the precedent. `no-rule` is only for a Quality
+  finding no rule covers, at `major` or `minor` by impact.
 - Do not fix code during the review unless the user asks; then switch to `matomo-develop`.
