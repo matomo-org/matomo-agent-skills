@@ -42,14 +42,17 @@ session="$(printf '%s' "$input" \
   | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
   | head -1 | sed -E 's/^[^:]*:[[:space:]]*"//; s/"$//' || true)"
 
-[ -f "$(plan_record "$root" "$session")" ] && exit 0
+record="$(plan_record "$root" "$session")"
+[ -f "$record" ] && exit 0
+# JSON-escape the path for the message.
+record_json="$(printf '%s' "$record" | sed 's/\\/\\\\/g; s/"/\\"/g')"
 
 cat <<JSON
 {
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "No matomo-develop plan for this change. Run the $(skill_ref) skill's steps 1 and 2 first: scope the change, resolve the profile, write the plan with its inventories, ask every user-visible ambiguity, then write the plan to the path its 'Plan record' section resolves and retry the edit."
+    "permissionDecisionReason": "No matomo-develop plan for this change. For a trivial change as the $(skill_ref) skill's step 2 defines it (comments or docblocks only, or a review comment applied as worded, with no behaviour change), write a one-line plan ending with the line '<!-- matomo-develop: planned -->' to ${record_json} and retry the edit. Otherwise run the skill's steps 1 and 2 first: scope the change, resolve the profile, write the plan with its inventories, ask every user-visible ambiguity, then write the plan to that path and retry the edit."
   }
 }
 JSON

@@ -38,7 +38,10 @@ Write a short plan before the first edit: files to touch and why, per file. Chec
   deploy orders work (`MIG-10`), compatibility of public surface (`DEP-*`),
   PHP and core API availability for the component (`PHP-01`, `PHP-02`).
 
-For a trivial change the plan is one line. For a change that adds public surface, inputs, sinks or
+A change is trivial when it touches only comments or docblocks, or applies a review comment as
+worded, and changes no behaviour, signature or stored data. Its plan is one line naming the change
+and its source (`Apply review comment <link>: fix @return of Foo::bar`), and step 1 reduces to
+reading the rule set for the lines touched (`docs.md` for a docblock). For a change that adds public surface, inputs, sinks or
 stored state, the plan also carries the inventories of `matomo-rules/references/release-review.md`
 step 6: list each row the change will create or touch — including every existing function, template
 or component whose behaviour it changes, with the consumers of that behaviour traced as behaviour question 2 asks — and
