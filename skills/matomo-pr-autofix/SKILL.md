@@ -204,6 +204,21 @@ Expected screenshots are Git LFS-tracked; a normal push should carry the LFS obj
 After syncing, keep only screenshots that correspond to confirmed related failures.
 Do not revert pre-existing user changes.
 
+### Check Synced Files Before Using Them
+
+When DDEV syncs the project files with Mutagen (the default on macOS), files written inside the container reach the host with a delay. A `git status` or checksum read right after `development:sync-system-test-processed` or `tests:sync-ui-screenshots` can then show only part of the changes. Before counting, checking, or staging the synced files, run:
+
+```bash
+ddev mutagen sync
+```
+
+Then compare the number of changed files with the number of failures found in the logs. Without Mutagen, files are written directly and this step is not needed.
+
+Before committing an expected file or screenshot, also check that it shows intended behaviour:
+
+1. An expected file or screenshot that shows an error page (for example a CSRF failure or an exception screen) makes the check green but hides a real defect. Do not commit it; fix the cause instead.
+2. A screenshot that failed, was synced, and then failed again on the next run is not stable. Treat it as flaky and rerun it before syncing it again.
+
 ### Submodule-Located Expected Files and Screenshots
 
 Some plugins are git submodules (for example `CustomAlerts`, `TagManager`, `AnonymousPiwikUsageMeasurement`). When a sync writes expected files or screenshots inside a submodule working tree, those changes cannot ride along on the core PR through the gitlink alone — the submodule needs its own commit and push, and the core PR must then advance the gitlink pointer.
