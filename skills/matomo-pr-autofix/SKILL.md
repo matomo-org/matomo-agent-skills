@@ -109,6 +109,21 @@ Extract:
 2. Failed test names, spec names, expected filenames, and screenshot names.
 3. GitHub run IDs and run URLs. The run id doubles as the `<buildnumber>` for the sync commands below.
 
+### When No Run Exists for the Head Commit
+
+GitHub does not run `pull_request` workflows for a commit pushed while the PR has a merge conflict. Only external app checks (for example `Aikido`) report on that commit, and the results of earlier commits stay visible, so the PR can look green while nothing ran on its head.
+
+When a pushed commit has no run, check for a conflict before re-pushing or rerunning. This needs Git 2.38 or later:
+
+```bash
+git fetch origin <base> <head> --no-recurse-submodules
+git merge-tree --write-tree --name-only "origin/<base>" "origin/<head>" | grep '^CONFLICT'
+```
+
+Any output means the PR is conflicted. Resolving the conflict is what brings CI back. Trust `git merge-tree` over the API's `mergeable` field, which is often `UNKNOWN` or stale right after a push. Draft status is not a cause: draft PRs get CI.
+
+Re-read `baseRefName` at each iteration. When a PR's base branch is merged or deleted, GitHub retargets the PR, which can make it conflicted without any new push.
+
 ## Failure Classification
 
 Classify every failing suite or job before fixing it.
